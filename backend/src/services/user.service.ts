@@ -3,6 +3,7 @@ import { RoleRepository, Role } from '../repositories/role.repository';
 import { CreateUserRequest, UpdateUserRequest, UserResponse, UserWithRoleResponse, ChangePasswordRequest, LoginRequest, LoginResponse } from '../dto/requests/user.dto';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 
 export class UserService {
   private static readonly SALT_ROUNDS = 10;
@@ -12,20 +13,20 @@ export class UserService {
   static async createUser(data: CreateUserRequest): Promise<UserWithRoleResponse> {
     const existingUser = await UserRepository.findByUsername(data.username);
     if (existingUser) {
-      throw new Error('用户名已存在');
+      throw new ValidationError('用户名已存在');
     }
 
     if (data.email) {
       const existingEmail = await UserRepository.findByEmail(data.email);
       if (existingEmail) {
-        throw new Error('邮箱已被使用');
+        throw new ValidationError('邮箱已被使用');
       }
     }
 
     if (data.phone) {
       const existingPhone = await UserRepository.findByPhone(data.phone);
       if (existingPhone) {
-        throw new Error('手机号已被使用');
+        throw new ValidationError('手机号已被使用');
       }
     }
 
@@ -57,7 +58,7 @@ export class UserService {
   static async getUserById(id: number): Promise<UserWithRoleResponse> {
     const user = await UserRepository.findByIdWithRoles(id);
     if (!user) {
-      throw new Error('用户不存在');
+      throw new NotFoundError('用户不存在');
     }
     return this.toResponseWithRoles(user);
   }
@@ -105,20 +106,20 @@ export class UserService {
   static async updateUser(id: number, data: UpdateUserRequest): Promise<UserResponse> {
     const existingUser = await UserRepository.findById(id);
     if (!existingUser) {
-      throw new Error('用户不存在');
+      throw new NotFoundError('用户不存在');
     }
 
     if (data.email && data.email !== existingUser.email) {
       const existingEmail = await UserRepository.findByEmail(data.email);
       if (existingEmail) {
-        throw new Error('邮箱已被使用');
+        throw new ValidationError('邮箱已被使用');
       }
     }
 
     if (data.phone && data.phone !== existingUser.phone) {
       const existingPhone = await UserRepository.findByPhone(data.phone);
       if (existingPhone) {
-        throw new Error('手机号已被使用');
+        throw new ValidationError('手机号已被使用');
       }
     }
 
@@ -149,7 +150,7 @@ export class UserService {
   static async deleteUser(id: number): Promise<boolean> {
     const user = await UserRepository.findById(id);
     if (!user) {
-      throw new Error('用户不存在');
+      throw new NotFoundError('用户不存在');
     }
 
     const success = await UserRepository.delete(id);
@@ -167,7 +168,7 @@ export class UserService {
     }
 
     if (user.status !== 'active') {
-      throw new Error('账户已被禁用或锁定');
+      throw new ForbiddenError('账户已被禁用或锁定');
     }
 
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
@@ -193,7 +194,7 @@ export class UserService {
   static async changePassword(userId: number, data: ChangePasswordRequest): Promise<boolean> {
     const user = await UserRepository.findById(userId);
     if (!user) {
-      throw new Error('用户不存在');
+      throw new NotFoundError('用户不存在');
     }
 
     const isPasswordValid = await bcrypt.compare(data.old_password, user.password);

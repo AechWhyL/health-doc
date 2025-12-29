@@ -19,7 +19,7 @@ const pool = mysql.createPool({
 export class Database {
   static async query<T = any>(sql: string, params?: any[]): Promise<T[]> {
     try {
-      const [rows] = await pool.execute(sql, params);
+      const [rows] = await pool.execute(sql, params || []);
       return rows as T[];
     } catch (error) {
       console.error('Database query error:', error);
@@ -28,13 +28,13 @@ export class Database {
   }
 
   static async queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
-    const results = await this.query<T>(sql, params);
+    const results = await this.query<T>(sql, params || []);
     return results.length > 0 ? results[0] : null;
   }
 
   static async insert(sql: string, params?: any[]): Promise<number> {
     try {
-      const [result] = await pool.execute(sql, params);
+      const [result] = await pool.execute(sql, params || []);
       return (result as any).insertId;
     } catch (error) {
       console.error('Database insert error:', error);
@@ -44,7 +44,7 @@ export class Database {
 
   static async update(sql: string, params?: any[]): Promise<number> {
     try {
-      const [result] = await pool.execute(sql, params);
+      const [result] = await pool.execute(sql, params || []);
       return (result as any).affectedRows;
     } catch (error) {
       console.error('Database update error:', error);
@@ -54,7 +54,7 @@ export class Database {
 
   static async delete(sql: string, params?: any[]): Promise<number> {
     try {
-      const [result] = await pool.execute(sql, params);
+      const [result] = await pool.execute(sql, params || []);
       return (result as any).affectedRows;
     } catch (error) {
       console.error('Database delete error:', error);
@@ -73,11 +73,13 @@ export class Database {
     const offset = (page - 1) * pageSize;
 
     const countSql = `SELECT COUNT(*) as total FROM ${tableName} WHERE ${where}`;
-    const countResult = await this.queryOne<{ total: number }>(countSql, params);
+    const countResult = params.length > 0 
+      ? await this.queryOne<{ total: number }>(countSql, params)
+      : await this.queryOne<{ total: number }>(countSql);
     const total = countResult?.total || 0;
 
-    const dataSql = `SELECT * FROM ${tableName} WHERE ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
-    const items = await this.query<T>(dataSql, [...params, pageSize, offset]);
+    const dataSql = `SELECT * FROM ${tableName} WHERE ${where} ORDER BY ${orderBy} LIMIT ${parseInt(String(pageSize))} OFFSET ${parseInt(String(offset))}`;
+    const items = await this.query<T>(dataSql, params.length > 0 ? params : undefined);
 
     return { items, total };
   }

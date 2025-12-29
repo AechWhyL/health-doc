@@ -1,6 +1,6 @@
 import { Context } from 'koa';
 import { HealthRecordService } from '../services/healthRecord.service';
-import { CreateHealthRecordRequest, UpdateHealthRecordRequest, QueryHealthRecordRequest } from '../dto/requests/healthRecord.dto';
+import { CreateHealthRecordRequest, UpdateHealthRecordRequest, QueryHealthRecordRequest, createHealthRecordSchema, updateHealthRecordSchema, queryHealthRecordSchema } from '../dto/requests/healthRecord.dto';
 
 export class HealthRecordController {
   /**
@@ -19,8 +19,9 @@ export class HealthRecordController {
    *             required:
    *               - elder_id
    *               - category_id
-   *               - record_date
+   *               - record_title
    *               - record_content
+   *               - record_date
    *             properties:
    *               elder_id:
    *                 type: integer
@@ -28,29 +29,22 @@ export class HealthRecordController {
    *                 example: 1
    *               category_id:
    *                 type: integer
-   *                 description: 健康记录分类ID（1：血压，2：血糖，3：心率，4：体重，5：其他）
+   *                 description: 分类ID
    *                 example: 1
-   *               record_date:
+   *               record_title:
    *                 type: string
-   *                 format: date-time
-   *                 description: 记录日期时间
-   *                 example: "2024-01-15T08:00:00Z"
+   *                 maxLength: 100
+   *                 description: 记录标题
+   *                 example: 体检报告
    *               record_content:
    *                 type: string
    *                 description: 记录内容
-   *                 example: 血压：120/80 mmHg
-   *               record_value:
+   *                 example: 血压正常，血糖偏高
+   *               record_date:
    *                 type: string
-   *                 description: 记录数值
-   *                 example: "120/80"
-   *               unit:
-   *                 type: string
-   *                 description: 单位
-   *                 example: mmHg
-   *               notes:
-   *                 type: string
-   *                 description: 备注
-   *                 example: 血压正常
+   *                 format: date
+   *                 description: 记录日期
+   *                 example: 2024-01-01
    *     responses:
    *       200:
    *         description: 创建成功
@@ -66,44 +60,19 @@ export class HealthRecordController {
    *                   type: string
    *                   example: 健康记录创建成功
    *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                       example: 1
-   *                     elder_id:
-   *                       type: integer
-   *                       example: 1
-   *                     category_id:
-   *                       type: integer
-   *                       example: 1
-   *                     record_date:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     record_content:
-   *                       type: string
-   *                       example: 血压：120/80 mmHg
-   *                     record_value:
-   *                       type: string
-   *                       example: "120/80"
-   *                     unit:
-   *                       type: string
-   *                       example: mmHg
-   *                     notes:
-   *                       type: string
-   *                       example: 血压正常
-   *                     created_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     updated_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
+   *                   $ref: '#/components/schemas/HealthRecordResponse'
+   *       400:
+   *         description: 请求参数错误
+   *       500:
+   *         description: 服务器内部错误
    */
   static async createHealthRecord(ctx: Context) {
-    const data: CreateHealthRecordRequest = ctx.request.body;
+    const { error, value } = createHealthRecordSchema.validate(ctx.request.body);
+    if (error) {
+      ctx.badRequest(error.details[0].message);
+      return;
+    }
+    const data: CreateHealthRecordRequest = value;
     const result = await HealthRecordService.createHealthRecord(data);
     ctx.success(result, '健康记录创建成功');
   }
@@ -112,8 +81,8 @@ export class HealthRecordController {
    * @swagger
    * /api/v1/elder-health/health-record/{id}:
    *   get:
-   *     summary: 获取健康记录详情
-   *     description: 根据ID获取健康记录详细信息
+   *     summary: 查询健康记录
+   *     description: 根据ID查询健康记录
    *     tags: [健康记录管理]
    *     parameters:
    *       - in: path
@@ -136,43 +105,15 @@ export class HealthRecordController {
    *                   example: 200
    *                 message:
    *                   type: string
-   *                   example: 操作成功
+   *                   example: success
    *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                       example: 1
-   *                     elder_id:
-   *                       type: integer
-   *                       example: 1
-   *                     category_id:
-   *                       type: integer
-   *                       example: 1
-   *                     record_date:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     record_content:
-   *                       type: string
-   *                       example: 血压：120/80 mmHg
-   *                     record_value:
-   *                       type: string
-   *                       example: "120/80"
-   *                     unit:
-   *                       type: string
-   *                       example: mmHg
-   *                     notes:
-   *                       type: string
-   *                       example: 血压正常
-   *                     created_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     updated_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
+   *                   $ref: '#/components/schemas/HealthRecordResponse'
+   *       400:
+   *         description: 请求参数错误
+   *       404:
+   *         description: 健康记录不存在
+   *       500:
+   *         description: 服务器内部错误
    */
   static async getHealthRecordById(ctx: Context) {
     const { id } = ctx.params;
@@ -189,43 +130,49 @@ export class HealthRecordController {
    * @swagger
    * /api/v1/elder-health/health-record/list:
    *   get:
-   *     summary: 获取健康记录列表
-   *     description: 分页查询健康记录列表，支持按老人ID、分类ID、日期范围筛选
+   *     summary: 查询健康记录列表
+   *     description: 分页查询健康记录列表，支持按老人ID、分类ID和日期范围搜索
    *     tags: [健康记录管理]
    *     parameters:
    *       - in: query
    *         name: page
+   *         required: false
    *         schema:
    *           type: integer
    *           default: 1
    *         description: 页码
    *       - in: query
    *         name: pageSize
+   *         required: false
    *         schema:
    *           type: integer
    *           default: 10
-   *         description: 每页数量
+   *         description: 每页大小
    *       - in: query
    *         name: elder_id
+   *         required: false
    *         schema:
    *           type: integer
    *         description: 老人ID
    *       - in: query
    *         name: category_id
+   *         required: false
    *         schema:
    *           type: integer
-   *         description: 健康记录分类ID（1：血压，2：血糖，3：心率，4：体重，5：其他）
+   *         description: 分类ID
    *       - in: query
    *         name: start_date
+   *         required: false
    *         schema:
    *           type: string
-   *           format: date-time
+   *           format: date
    *         description: 开始日期
    *       - in: query
    *         name: end_date
+   *         required: false
    *         schema:
    *           type: string
-   *           format: date-time
+   *           format: date
    *         description: 结束日期
    *     responses:
    *       200:
@@ -240,60 +187,47 @@ export class HealthRecordController {
    *                   example: 200
    *                 message:
    *                   type: string
-   *                   example: 操作成功
+   *                   example: success
    *                 data:
    *                   type: object
    *                   properties:
-   *                     items:
+   *                     total:
+   *                       type: integer
+   *                       description: 总记录数
+   *                     pages:
+   *                       type: integer
+   *                       description: 总页数
+   *                     current:
+   *                       type: integer
+   *                       description: 当前页码
+   *                     size:
+   *                       type: integer
+   *                       description: 每页大小
+   *                     records:
    *                       type: array
    *                       items:
-   *                         type: object
-   *                         properties:
-   *                           id:
-   *                             type: integer
-   *                           elder_id:
-   *                             type: integer
-   *                           category_id:
-   *                             type: integer
-   *                           record_date:
-   *                             type: string
-   *                             format: date-time
-   *                           record_content:
-   *                             type: string
-   *                           record_value:
-   *                             type: string
-   *                           unit:
-   *                             type: string
-   *                           notes:
-   *                             type: string
-   *                           created_at:
-   *                             type: string
-   *                             format: date-time
-   *                           updated_at:
-   *                             type: string
-   *                             format: date-time
-   *                     pagination:
-   *                       type: object
-   *                       properties:
-   *                         page:
-   *                           type: integer
-   *                         pageSize:
-   *                           type: integer
-   *                         total:
-   *                           type: integer
-   *                         pages:
-   *                           type: integer
+   *                         $ref: '#/components/schemas/HealthRecordResponse'
+   *       400:
+   *         description: 请求参数错误
+   *       500:
+   *         description: 服务器内部错误
    */
   static async getHealthRecordList(ctx: Context) {
-    const { page = 1, pageSize = 10, elder_id, category_id, start_date, end_date } = ctx.query as unknown as QueryHealthRecordRequest;
+    const { error, value } = queryHealthRecordSchema.validate(ctx.query);
+    if (error) {
+      ctx.badRequest(error.details[0].message);
+      return;
+    }
+
+    const { page, pageSize, elder_id, category_id, start_date, end_date } = value;
     const pageNum = parseInt(page.toString(), 10);
     const pageSizeNum = parseInt(pageSize.toString(), 10);
     
-    if (isNaN(pageNum) || pageNum < 1) {
+    if (isNaN(pageNum) || pageNum <1) {
       ctx.badRequest('无效的页码');
       return;
     }
-    if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
+    if (isNaN(pageSizeNum) || pageSizeNum <1 || pageSizeNum > 100) {
       ctx.badRequest('无效的每页大小');
       return;
     }
@@ -325,10 +259,10 @@ export class HealthRecordController {
 
   /**
    * @swagger
-   * /api/v1/elder-health/health-record/elder/{elder_id}:
+   * /api/v1/elder-health/elder/{elder_id}/health-records:
    *   get:
-   *     summary: 获取老人的健康记录
-   *     description: 根据老人ID获取该老人的所有健康记录
+   *     summary: 查询老人的所有健康记录
+   *     description: 根据老人ID查询该老人的所有健康记录
    *     tags: [健康记录管理]
    *     parameters:
    *       - in: path
@@ -351,35 +285,15 @@ export class HealthRecordController {
    *                   example: 200
    *                 message:
    *                   type: string
-   *                   example: 操作成功
+   *                   example: success
    *                 data:
    *                   type: array
    *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: integer
-   *                       elder_id:
-   *                         type: integer
-   *                       category_id:
-   *                         type: integer
-   *                       record_date:
-   *                         type: string
-   *                         format: date-time
-   *                       record_content:
-   *                         type: string
-   *                       record_value:
-   *                         type: string
-   *                       unit:
-   *                         type: string
-   *                       notes:
-   *                         type: string
-   *                       created_at:
-   *                         type: string
-   *                         format: date-time
-   *                       updated_at:
-   *                         type: string
-   *                         format: date-time
+   *                     $ref: '#/components/schemas/HealthRecordResponse'
+   *       400:
+   *         description: 请求参数错误
+   *       500:
+   *         description: 服务器内部错误
    */
   static async getHealthRecordsByElderId(ctx: Context) {
     const { elder_id } = ctx.params;
@@ -398,7 +312,7 @@ export class HealthRecordController {
    * /api/v1/elder-health/health-record/{id}:
    *   put:
    *     summary: 更新健康记录
-   *     description: 根据ID更新健康记录信息
+   *     description: 根据ID更新健康记录
    *     tags: [健康记录管理]
    *     parameters:
    *       - in: path
@@ -417,29 +331,18 @@ export class HealthRecordController {
    *             properties:
    *               category_id:
    *                 type: integer
-   *                 description: 健康记录分类ID（1：血压，2：血糖，3：心率，4：体重，5：其他）
-   *                 example: 1
-   *               record_date:
+   *                 description: 分类ID
+   *               record_title:
    *                 type: string
-   *                 format: date-time
-   *                 description: 记录日期时间
-   *                 example: "2024-01-15T08:00:00Z"
+   *                 maxLength: 100
+   *                 description: 记录标题
    *               record_content:
    *                 type: string
    *                 description: 记录内容
-   *                 example: 血压：120/80 mmHg
-   *               record_value:
+   *               record_date:
    *                 type: string
-   *                 description: 记录数值
-   *                 example: "120/80"
-   *               unit:
-   *                 type: string
-   *                 description: 单位
-   *                 example: mmHg
-   *               notes:
-   *                 type: string
-   *                 description: 备注
-   *                 example: 血压正常
+   *                 format: date
+   *                 description: 记录日期
    *     responses:
    *       200:
    *         description: 更新成功
@@ -455,41 +358,13 @@ export class HealthRecordController {
    *                   type: string
    *                   example: 健康记录更新成功
    *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: integer
-   *                       example: 1
-   *                     elder_id:
-   *                       type: integer
-   *                       example: 1
-   *                     category_id:
-   *                       type: integer
-   *                       example: 1
-   *                     record_date:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     record_content:
-   *                       type: string
-   *                       example: 血压：120/80 mmHg
-   *                     record_value:
-   *                       type: string
-   *                       example: "120/80"
-   *                     unit:
-   *                       type: string
-   *                       example: mmHg
-   *                     notes:
-   *                       type: string
-   *                       example: 血压正常
-   *                     created_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
-   *                     updated_at:
-   *                       type: string
-   *                       format: date-time
-   *                       example: "2024-01-15T08:00:00Z"
+   *                   $ref: '#/components/schemas/HealthRecordResponse'
+   *       400:
+   *         description: 请求参数错误
+   *       404:
+   *         description: 健康记录不存在
+   *       500:
+   *         description: 服务器内部错误
    */
   static async updateHealthRecord(ctx: Context) {
     const { id } = ctx.params;
@@ -499,7 +374,13 @@ export class HealthRecordController {
       return;
     }
 
-    const data: UpdateHealthRecordRequest = ctx.request.body;
+    const { error, value } = updateHealthRecordSchema.validate(ctx.request.body);
+    if (error) {
+      ctx.badRequest(error.details[0].message);
+      return;
+    }
+
+    const data: UpdateHealthRecordRequest = value;
     const result = await HealthRecordService.updateHealthRecord(recordId, data);
     ctx.success(result, '健康记录更新成功');
   }
@@ -534,8 +415,13 @@ export class HealthRecordController {
    *                   type: string
    *                   example: 健康记录删除成功
    *                 data:
-   *                   type: object
-   *                   nullable: true
+   *                   type: null
+   *       400:
+   *         description: 请求参数错误
+   *       404:
+   *         description: 健康记录不存在
+   *       500:
+   *         description: 服务器内部错误
    */
   static async deleteHealthRecord(ctx: Context) {
     const { id } = ctx.params;

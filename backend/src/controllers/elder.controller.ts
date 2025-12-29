@@ -1,15 +1,15 @@
 import { Context } from 'koa';
 import { ElderService } from '../services/elder.service';
-import { CreateElderRequest, UpdateElderRequest, QueryElderRequest } from '../dto/requests/elder.dto';
+import { CreateElderRequest, UpdateElderRequest, QueryElderRequest, createElderSchema, updateElderSchema, queryElderSchema, idParamSchema, elderIdParamSchema } from '../dto/requests/elder.dto';
 
 export class ElderController {
   /**
    * @swagger
    * /api/v1/elder-health/elder:
    *   post:
-   *     summary: 创建老人基本信息
-   *     description: 创建新的老人基本信息记录
-   *     tags: [老人健康档案]
+   *     summary: 创建老人信息
+   *     description: 创建新的老人信息
+   *     tags: [老人信息管理]
    *     requestBody:
    *       required: true
    *       content:
@@ -26,11 +26,14 @@ export class ElderController {
    *             properties:
    *               name:
    *                 type: string
-   *                 description: 老人姓名
+   *                 minLength: 1
+   *                 maxLength: 50
+   *                 description: 姓名
    *                 example: 张三
    *               gender:
    *                 type: integer
-   *                 description: 性别（0：女，1：男）
+   *                 enum: [0, 1]
+   *                 description: 性别（0-女，1-男）
    *                 example: 1
    *               birth_date:
    *                 type: string
@@ -39,6 +42,7 @@ export class ElderController {
    *                 example: 1950-01-01
    *               phone:
    *                 type: string
+   *                 pattern: '^1[3-9]\d{9}$'
    *                 description: 联系电话
    *                 example: 13800138000
    *               id_card:
@@ -47,22 +51,28 @@ export class ElderController {
    *                 example: 110101195001011234
    *               emergency_contact:
    *                 type: string
+   *                 minLength: 1
+   *                 maxLength: 50
    *                 description: 紧急联系人
    *                 example: 李四
    *               address:
    *                 type: string
+   *                 maxLength: 200
    *                 description: 家庭住址
    *                 example: 北京市朝阳区
    *               height:
    *                 type: number
+   *                 maximum: 300
    *                 description: 身高（厘米）
    *                 example: 170
    *               weight:
    *                 type: number
+   *                 maximum: 500
    *                 description: 体重（公斤）
    *                 example: 65
    *               blood_type:
    *                 type: string
+   *                 enum: [A, B, AB, O]
    *                 description: 血型
    *                 example: A
    *     responses:
@@ -87,7 +97,7 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async createElder(ctx: Context) {
-    const data: CreateElderRequest = ctx.request.body;
+    const data: CreateElderRequest = ctx.state.validatedData || ctx.request.body;
     const result = await ElderService.createElder(data);
     ctx.success(result, '老人信息创建成功');
   }
@@ -96,9 +106,9 @@ export class ElderController {
    * @swagger
    * /api/v1/elder-health/elder/{id}:
    *   get:
-   *     summary: 查询老人基本信息
-   *     description: 根据ID查询老人基本信息
-   *     tags: [老人健康档案]
+   *     summary: 查询老人信息
+   *     description: 根据ID查询老人信息
+   *     tags: [老人信息管理]
    *     parameters:
    *       - in: path
    *         name: id
@@ -131,13 +141,8 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async getElderById(ctx: Context) {
-    const { id } = ctx.params;
-    const elderId = parseInt(id, 10);
-    if (isNaN(elderId)) {
-      ctx.badRequest('无效的老人ID');
-      return;
-    }
-    const result = await ElderService.getElderById(elderId);
+    const { id } = ctx.state.validatedData || ctx.params;
+    const result = await ElderService.getElderById(id);
     ctx.success(result);
   }
 
@@ -147,7 +152,7 @@ export class ElderController {
    *   get:
    *     summary: 查询老人信息列表
    *     description: 分页查询老人信息列表，支持按姓名和身份证号搜索
-   *     tags: [老人健康档案]
+   *     tags: [老人信息管理]
    *     parameters:
    *       - in: query
    *         name: page
@@ -168,13 +173,15 @@ export class ElderController {
    *         required: false
    *         schema:
    *           type: string
-   *         description: 老人姓名（模糊搜索）
+   *           maxLength: 50
+   *         description: 姓名（模糊搜索）
    *       - in: query
    *         name: id_card
    *         required: false
    *         schema:
    *           type: string
-   *         description: 身份证号（模糊搜索）
+   *           maxLength: 18
+   *         description: 身份证号
    *     responses:
    *       200:
    *         description: 查询成功
@@ -214,31 +221,21 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async getElderList(ctx: Context) {
-    const { page = 1, pageSize = 10, name, id_card } = ctx.query as any;
-    const pageNum = parseInt(page.toString(), 10);
-    const pageSizeNum = parseInt(pageSize.toString(), 10);
-    
-    if (isNaN(pageNum) || pageNum < 1) {
-      ctx.badRequest('无效的页码');
-      return;
-    }
-    if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
-      ctx.badRequest('无效的每页大小');
-      return;
-    }
+    const data: QueryElderRequest = ctx.state.validatedData || ctx.query;
+    const { page, pageSize, name, id_card } = data;
 
-    const { items, total } = await ElderService.getElderList(pageNum, pageSizeNum, name, id_card);
+    const { items, total } = await ElderService.getElderList(page, pageSize, name, id_card);
     
-    ctx.paginate(items, pageNum, pageSizeNum, total);
+    ctx.paginate(items, page, pageSize, total);
   }
 
   /**
    * @swagger
    * /api/v1/elder-health/elder/{id}:
    *   put:
-   *     summary: 更新老人基本信息
-   *     description: 根据ID更新老人基本信息
-   *     tags: [老人健康档案]
+   *     summary: 更新老人信息
+   *     description: 根据ID更新老人信息
+   *     tags: [老人信息管理]
    *     parameters:
    *       - in: path
    *         name: id
@@ -256,34 +253,44 @@ export class ElderController {
    *             properties:
    *               name:
    *                 type: string
-   *                 description: 老人姓名
+   *                 minLength: 1
+   *                 maxLength: 50
+   *                 description: 姓名
    *               gender:
    *                 type: integer
-   *                 description: 性别（0：女，1：男）
+   *                 enum: [0, 1]
+   *                 description: 性别（0-女，1-男）
    *               birth_date:
    *                 type: string
    *                 format: date
    *                 description: 出生日期
    *               phone:
    *                 type: string
+   *                 pattern: '^1[3-9]\d{9}$'
    *                 description: 联系电话
    *               id_card:
    *                 type: string
    *                 description: 身份证号
    *               emergency_contact:
    *                 type: string
+   *                 minLength: 1
+   *                 maxLength: 50
    *                 description: 紧急联系人
    *               address:
    *                 type: string
+   *                 maxLength: 200
    *                 description: 家庭住址
    *               height:
    *                 type: number
+   *                 maximum: 300
    *                 description: 身高（厘米）
    *               weight:
    *                 type: number
+   *                 maximum: 500
    *                 description: 体重（公斤）
    *               blood_type:
    *                 type: string
+   *                 enum: [A, B, AB, O]
    *                 description: 血型
    *     responses:
    *       200:
@@ -309,15 +316,9 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async updateElder(ctx: Context) {
-    const { id } = ctx.params;
-    const elderId = parseInt(id, 10);
-    if (isNaN(elderId)) {
-      ctx.badRequest('无效的老人ID');
-      return;
-    }
-
-    const data: UpdateElderRequest = ctx.request.body;
-    const result = await ElderService.updateElder(elderId, data);
+    const { id } = ctx.state.validatedData || ctx.params;
+    const data: UpdateElderRequest = ctx.state.validatedData || ctx.request.body;
+    const result = await ElderService.updateElder(id, data);
     ctx.success(result, '老人信息更新成功');
   }
 
@@ -325,9 +326,9 @@ export class ElderController {
    * @swagger
    * /api/v1/elder-health/elder/{id}:
    *   delete:
-   *     summary: 删除老人基本信息
-   *     description: 根据ID删除老人基本信息
-   *     tags: [老人健康档案]
+   *     summary: 删除老人信息
+   *     description: 根据ID删除老人信息
+   *     tags: [老人信息管理]
    *     parameters:
    *       - in: path
    *         name: id
@@ -360,14 +361,8 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async deleteElder(ctx: Context) {
-    const { id } = ctx.params;
-    const elderId = parseInt(id, 10);
-    if (isNaN(elderId)) {
-      ctx.badRequest('无效的老人ID');
-      return;
-    }
-
-    await ElderService.deleteElder(elderId);
+    const { id } = ctx.state.validatedData || ctx.params;
+    await ElderService.deleteElder(id);
     ctx.success(null, '老人信息删除成功');
   }
 }

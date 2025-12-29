@@ -6,9 +6,9 @@ const router = new Router({
 });
 
 router.post('/health-record', HealthRecordController.createHealthRecord);
-router.get('/health-record/:id', HealthRecordController.getHealthRecordById);
 router.get('/health-record/list', HealthRecordController.getHealthRecordList);
 router.get('/health-record/elder/:elder_id', HealthRecordController.getHealthRecordsByElderId);
+router.get('/health-record/:id', HealthRecordController.getHealthRecordById);
 router.put('/health-record/:id', HealthRecordController.updateHealthRecord);
 router.delete('/health-record/:id', HealthRecordController.deleteHealthRecord);
 

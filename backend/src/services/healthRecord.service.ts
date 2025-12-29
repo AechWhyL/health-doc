@@ -1,6 +1,7 @@
 import { HealthRecordRepository } from '../repositories/healthRecord.repository';
 import { HealthRecord } from '../types/healthRecord';
 import { CreateHealthRecordRequest, UpdateHealthRecordRequest, HealthRecordResponse } from '../dto/requests/healthRecord.dto';
+import { NotFoundError } from '../utils/errors';
 
 export class HealthRecordService {
   static async createHealthRecord(data: CreateHealthRecordRequest): Promise<HealthRecordResponse> {
@@ -25,7 +26,7 @@ export class HealthRecordService {
   static async getHealthRecordById(id: number): Promise<HealthRecordResponse> {
     const record = await HealthRecordRepository.findById(id);
     if (!record) {
-      throw new Error('健康记录不存在');
+      throw new NotFoundError('健康记录不存在');
     }
     return this.toResponse(record);
   }
@@ -73,7 +74,7 @@ export class HealthRecordService {
   static async updateHealthRecord(id: number, data: UpdateHealthRecordRequest): Promise<HealthRecordResponse> {
     const existingRecord = await HealthRecordRepository.findById(id);
     if (!existingRecord) {
-      throw new Error('健康记录不存在');
+      throw new NotFoundError('健康记录不存在');
     }
 
     const updateData: Partial<Omit<HealthRecord, 'id' | 'elder_id' | 'created_at' | 'updated_at'>> = {};
@@ -98,7 +99,7 @@ export class HealthRecordService {
   static async deleteHealthRecord(id: number): Promise<boolean> {
     const record = await HealthRecordRepository.findById(id);
     if (!record) {
-      throw new Error('健康记录不存在');
+      throw new NotFoundError('健康记录不存在');
     }
 
     const success = await HealthRecordRepository.delete(id);

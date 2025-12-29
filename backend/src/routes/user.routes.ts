@@ -1,20 +1,22 @@
 import Router from '@koa/router';
 import { UserController } from '../controllers/user.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { validateBody, validateQuery, validateParams } from '../middlewares/validation.middleware';
+import { createUserSchema, updateUserSchema, queryUserSchema, loginSchema, changePasswordSchema, idParamSchema } from '../dto/requests/user.dto';
 
 const router = new Router({
   prefix: '/api/v1/users'
 });
 
-router.post('/login', UserController.login);
+router.post('/login', validateBody(loginSchema), UserController.login);
 
-router.post('/', UserController.createUser);
+router.post('/', validateBody(createUserSchema), UserController.createUser);
 router.get('/current', authMiddleware, UserController.getCurrentUser);
-router.get('/:id', UserController.getUserById);
-router.get('/', UserController.getUserList);
-router.put('/:id', UserController.updateUser);
-router.delete('/:id', UserController.deleteUser);
-router.post('/:id/change-password', authMiddleware, UserController.changePassword);
-router.get('/:id/roles', UserController.getUserRoles);
+router.get('/:id', validateParams(idParamSchema), UserController.getUserById);
+router.get('/', validateQuery(queryUserSchema), UserController.getUserList);
+router.put('/:id', validateParams(idParamSchema), validateBody(updateUserSchema), UserController.updateUser);
+router.delete('/:id', validateParams(idParamSchema), UserController.deleteUser);
+router.post('/:id/change-password', authMiddleware, validateParams(idParamSchema), validateBody(changePasswordSchema), UserController.changePassword);
+router.get('/:id/roles', validateParams(idParamSchema), UserController.getUserRoles);
 
 export default router;
