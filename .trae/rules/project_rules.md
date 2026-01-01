@@ -30,22 +30,27 @@
 ## 专项规则指引 (Specialized Rules Guide)
 
 ### 技术规范 (Technical Specifications)
-- **路径**: `rules/tech.mdc`
+- **路径**: `rules/tech.md`
 - **内容**: 项目技术栈、框架版本、开发工具配置
 - **适用范围**: 所有代码编写和架构设计任务
 
 ### 代码风格 (Code Style)
-- **路径**: `rules/style.mdc`
+- **路径**: `rules/style.md`
 - **内容**: 代码格式化、命名约定、注释规范
 - **适用范围**: 所有代码文件
 
+### ArkTS 规范 (ArkTS Standards)
+- **路径**: `rules/arkts.md`
+- **内容**: ArkTS语言特有规则、类型安全、语法规范、性能优化
+- **适用范围**: 鸿蒙前端ArkTS代码编写
+
 ### 文档规范 (Documentation Standards)
-- **路径**: `rules/docs.mdc`
+- **路径**: `rules/docs.md`
 - **内容**: README编写、API文档、代码注释规范
 - **适用范围**: 文档编写和维护任务
 
 ### 测试规范 (Testing Standards)
-- **路径**: `rules/testing.mdc`
+- **路径**: `rules/testing.md`
 - **内容**: 单元测试、集成测试、测试覆盖率要求
 - **适用范围**: 测试代码编写和测试相关任务
 

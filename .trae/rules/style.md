@@ -1,7 +1,7 @@
 ---
 alwaysApply: false
+description: 
 ---
-
 ## 后端返回数据统一格式规范 (Backend Response Data Format Standards)
 
 ### 统一响应格式 (Unified Response Format)
@@ -416,20 +416,4 @@ feat(user): add user registration API
 
 Closes #123
 ```
-
-### 代码审查规范 (Code Review Standards)
-
-#### 审查要点 (Review Points)
-- 代码是否符合架构设计
-- 是否遵循编码规范
-- 是否有潜在的安全问题
-- 是否有性能问题
-- 测试是否充分
-- 文档是否完整
-
-#### 审查流程 (Review Process)
-- 每个PR必须经过至少一人审查
-- 审查意见必须及时处理
-- 重大变更需要团队讨论
-- 审查通过后才能合并
 

@@ -1,7 +1,7 @@
 ---
-alwaysApply: true
+alwaysApply: false
+description: 
 ---
-
 # 技术栈规范 (Technical Stack Standards)
 
 ## 前端工程技术栈 (Frontend Technical Stack)
