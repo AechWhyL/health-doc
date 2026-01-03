@@ -238,3 +238,43 @@ class不能被用作对象
 级别：错误
 错误码：10605150
 在ArkTS中，除动态 import 语句外，所有 import 语句都应置于其他语句之前。
+
+## 限制ArkUI UI语法范围
+规则：arkui-ui-syntax-only
+级别：错误
+错误码：10905209
+在ArkUI组件容器（例如Column、Row、Stack、Tabs等）的子代码块中，仅允许编写UI组件语法和支持的控制语句。常见的合法语法包括：
+- 组件调用：Column() { ... }、Row() { ... }、Text() 等；
+- 条件分支：if / else if / else；
+- 循环渲染：ForEach等ArkUI提供的UI循环语法；
+- 组件链式调用（.fontSize()、.margin()等属性设置）。
+
+在这些UI容器内部，禁止编写普通的TypeScript语句，例如：
+- 变量声明：const / let / var；
+- 普通表达式求值但不渲染UI；
+- 函数声明或其他与UI渲染无关的逻辑代码。
+
+如果在UI容器内部编写了上述普通语句，会触发如下编译错误：
+
+Only UI component syntax can be written here.
+
+推荐做法：
+- 将与UI相关的计算逻辑（如性别中文文案、年龄字符串拼接等）放在UI容器外部，先计算好结果再作为属性或Text内容传入；
+- 或者在组件成员方法中预先处理好数据，在build方法或@Builder方法中只做纯渲染。
+
+## 限制ArkUI组件实现位置
+规则：arkui-builder-location
+级别：错误
+错误码：ArkTSCheck
+ArkUI组件描述语法（如Column()、Row()、Text()等）只能出现在以下位置：
+- 组件的build方法内部；
+- 组件的pageTransition方法内部（自定义组件时）；
+- 使用@Builder装饰的构建方法内部。
+
+在普通的类方法或工具函数中直接编写ArkUI组件实现，会触发如下检查错误：
+
+Implementation not allowed here. Use the component in an @Builder decorated method or in the build or pageTransition method (for custom components only). <ArkTSCheck>
+
+推荐做法：
+- 如果只是抽取一段UI片段，使用@Builder修饰的成员方法，并在build中以this.xxx()调用；
+- 如果不希望使用@Builder，则将ArkUI组件实现代码直接内联到build方法或pageTransition方法内部，通过if/else等语句控制渲染分支。
