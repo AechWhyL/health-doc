@@ -24,11 +24,6 @@ export const createElderSchema = Joi.object({
     'string.pattern.base': '联系电话格式不正确',
     'any.required': '联系电话为必填项'
   }),
-  id_card: Joi.string().pattern(/^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/).required().messages({
-    'string.base': '身份证号必须是字符串',
-    'string.pattern.base': '身份证号格式不正确',
-    'any.required': '身份证号为必填项'
-  }),
   emergency_contact: Joi.string().min(1).max(50).required().messages({
     'string.base': '紧急联系人必须是字符串',
     'string.empty': '紧急联系人不能为空',
@@ -76,10 +71,6 @@ export const updateElderSchema = Joi.object({
     'string.base': '联系电话必须是字符串',
     'string.pattern.base': '联系电话格式不正确'
   }),
-  id_card: Joi.string().pattern(/^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/).optional().messages({
-    'string.base': '身份证号必须是字符串',
-    'string.pattern.base': '身份证号格式不正确'
-  }),
   emergency_contact: Joi.string().min(1).max(50).optional().messages({
     'string.base': '紧急联系人必须是字符串',
     'string.empty': '紧急联系人不能为空',
@@ -122,10 +113,6 @@ export const queryElderSchema = Joi.object({
     'string.base': '姓名必须是字符串',
     'string.max': '姓名长度不能超过50个字符'
   }),
-  id_card: Joi.string().max(18).optional().allow('').messages({
-    'string.base': '身份证号必须是字符串',
-    'string.max': '身份证号长度不能超过18个字符'
-  }),
   orderBy: Joi.string().optional().allow('')
 });
 
@@ -152,7 +139,6 @@ export interface CreateElderRequest {
   gender: number;
   birth_date: string;
   phone: string;
-  id_card: string;
   emergency_contact: string;
   address?: string;
   height?: number;
@@ -165,7 +151,6 @@ export interface UpdateElderRequest {
   gender?: number;
   birth_date?: string;
   phone?: string;
-  id_card?: string;
   address?: string;
   emergency_contact?: string;
   height?: number;
@@ -177,7 +162,6 @@ export interface QueryElderRequest {
   page: number;
   pageSize: number;
   name?: string;
-  id_card?: string;
   orderBy?: string;
 }
 
@@ -188,7 +172,6 @@ export interface ElderResponse {
   birth_date: string;
   phone: string;
   address: string | null;
-  id_card: string;
   emergency_contact: string;
   height: number | null;
   weight: number | null;

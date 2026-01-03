@@ -4,8 +4,8 @@ import { ElderBasicInfo } from '../types/healthRecord';
 export class ElderRepository {
   static async create(data: Omit<ElderBasicInfo, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
     const sql = `
-      INSERT INTO elder_basic_info (name, gender, birth_date, phone, address, id_card, emergency_contact, height, weight, blood_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO elder_basic_info (name, gender, birth_date, phone, address, emergency_contact, height, weight, blood_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.name,
@@ -13,7 +13,6 @@ export class ElderRepository {
       data.birth_date,
       data.phone,
       data.address || null,
-      data.id_card,
       data.emergency_contact,
       data.height || null,
       data.weight || null,
@@ -86,10 +85,5 @@ export class ElderRepository {
     const sql = 'DELETE FROM elder_basic_info WHERE id = ?';
     const result = await Database.delete(sql, [id]);
     return result > 0;
-  }
-
-  static async findByIdCard(idCard: string): Promise<ElderBasicInfo | null> {
-    const sql = 'SELECT * FROM elder_basic_info WHERE id_card = ?';
-    return await Database.queryOne<ElderBasicInfo>(sql, [idCard]);
   }
 }

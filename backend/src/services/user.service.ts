@@ -4,6 +4,8 @@ import { CreateUserRequest, UpdateUserRequest, UserResponse, UserWithRoleRespons
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
+import { Database } from '../config/database';
+import { RoleCode } from '../config/rbac.config';
 
 export class UserService {
   private static readonly SALT_ROUNDS = 10;
@@ -32,27 +34,94 @@ export class UserService {
 
     const hashedPassword = await bcrypt.hash(data.password, this.SALT_ROUNDS);
 
-    const userData: Omit<User, 'id' | 'created_at' | 'updated_at'> = {
-      username: data.username,
-      password: hashedPassword,
-      email: data.email || null,
-      phone: data.phone || null,
-      real_name: data.real_name || null,
-      avatar: data.avatar || null,
-      status: data.status || 'active',
-      is_verified: data.is_verified ?? false,
-      last_login_at: null,
-      last_login_ip: null
-    };
+    const connection = await Database.beginTransaction();
 
-    const insertId = await UserRepository.create(userData);
-    const user = await UserRepository.findByIdWithRoles(insertId);
+    try {
+      const userData: Omit<User, 'id' | 'created_at' | 'updated_at'> = {
+        username: data.username,
+        password: hashedPassword,
+        email: data.email || null,
+        phone: data.phone || null,
+        real_name: data.real_name || null,
+        avatar: data.avatar || null,
+        status: data.status || 'active',
+        is_verified: data.is_verified ?? false,
+        last_login_at: null,
+        last_login_ip: null
+      };
 
-    if (!user) {
-      throw new Error('创建用户失败');
+      const insertUserSql = `
+        INSERT INTO users (username, password, email, phone, real_name, avatar, status, is_verified, last_login_at, last_login_ip)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const userParams = [
+        userData.username,
+        userData.password,
+        userData.email,
+        userData.phone,
+        userData.real_name,
+        userData.avatar,
+        userData.status,
+        userData.is_verified,
+        userData.last_login_at,
+        userData.last_login_ip
+      ];
+
+      const [userResult] = await connection.execute(insertUserSql, userParams);
+      const insertId = (userResult as any).insertId as number;
+
+      const roleCode: RoleCode = (data.role_code as RoleCode) || RoleCode.ELDER;
+      const role = await RoleRepository.findByRoleCode(roleCode);
+
+      if (!role) {
+        throw new Error('指定角色不存在，请先初始化角色数据');
+      }
+
+      const checkRoleSql = 'SELECT id FROM user_roles WHERE user_id = ? AND role_id = ?';
+      const [checkRows] = await connection.execute(checkRoleSql, [insertId, role.id]);
+      const exists = Array.isArray(checkRows) && (checkRows as any[]).length > 0;
+
+      if (!exists) {
+        const insertUserRoleSql = 'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)';
+        await connection.execute(insertUserRoleSql, [insertId, role.id]);
+      }
+
+      if (roleCode === RoleCode.ELDER) {
+        const elderName = data.real_name && data.real_name.trim() !== '' ? data.real_name : data.username;
+        const elderPhone = data.phone && data.phone.trim() !== '' ? data.phone : data.username;
+
+        const insertElderSql = `
+          INSERT INTO elder_basic_info (name, gender, birth_date, phone, address, emergency_contact, height, weight, blood_type)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const elderParams = [
+          elderName,
+          1,
+          '1970-01-01',
+          elderPhone,
+          null,
+          '',
+          null,
+          null,
+          null
+        ];
+
+        await connection.execute(insertElderSql, elderParams);
+      }
+
+      await Database.commitTransaction(connection);
+
+      const user = await UserRepository.findByIdWithRoles(insertId);
+
+      if (!user) {
+        throw new Error('创建用户失败');
+      }
+
+      return this.toResponseWithRoles(user);
+    } catch (error) {
+      await Database.rollbackTransaction(connection);
+      throw error;
     }
-
-    return this.toResponseWithRoles(user);
   }
 
   static async getUserById(id: number): Promise<UserWithRoleResponse> {

@@ -21,7 +21,6 @@ export class ElderController {
    *               - gender
    *               - birth_date
    *               - phone
-   *               - id_card
    *               - emergency_contact
    *             properties:
    *               name:
@@ -45,10 +44,6 @@ export class ElderController {
    *                 pattern: '^1[3-9]\d{9}$'
    *                 description: 联系电话
    *                 example: 13800138000
-   *               id_card:
-   *                 type: string
-   *                 description: 身份证号
-   *                 example: 110101195001011234
    *               emergency_contact:
    *                 type: string
    *                 minLength: 1
@@ -151,7 +146,7 @@ export class ElderController {
    * /api/v1/elder-health/elder/list:
    *   get:
    *     summary: 查询老人信息列表
-   *     description: 分页查询老人信息列表，支持按姓名和身份证号搜索
+   *     description: 分页查询老人信息列表，支持按姓名搜索
    *     tags: [老人信息管理]
    *     parameters:
    *       - in: query
@@ -175,13 +170,6 @@ export class ElderController {
    *           type: string
    *           maxLength: 50
    *         description: 姓名（模糊搜索）
-   *       - in: query
-   *         name: id_card
-   *         required: false
-   *         schema:
-   *           type: string
-   *           maxLength: 18
-   *         description: 身份证号
    *     responses:
    *       200:
    *         description: 查询成功
@@ -222,9 +210,9 @@ export class ElderController {
    */
   static async getElderList(ctx: Context) {
     const data: QueryElderRequest = ctx.state.validatedData || ctx.query;
-    const { page, pageSize, name, id_card } = data;
+    const { page, pageSize, name } = data;
 
-    const { items, total } = await ElderService.getElderList(page, pageSize, name, id_card);
+    const { items, total } = await ElderService.getElderList(page, pageSize, name);
     
     ctx.paginate(items, page, pageSize, total);
   }
@@ -268,9 +256,6 @@ export class ElderController {
    *                 type: string
    *                 pattern: '^1[3-9]\d{9}$'
    *                 description: 联系电话
-   *               id_card:
-   *                 type: string
-   *                 description: 身份证号
    *               emergency_contact:
    *                 type: string
    *                 minLength: 1

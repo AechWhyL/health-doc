@@ -157,6 +157,7 @@ export interface CreateUserRequest {
   avatar?: string;
   status?: 'active' | 'inactive' | 'locked';
   is_verified?: boolean;
+  role_code?: 'admin' | 'medical_staff' | 'family' | 'elder';
 }
 
 export interface UpdateUserRequest {

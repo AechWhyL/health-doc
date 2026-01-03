@@ -4,17 +4,11 @@ import { CreateElderRequest, UpdateElderRequest, ElderResponse } from '../dto/re
 
 export class ElderService {
   static async createElder(data: CreateElderRequest): Promise<ElderResponse> {
-    const existingElder = await ElderRepository.findByIdCard(data.id_card);
-    if (existingElder) {
-      throw new Error('该身份证号已存在');
-    }
-
     const elderData: Omit<ElderBasicInfo, 'id' | 'created_at' | 'updated_at'> = {
       name: data.name,
       gender: data.gender,
       birth_date: data.birth_date,
       phone: data.phone,
-      id_card: data.id_card,
       emergency_contact: data.emergency_contact,
       address: data.address,
       height: data.height,
@@ -48,10 +42,6 @@ export class ElderService {
       where += ' AND name LIKE ?';
       params.push(`%${name}%`);
     }
-    if (idCard) {
-      where += ' AND id_card LIKE ?';
-      params.push(`%${idCard}%`);
-    }
 
     const { items, total } = await ElderRepository.findAll(page, pageSize, where, params);
     return {
@@ -66,13 +56,6 @@ export class ElderService {
       throw new Error('老人信息不存在');
     }
 
-    if (data.id_card && data.id_card !== existingElder.id_card) {
-      const duplicateElder = await ElderRepository.findByIdCard(data.id_card);
-      if (duplicateElder) {
-        throw new Error('该身份证号已被使用');
-      }
-    }
-
     const updateData: Partial<Omit<ElderBasicInfo, 'id' | 'created_at' | 'updated_at'>> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.gender !== undefined) updateData.gender = data.gender;
@@ -83,7 +66,6 @@ export class ElderService {
     if (data.height !== undefined) updateData.height = data.height;
     if (data.weight !== undefined) updateData.weight = data.weight;
     if (data.blood_type !== undefined) updateData.blood_type = data.blood_type;
-    if (data.id_card !== undefined) updateData.id_card = data.id_card;
 
     const success = await ElderRepository.update(id, updateData);
     if (!success) {
@@ -128,7 +110,6 @@ export class ElderService {
       birth_date: elder.birth_date,
       phone: elder.phone,
       address: elder.address || null,
-      id_card: elder.id_card,
       emergency_contact: elder.emergency_contact,
       height: elder.height || null,
       weight: elder.weight || null,

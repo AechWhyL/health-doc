@@ -41,10 +41,6 @@ const options = {
               type: 'string',
               description: '联系电话',
             },
-            id_card: {
-              type: 'string',
-              description: '身份证号',
-            },
             address: {
               type: 'string',
               description: '居住地址',

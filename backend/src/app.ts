@@ -8,6 +8,7 @@ import config from './config/env';
 import { responseFormatter } from './middlewares/responseFormatter';
 import routes from './routes';
 import { swaggerSpec } from './config/swagger';
+import { RoleService } from './services/role.service';
 
 const app = new Koa();
 
@@ -58,6 +59,14 @@ app.use(async (ctx) => {
     ctx.paginate(mockData, 1, 10, 50, '分页数据获取成功');
   }
 });
+
+RoleService.ensureDefaultRoles()
+  .then(() => {
+    console.log('默认角色已初始化');
+  })
+  .catch((error) => {
+    console.error('初始化默认角色失败', error);
+  });
 
 app.listen(config.PORT, () => {
   console.log(`服务器已启动，运行在 http://localhost:${config.PORT}`);

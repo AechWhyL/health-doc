@@ -13,13 +13,14 @@ interface JwtPayload {
 }
 
 declare module 'koa' {
-  interface Context {
+  interface DefaultState {
     user?: JwtPayload;
   }
 }
 
 export const authMiddleware = async (ctx: Context, next: Next): Promise<void> => {
   try {
+    console.log(ctx.headers)
     const authHeader = ctx.headers.authorization;
 
     if (!authHeader) {
@@ -37,7 +38,8 @@ export const authMiddleware = async (ctx: Context, next: Next): Promise<void> =>
 
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET) as JwtPayload;
-      ctx.user = decoded;
+      ctx.state.user = decoded;
+      console.log(ctx.state.user)
       await next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
@@ -73,7 +75,7 @@ export const optionalAuthMiddleware = async (ctx: Context, next: Next): Promise<
 
   try {
     const decoded = jwt.verify(token, config.JWT_SECRET) as JwtPayload;
-    ctx.user = decoded;
+    ctx.state.user = decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError) {
       await next();
@@ -87,12 +89,12 @@ export const optionalAuthMiddleware = async (ctx: Context, next: Next): Promise<
 
 export const roleAuthMiddleware = (...allowedRoles: string[]) => {
   return async (ctx: Context, next: Next): Promise<void> => {
-    if (!ctx.user) {
+    if (!ctx.state.user) {
       ctx.unauthorized('用户未认证');
       return;
     }
 
-    const userRoles = ctx.user.roles || [];
+    const userRoles = ctx.state.user.roles || [];
     const hasRole = allowedRoles.some(role => userRoles.includes(role));
 
     if (!hasRole) {
@@ -114,12 +116,12 @@ export const requireAnyRole = (...roles: RoleCode[]) => {
 
 export const requireAllRoles = (...roles: RoleCode[]) => {
   return async (ctx: Context, next: Next): Promise<void> => {
-    if (!ctx.user) {
+    if (!ctx.state.user) {
       ctx.unauthorized('用户未认证');
       return;
     }
 
-    const userRoles = ctx.user.roles || [];
+    const userRoles = ctx.state.user.roles || [];
     const hasAllRoles = roles.every(role => userRoles.includes(role));
 
     if (!hasAllRoles) {

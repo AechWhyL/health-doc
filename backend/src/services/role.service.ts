@@ -1,7 +1,24 @@
 import { RoleRepository, Role } from '../repositories/role.repository';
 import { CreateRoleRequest, UpdateRoleRequest, RoleResponse, RoleWithUsersResponse } from '../dto/requests/role.dto';
+import { RoleCode, getRoleName, getRoleLevel } from '../config/rbac.config';
 
 export class RoleService {
+  static async ensureDefaultRoles(): Promise<void> {
+    const roleCodes = Object.values(RoleCode);
+    for (const code of roleCodes) {
+      const existing = await RoleRepository.findByRoleCode(code);
+      if (!existing) {
+        const roleData: Omit<Role, 'id' | 'created_at' | 'updated_at'> = {
+          role_code: code,
+          role_name: getRoleName(code),
+          description: null,
+          level: getRoleLevel(code)
+        };
+        await RoleRepository.create(roleData);
+      }
+    }
+  }
+
   static async createRole(data: CreateRoleRequest): Promise<RoleResponse> {
     const existingRole = await RoleRepository.findByRoleCode(data.role_code);
     if (existingRole) {

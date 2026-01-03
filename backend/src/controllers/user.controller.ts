@@ -485,11 +485,11 @@ export class UserController {
    *         description: 未授权
    *       500:
    *         description: 服务器内部错误
-   */
+  */
   static async changePassword(ctx: Context) {
-    const { id } = ctx.state.user;
+    const { userId } = ctx.state.user!;
     const data: ChangePasswordRequest = ctx.state.validatedData || ctx.request.body;
-    await UserService.changePassword(id, data);
+    await UserService.changePassword(userId, data);
     ctx.success(null, '密码修改成功');
   }
 
@@ -522,10 +522,10 @@ export class UserController {
    *         description: 未授权
    *       500:
    *         description: 服务器内部错误
-   */
+  */
   static async getCurrentUser(ctx: Context) {
-    const { id } = ctx.state.user;
-    const result = await UserService.getUserById(id);
+    const { userId } = ctx.state.user!;
+    const result = await UserService.getUserById(userId);
     ctx.success(result);
   }
 

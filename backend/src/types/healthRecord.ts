@@ -5,7 +5,6 @@ export interface ElderBasicInfo {
   birth_date: string;
   phone: string;
   address?: string;
-  id_card: string;
   emergency_contact: string;
   height?: number;
   weight?: number;
