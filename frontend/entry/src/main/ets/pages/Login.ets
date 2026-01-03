@@ -1,5 +1,8 @@
-import apiService, { ApiResponse, LoginResponseData } from '../common/api/ApiService';
+import apiService, { ApiResponse, LoginResponseData, UserWithRolesSummary } from '../common/api/ApiService';
 import router from '@ohos.router';
+import { preferences } from '@kit.ArkData';
+import { BusinessError } from '@kit.BasicServicesKit';
+import HttpUtil from '../common/api/HttpUtil';
 
 @Entry
 @Component
@@ -9,6 +12,15 @@ struct Login {
   @State rememberMe: boolean = false;
   @State loading: boolean = false;
   @State error: string = '';
+  private autoLoginChecked: boolean = false;
+
+  aboutToAppear() {
+    if (this.autoLoginChecked) {
+      return;
+    }
+    this.autoLoginChecked = true;
+    this.tryAutoLogin();
+  }
 
   private async doLogin(): Promise<void> {
     this.loading = true;
@@ -16,7 +28,14 @@ struct Login {
     try {
       const resp: ApiResponse<LoginResponseData> = await apiService.login(this.username, this.password);
       if (resp.code === 200) {
-        router.replaceUrl({ url: 'pages/Index' });
+        const data: LoginResponseData = resp.data;
+        if (this.rememberMe) {
+          this.saveLoginInfo(data);
+        } else {
+          this.clearLoginInfo();
+        }
+        const homeUrl: string = this.getHomeUrl(data);
+        router.replaceUrl({ url: homeUrl });
         return;
       }
       this.error = resp.message;
@@ -30,6 +49,134 @@ struct Login {
     } finally {
       this.loading = false;
     }
+  }
+
+  private tryAutoLogin(): void {
+    const context = getContext(this);
+    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
+      if (err) {
+        return;
+      }
+      pref.get('token', '', (getErr: BusinessError, tokenValue: preferences.ValueType) => {
+        if (getErr) {
+          return;
+        }
+        if (typeof tokenValue !== 'string') {
+          return;
+        }
+        const token = tokenValue as string;
+        if (!token || token.length === 0) {
+          return;
+        }
+        pref.get('user', '', (userErr: BusinessError, userValue: preferences.ValueType) => {
+          if (userErr) {
+            return;
+          }
+          if (typeof userValue !== 'string') {
+            return;
+          }
+          const userJson = userValue as string;
+          let parsedUser: UserWithRolesSummary | null = null;
+          try {
+            const temp = JSON.parse(userJson) as UserWithRolesSummary;
+            parsedUser = temp;
+          } catch (parseError) {
+            return;
+          }
+          if (parsedUser === null) {
+            return;
+          }
+          const data: LoginResponseData = {
+            token: token,
+            user: parsedUser
+          };
+          HttpUtil.setAuthToken(token);
+          const homeUrl: string = this.getHomeUrl(data);
+          router.replaceUrl({ url: homeUrl });
+        });
+      });
+    });
+  }
+
+  private saveLoginInfo(data: LoginResponseData): void {
+    const context = getContext(this);
+    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
+      if (err) {
+        return;
+      }
+      const userJson: string = JSON.stringify(data.user);
+      pref.put('token', data.token, (putErr: BusinessError) => {
+        if (putErr) {
+          return;
+        }
+        pref.put('user', userJson, (userErr: BusinessError) => {
+          if (userErr) {
+            return;
+          }
+          pref.flush((flushErr: BusinessError) => {
+            if (flushErr) {
+              return;
+            }
+          });
+        });
+      });
+    });
+  }
+
+  private clearLoginInfo(): void {
+    const context = getContext(this);
+    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
+      if (err) {
+        return;
+      }
+      pref.delete('token', (delErr: BusinessError) => {
+        if (delErr) {
+          return;
+        }
+      });
+      pref.delete('user', (delUserErr: BusinessError) => {
+        if (delUserErr) {
+          return;
+        }
+      });
+      pref.flush((flushErr: BusinessError) => {
+        if (flushErr) {
+          return;
+        }
+      });
+    });
+  }
+
+  private getHomeUrl(data: LoginResponseData): string {
+    const roles = data.user.roles;
+    let hasAdmin: boolean = false;
+    let hasMedical: boolean = false;
+    let hasFamily: boolean = false;
+    let hasElder: boolean = false;
+
+    for (let i = 0; i < roles.length; i++) {
+      const code = roles[i].role_code;
+      if (code === 'admin') {
+        hasAdmin = true;
+      } else if (code === 'medical_staff') {
+        hasMedical = true;
+      } else if (code === 'family') {
+        hasFamily = true;
+      } else if (code === 'elder') {
+        hasElder = true;
+      }
+    }
+
+    if (hasAdmin || hasMedical) {
+      return 'pages/medical/Index';
+    }
+    if (hasFamily) {
+      return 'pages/family/Index';
+    }
+    if (hasElder) {
+      return 'pages/elder/Index';
+    }
+    return 'pages/elder/Index';
   }
 
   build() {
