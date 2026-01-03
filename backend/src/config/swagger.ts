@@ -115,18 +115,24 @@ const options = {
               type: 'integer',
               description: '老人ID',
             },
-            category_id: {
-              type: 'integer',
-              description: '健康类别ID',
+            record_type: {
+              type: 'string',
+              description:
+                '记录类型(MEDICAL_HISTORY:病史, CHECK_REPORT:检查报告, MEDICATION:用药记录, ALLERGY:过敏史)',
+              enum: ['MEDICAL_HISTORY', 'CHECK_REPORT', 'MEDICATION', 'ALLERGY'],
+            },
+            record_title: {
+              type: 'string',
+              description: '记录标题',
             },
             record_date: {
               type: 'string',
               format: 'date',
               description: '记录日期',
             },
-            record_content: {
-              type: 'string',
-              description: '记录内容',
+            content_structured: {
+              type: 'object',
+              description: '结构化记录内容(JSON)',
             },
             created_at: {
               type: 'string',

@@ -16,35 +16,34 @@ export class HealthRecordController {
    *         application/json:
    *           schema:
    *             type: object
-   *             required:
-   *               - elder_id
-   *               - category_id
-   *               - record_title
-   *               - record_content
-   *               - record_date
+ *             required:
+ *               - elder_id
+ *               - record_type
+ *               - record_title
+ *               - record_date
+ *               - content_structured
    *             properties:
    *               elder_id:
    *                 type: integer
    *                 description: 老人ID
    *                 example: 1
-   *               category_id:
-   *                 type: integer
-   *                 description: 分类ID
-   *                 example: 1
-   *               record_title:
-   *                 type: string
-   *                 maxLength: 100
-   *                 description: 记录标题
-   *                 example: 体检报告
-   *               record_content:
-   *                 type: string
-   *                 description: 记录内容
-   *                 example: 血压正常，血糖偏高
-   *               record_date:
-   *                 type: string
-   *                 format: date
-   *                 description: 记录日期
-   *                 example: 2024-01-01
+ *               record_type:
+ *                 type: string
+ *                 description: 记录类型(MEDICAL_HISTORY:病史, CHECK_REPORT:检查报告, MEDICATION:用药记录)
+ *                 enum: [MEDICAL_HISTORY, CHECK_REPORT, MEDICATION]
+ *               record_title:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: 记录标题
+ *                 example: 体检报告
+ *               record_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 记录日期
+ *                 example: 2024-01-01
+ *               content_structured:
+ *                 type: object
+ *                 description: 结构化记录内容(JSON)
    *     responses:
    *       200:
    *         description: 创建成功
@@ -131,7 +130,7 @@ export class HealthRecordController {
    * /api/v1/elder-health/health-record/list:
    *   get:
    *     summary: 查询健康记录列表
-   *     description: 分页查询健康记录列表，支持按老人ID、分类ID和日期范围搜索
+ *     description: 分页查询健康记录列表，支持按老人ID、记录类型和日期范围搜索
    *     tags: [健康记录管理]
    *     parameters:
    *       - in: query
@@ -154,12 +153,13 @@ export class HealthRecordController {
    *         schema:
    *           type: integer
    *         description: 老人ID
-   *       - in: query
-   *         name: category_id
-   *         required: false
-   *         schema:
-   *           type: integer
-   *         description: 分类ID
+ *       - in: query
+ *         name: record_type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [MEDICAL_HISTORY, CHECK_REPORT, MEDICATION]
+ *         description: 记录类型
    *       - in: query
    *         name: start_date
    *         required: false
@@ -219,7 +219,7 @@ export class HealthRecordController {
       return;
     }
 
-    const { page, pageSize, elder_id, category_id, start_date, end_date } = value;
+    const { page, pageSize, elder_id, record_type, start_date, end_date } = value;
     const pageNum = parseInt(page.toString(), 10);
     const pageSizeNum = parseInt(pageSize.toString(), 10);
     
@@ -233,14 +233,9 @@ export class HealthRecordController {
     }
 
     const elderIdNum = elder_id ? parseInt(elder_id.toString(), 10) : undefined;
-    const categoryIdNum = category_id ? parseInt(category_id.toString(), 10) : undefined;
     
     if (elder_id && isNaN(elderIdNum!)) {
       ctx.badRequest('无效的老人ID');
-      return;
-    }
-    if (category_id && isNaN(categoryIdNum!)) {
-      ctx.badRequest('无效的分类ID');
       return;
     }
 
@@ -248,7 +243,7 @@ export class HealthRecordController {
       pageNum,
       pageSizeNum,
       elderIdNum,
-      categoryIdNum,
+      record_type,
       start_date,
       end_date
     );
@@ -327,22 +322,23 @@ export class HealthRecordController {
    *       content:
    *         application/json:
    *           schema:
-   *             type: object
-   *             properties:
-   *               category_id:
-   *                 type: integer
-   *                 description: 分类ID
-   *               record_title:
-   *                 type: string
-   *                 maxLength: 100
-   *                 description: 记录标题
-   *               record_content:
-   *                 type: string
-   *                 description: 记录内容
-   *               record_date:
-   *                 type: string
-   *                 format: date
-   *                 description: 记录日期
+ *             type: object
+ *             properties:
+ *               record_type:
+ *                 type: string
+ *                 description: 记录类型(MEDICAL_HISTORY:病史, CHECK_REPORT:检查报告, MEDICATION:用药记录)
+ *                 enum: [MEDICAL_HISTORY, CHECK_REPORT, MEDICATION]
+ *               record_title:
+ *                 type: string
+ *                 maxLength: 100
+ *                 description: 记录标题
+ *               record_date:
+ *                 type: string
+ *                 format: date
+ *                 description: 记录日期
+ *               content_structured:
+ *                 type: object
+ *                 description: 结构化记录内容(JSON)
    *     responses:
    *       200:
    *         description: 更新成功

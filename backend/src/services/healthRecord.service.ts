@@ -1,5 +1,5 @@
 import { HealthRecordRepository } from '../repositories/healthRecord.repository';
-import { HealthRecord } from '../types/healthRecord';
+import { HealthRecord, HealthRecordType } from '../types/healthRecord';
 import { CreateHealthRecordRequest, UpdateHealthRecordRequest, HealthRecordResponse } from '../dto/requests/healthRecord.dto';
 import { NotFoundError } from '../utils/errors';
 
@@ -7,10 +7,10 @@ export class HealthRecordService {
   static async createHealthRecord(data: CreateHealthRecordRequest): Promise<HealthRecordResponse> {
     const recordData: Omit<HealthRecord, 'id' | 'created_at' | 'updated_at'> = {
       elder_id: data.elder_id,
-      category_id: data.category_id,
+      record_type: data.record_type,
       record_title: data.record_title,
-      record_content: data.record_content,
-      record_date: data.record_date
+      record_date: data.record_date,
+      content_structured: data.content_structured
     };
 
     const insertId = await HealthRecordRepository.create(recordData);
@@ -35,7 +35,7 @@ export class HealthRecordService {
     page: number,
     pageSize: number,
     elderId?: number,
-    categoryId?: number,
+    recordType?: HealthRecordType,
     startDate?: string,
     endDate?: string
   ): Promise<{ items: HealthRecordResponse[]; total: number }> {
@@ -46,9 +46,9 @@ export class HealthRecordService {
       where += ' AND elder_id = ?';
       params.push(elderId);
     }
-    if (categoryId) {
-      where += ' AND category_id = ?';
-      params.push(categoryId);
+    if (recordType) {
+      where += ' AND record_type = ?';
+      params.push(recordType);
     }
     if (startDate) {
       where += ' AND record_date >= ?';
@@ -78,10 +78,10 @@ export class HealthRecordService {
     }
 
     const updateData: Partial<Omit<HealthRecord, 'id' | 'elder_id' | 'created_at' | 'updated_at'>> = {};
-    if (data.category_id !== undefined) updateData.category_id = data.category_id;
+    if (data.record_type !== undefined) updateData.record_type = data.record_type;
     if (data.record_title !== undefined) updateData.record_title = data.record_title;
-    if (data.record_content !== undefined) updateData.record_content = data.record_content;
     if (data.record_date !== undefined) updateData.record_date = data.record_date;
+    if (data.content_structured !== undefined) updateData.content_structured = data.content_structured;
 
     const success = await HealthRecordRepository.update(id, updateData);
     if (!success) {
@@ -114,10 +114,10 @@ export class HealthRecordService {
     return {
       id: record.id!,
       elder_id: record.elder_id,
-      category_id: record.category_id,
+      record_type: record.record_type,
       record_title: record.record_title,
-      record_content: record.record_content,
       record_date: record.record_date,
+      content_structured: record.content_structured,
       created_at: record.created_at || '',
       updated_at: record.updated_at || ''
     };

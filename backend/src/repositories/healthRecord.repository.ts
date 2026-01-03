@@ -4,52 +4,71 @@ import { HealthRecord } from '../types/healthRecord';
 export class HealthRecordRepository {
   static async create(data: Omit<HealthRecord, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
     const sql = `
-      INSERT INTO health_record (elder_id, category_id, record_title, record_content, record_date)
+      INSERT INTO health_record (elder_id, record_type, record_title, record_date, content_structured)
       VALUES (?, ?, ?, ?, ?)
     `;
     const params = [
       data.elder_id,
-      data.category_id,
+      data.record_type,
       data.record_title,
-      data.record_content,
-      data.record_date
+      data.record_date,
+      JSON.stringify(data.content_structured)
     ];
     return await Database.insert(sql, params);
   }
 
   static async findById(id: number): Promise<HealthRecord | null> {
     const sql = 'SELECT * FROM health_record WHERE id = ?';
-    return await Database.queryOne<HealthRecord>(sql, [id]);
+    const result = await Database.queryOne<HealthRecord>(sql, [id]);
+    if (result && result.content_structured && typeof (result as any).content_structured === 'string') {
+      (result as any).content_structured = JSON.parse((result as any).content_structured);
+    }
+    return result;
   }
 
   static async findAll(page: number, pageSize: number, where: string = '1=1', params: any[] = [], orderBy: string = 'created_at DESC'): Promise<{ items: HealthRecord[]; total: number }> {
-    return await Database.paginate<HealthRecord>('health_record', page, pageSize, where, params, orderBy);
+    const result = await Database.paginate<HealthRecord>('health_record', page, pageSize, where, params, orderBy);
+    return {
+      items: result.items.map(item => {
+        if (item.content_structured && typeof (item as any).content_structured === 'string') {
+          (item as any).content_structured = JSON.parse((item as any).content_structured);
+        }
+        return item;
+      }),
+      total: result.total
+    };
   }
 
   static async findByElderId(elderId: number): Promise<HealthRecord[]> {
     const sql = 'SELECT * FROM health_record WHERE elder_id = ? ORDER BY record_date DESC, created_at DESC';
-    return await Database.query<HealthRecord>(sql, [elderId]);
+    const results = await Database.query<HealthRecord>(sql, [elderId]);
+    return results.map(item => {
+      if (item.content_structured && typeof (item as any).content_structured === 'string') {
+        (item as any).content_structured = JSON.parse((item as any).content_structured);
+      }
+      return item;
+    });
   }
 
   static async update(id: number, data: Partial<Omit<HealthRecord, 'id' | 'elder_id' | 'created_at' | 'updated_at'>>): Promise<boolean> {
     const fields: string[] = [];
     const params: any[] = [];
 
-    if (data.category_id !== undefined) {
-      fields.push('category_id = ?');
-      params.push(data.category_id);
+    if (data.record_type !== undefined) {
+      fields.push('record_type = ?');
+      params.push(data.record_type);
     }
     if (data.record_title !== undefined) {
       fields.push('record_title = ?');
       params.push(data.record_title);
     }
-    if (data.record_content !== undefined) {
-      fields.push('record_content = ?');
-      params.push(data.record_content);
-    }
     if (data.record_date !== undefined) {
       fields.push('record_date = ?');
       params.push(data.record_date);
+    }
+    if (data.content_structured !== undefined) {
+      fields.push('content_structured = ?');
+      params.push(JSON.stringify(data.content_structured));
     }
 
     if (fields.length === 0) {
