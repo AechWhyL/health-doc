@@ -195,6 +195,291 @@ const options = {
             },
           },
         },
+        InterventionPlanResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '干预计划ID',
+            },
+            elder_user_id: {
+              type: 'integer',
+              description: '老人用户ID',
+            },
+            title: {
+              type: 'string',
+              description: '计划标题',
+            },
+            description: {
+              type: 'string',
+              description: '计划说明',
+              nullable: true,
+            },
+            status: {
+              type: 'string',
+              description: '计划状态',
+              enum: ['DRAFT', 'PENDING', 'ACTIVE', 'PAUSED', 'FINISHED', 'CANCELLED'],
+            },
+            start_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划开始日期',
+            },
+            end_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划结束日期',
+              nullable: true,
+            },
+            created_by_user_id: {
+              type: 'integer',
+              description: '创建计划的医护人员用户ID',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间',
+            },
+          },
+        },
+        MedicationPlanItemResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '计划项ID',
+            },
+            plan_id: {
+              type: 'integer',
+              description: '所属干预计划ID',
+            },
+            item_type: {
+              type: 'string',
+              description: '计划项类型',
+              enum: ['MEDICATION'],
+            },
+            name: {
+              type: 'string',
+              description: '计划项名称',
+            },
+            description: {
+              type: 'string',
+              description: '计划项说明',
+              nullable: true,
+            },
+            status: {
+              type: 'string',
+              description: '计划项状态',
+              enum: ['ACTIVE', 'PAUSED', 'STOPPED'],
+            },
+            start_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划项开始日期',
+            },
+            end_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划项结束日期',
+              nullable: true,
+            },
+            drug_name: {
+              type: 'string',
+              description: '药品名称',
+            },
+            dosage: {
+              type: 'string',
+              description: '剂量描述',
+            },
+            frequency_type: {
+              type: 'string',
+              description: '用药频次描述',
+            },
+            instructions: {
+              type: 'string',
+              description: '用药指示',
+              nullable: true,
+            },
+          },
+        },
+        RehabPlanItemResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '计划项ID',
+            },
+            plan_id: {
+              type: 'integer',
+              description: '所属干预计划ID',
+            },
+            item_type: {
+              type: 'string',
+              description: '计划项类型',
+              enum: ['REHAB'],
+            },
+            name: {
+              type: 'string',
+              description: '计划项名称',
+            },
+            description: {
+              type: 'string',
+              description: '计划项说明',
+              nullable: true,
+            },
+            status: {
+              type: 'string',
+              description: '计划项状态',
+              enum: ['ACTIVE', 'PAUSED', 'STOPPED'],
+            },
+            start_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划项开始日期',
+            },
+            end_date: {
+              type: 'string',
+              format: 'date',
+              description: '计划项结束日期',
+              nullable: true,
+            },
+            exercise_name: {
+              type: 'string',
+              description: '康复训练名称',
+            },
+            exercise_type: {
+              type: 'string',
+              description: '康复训练类型',
+              nullable: true,
+            },
+            guide_resource_url: {
+              type: 'string',
+              description: '康复训练指导资源地址',
+              nullable: true,
+            },
+          },
+        },
+        PlanItemResponse: {
+          oneOf: [
+            {
+              $ref: '#/components/schemas/MedicationPlanItemResponse',
+            },
+            {
+              $ref: '#/components/schemas/RehabPlanItemResponse',
+            },
+          ],
+          description: '干预计划项详情（用药或康复）',
+        },
+        PlanItemScheduleResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '日程ID',
+            },
+            item_id: {
+              type: 'integer',
+              description: '所属计划项ID',
+            },
+            schedule_type: {
+              type: 'string',
+              description: '日程类型',
+              enum: ['ONCE', 'DAILY', 'WEEKLY'],
+            },
+            start_date: {
+              type: 'string',
+              format: 'date',
+              description: '日程开始日期',
+            },
+            end_date: {
+              type: 'string',
+              format: 'date',
+              description: '日程结束日期',
+              nullable: true,
+            },
+            times_of_day: {
+              type: 'array',
+              description: '每日执行时间点(HH:mm)',
+              items: {
+                type: 'string',
+              },
+            },
+            weekdays: {
+              type: 'array',
+              description: '每周执行的星期列表(1-7，1表示周一)',
+              nullable: true,
+              items: {
+                type: 'integer',
+                minimum: 1,
+                maximum: 7,
+              },
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间',
+            },
+          },
+        },
+        PlanTaskInstanceResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '任务实例ID',
+            },
+            item_id: {
+              type: 'integer',
+              description: '所属计划项ID',
+            },
+            schedule_id: {
+              type: 'integer',
+              description: '所属日程ID',
+              nullable: true,
+            },
+            task_date: {
+              type: 'string',
+              format: 'date',
+              description: '任务日期',
+            },
+            task_time: {
+              type: 'string',
+              description: '任务执行时间(HH:mm)',
+              nullable: true,
+            },
+            status: {
+              type: 'string',
+              description: '任务状态',
+              enum: ['PENDING', 'COMPLETED', 'SKIPPED', 'MISSED'],
+            },
+            complete_time: {
+              type: 'string',
+              format: 'date-time',
+              description: '完成时间',
+              nullable: true,
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间',
+            },
+          },
+        },
         SuccessResponse: {
           type: 'object',
           properties: {
