@@ -7,6 +7,7 @@ import roleRoutes from './role.routes';
 import interventionPlanRoutes from './interventionPlan.routes';
 import interventionPlanItemRoutes from './interventionPlanItem.routes';
 import consultationRoutes from './consultation.routes';
+import notificationRoutes from './notification.routes';
 
 export default [
   elderRoutes,
@@ -17,5 +18,6 @@ export default [
   roleRoutes,
   interventionPlanRoutes,
   interventionPlanItemRoutes,
-  consultationRoutes
+  consultationRoutes,
+  notificationRoutes
 ];

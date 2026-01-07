@@ -9,6 +9,9 @@ import {
   ConsultationContentType,
   ConsultationSenderType
 } from '../types/consultation';
+import { UserNotificationRecord } from '../types/notification';
+
+let ioInstance: Server | null = null;
 
 interface JoinQuestionPayload {
   question_id: number;
@@ -27,8 +30,21 @@ interface SendMessagePayload {
   attachments?: ConsultationAttachmentInput[];
 }
 
+interface BindUserPayload {
+  user_id: number;
+}
+
+type NotificationSocketPayload = Pick<
+  UserNotificationRecord,
+  'id' | 'biz_type' | 'biz_id' | 'title' | 'content' | 'status' | 'created_at' | 'read_at'
+>;
+
 const getQuestionRoomName = (questionId: number): string => {
   return `consultation:question:${questionId}`;
+};
+
+const getUserRoomName = (userId: number): string => {
+  return `user:${userId}`;
 };
 
 const handleJoinQuestion = (socket: Socket, payload: JoinQuestionPayload): void => {
@@ -130,6 +146,23 @@ const handleSendMessage = async (io: Server, socket: Socket, payload: SendMessag
   }
 };
 
+const handleBindUser = (socket: Socket, payload: BindUserPayload): void => {
+  if (!payload || typeof payload.user_id !== 'number' || payload.user_id <= 0) {
+    socket.emit('error', {
+      code: 'INVALID_PAYLOAD',
+      message: 'user_id 必须为正整数'
+    });
+    return;
+  }
+
+  const room = getUserRoomName(payload.user_id);
+  socket.join(room);
+  socket.emit('bind_user:ack', {
+    success: true,
+    user_id: payload.user_id
+  });
+};
+
 export const initSocketServer = (httpServer: HttpServer): Server => {
   const io = new Server(httpServer, {
     cors: {
@@ -138,6 +171,8 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
       credentials: true
     }
   });
+
+  ioInstance = io;
 
   io.on('connection', socket => {
     socket.on('join_question', payload => {
@@ -151,8 +186,23 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
     socket.on('send_message', payload => {
       handleSendMessage(io, socket, payload);
     });
+
+    socket.on('bind_user', payload => {
+      handleBindUser(socket, payload as BindUserPayload);
+    });
   });
 
   return io;
+};
+
+export const emitNotificationToUser = (
+  userId: number,
+  notification: NotificationSocketPayload
+): void => {
+  if (!ioInstance) {
+    return;
+  }
+  const room = getUserRoomName(userId);
+  ioInstance.to(room).emit('notification:new', notification);
 };
 
