@@ -6,6 +6,7 @@ import userRoutes from './user.routes';
 import roleRoutes from './role.routes';
 import interventionPlanRoutes from './interventionPlan.routes';
 import interventionPlanItemRoutes from './interventionPlanItem.routes';
+import consultationRoutes from './consultation.routes';
 
 export default [
   elderRoutes,
@@ -15,5 +16,6 @@ export default [
   userRoutes,
   roleRoutes,
   interventionPlanRoutes,
-  interventionPlanItemRoutes
+  interventionPlanItemRoutes,
+  consultationRoutes
 ];

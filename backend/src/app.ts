@@ -1,4 +1,5 @@
 import Koa from 'koa';
+import { createServer } from 'http';
 import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import helmet from 'koa-helmet';
@@ -9,6 +10,7 @@ import { responseFormatter } from './middlewares/responseFormatter';
 import routes from './routes';
 import { swaggerSpec } from './config/swagger';
 import { RoleService } from './services/role.service';
+import { initSocketServer } from './realtime/socket';
 
 const app = new Koa();
 
@@ -68,8 +70,11 @@ RoleService.ensureDefaultRoles()
     console.error('初始化默认角色失败', error);
   });
 
-app.listen(config.PORT, () => {
-  console.log(`服务器已启动，运行在 http://localhost:${config.PORT}`);
+const httpServer = createServer(app.callback());
+initSocketServer(httpServer);
+
+httpServer.listen(config.PORT, () => {
+  console.log(`HTTP 服务器已启动，运行在 http://localhost:${config.PORT}`);
   console.log(`当前环境: ${config.NODE_ENV}`);
 });
 
