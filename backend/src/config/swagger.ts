@@ -195,6 +195,79 @@ const options = {
             },
           },
         },
+        DailyHealthMeasurement: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '日常健康数据记录ID'
+            },
+            elder_id: {
+              type: 'integer',
+              description: '老人ID'
+            },
+            measured_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '测量时间(ISO日期时间字符串)'
+            },
+            sbp: {
+              type: 'number',
+              format: 'float',
+              description: '收缩压(mmHg)',
+              nullable: true
+            },
+            dbp: {
+              type: 'number',
+              format: 'float',
+              description: '舒张压(mmHg)',
+              nullable: true
+            },
+            fpg: {
+              type: 'number',
+              format: 'float',
+              description: '空腹血糖(mmol/L)',
+              nullable: true
+            },
+            ppg_2h: {
+              type: 'number',
+              format: 'float',
+              description: '餐后2小时血糖(mmol/L)',
+              nullable: true
+            },
+            weight: {
+              type: 'number',
+              format: 'float',
+              description: '体重(kg)',
+              nullable: true
+            },
+            steps: {
+              type: 'integer',
+              description: '步数',
+              nullable: true
+            },
+            source: {
+              type: 'string',
+              description: '数据来源(MANUAL:手动录入, DEVICE:设备上传, REPORT:报告导入)',
+              enum: ['MANUAL', 'DEVICE', 'REPORT']
+            },
+            remark: {
+              type: 'string',
+              description: '备注',
+              nullable: true
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间'
+            }
+          }
+        },
         InterventionPlanResponse: {
           type: 'object',
           properties: {

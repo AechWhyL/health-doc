@@ -17,7 +17,17 @@ export const validate = (schema: Joi.Schema, options: ValidationOptions = {}): a
   } = options;
 
   return async (ctx: any, next: Next): Promise<void> => {
-    const data = ctx[location];
+    let data: any;
+
+    if (location === 'body') {
+      data = ctx.request?.body ?? ctx.body;
+    } else if (location === 'query') {
+      data = ctx.request?.query ?? ctx.query;
+    } else if (location === 'params') {
+      data = ctx.params;
+    } else {
+      data = ctx[location];
+    }
 
     const { error, value } = schema.validate(data, {
       abortEarly,
@@ -33,6 +43,13 @@ export const validate = (schema: Joi.Schema, options: ValidationOptions = {}): a
     }
 
     ctx.state.validatedData = value;
+
+    if (location === 'params') {
+      ctx.state.validatedParams = value;
+    }
+    if (location === 'query') {
+      ctx.state.validatedQuery = value;
+    }
     await next();
   };
 };
