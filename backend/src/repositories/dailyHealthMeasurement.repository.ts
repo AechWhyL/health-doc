@@ -62,10 +62,26 @@ export class DailyHealthMeasurementRepository {
       'measured_at DESC, created_at DESC'
     );
 
+
     return {
       items: result.items,
       total: result.total
     };
+  }
+
+  static async findByElderInRecentDays(
+    elderId: number,
+    windowDays: number
+  ): Promise<DailyHealthMeasurement[]> {
+    const sql = `
+      SELECT *
+      FROM daily_health_measurement
+      WHERE elder_id = ?
+        AND measured_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      ORDER BY measured_at DESC, created_at DESC
+    `;
+    const params = [elderId, windowDays];
+    return await Database.query<DailyHealthMeasurement>(sql, params);
   }
 
   static async update(
@@ -128,4 +144,3 @@ export class DailyHealthMeasurementRepository {
     return result > 0;
   }
 }
-

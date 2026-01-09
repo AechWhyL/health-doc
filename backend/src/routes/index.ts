@@ -6,6 +6,7 @@ import interventionPlanRoutes from './interventionPlan.routes';
 import interventionPlanItemRoutes from './interventionPlanItem.routes';
 import consultationRoutes from './consultation.routes';
 import dailyHealthMeasurementRoutes from './dailyHealthMeasurement.routes';
+import ruleEngineRoutes from './ruleEngine.routes';
 
 export default [
   elderRoutes,
@@ -15,5 +16,6 @@ export default [
   interventionPlanRoutes,
   interventionPlanItemRoutes,
   consultationRoutes,
-  dailyHealthMeasurementRoutes
+  dailyHealthMeasurementRoutes,
+  ruleEngineRoutes
 ];
