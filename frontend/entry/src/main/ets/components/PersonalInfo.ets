@@ -1,0 +1,1 @@
+import {FormType,} from "collect_personal_info"

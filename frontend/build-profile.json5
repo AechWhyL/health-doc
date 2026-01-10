@@ -18,7 +18,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"
@@ -37,6 +37,10 @@
           ]
         }
       ]
+    },
+    {
+      "name": "collect_personal_info",
+      "srcPath": "./ohos_agcit/agcit_huawei_common_collect_personal_info/collect_personal_info"
     }
   ]
 }

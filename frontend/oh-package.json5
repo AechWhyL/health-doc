@@ -2,6 +2,7 @@
   "modelVersion": "6.0.1",
   "description": "Please describe the basic information.",
   "dependencies": {
+    "collect_personal_info": "file:./ohos_agcit/agcit_huawei_common_collect_personal_info/collect_personal_info"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.24",
