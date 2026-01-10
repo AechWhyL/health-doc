@@ -1,6 +1,21 @@
 import { Context } from 'koa';
 import { UserService } from '../services/user.service';
-import { CreateUserRequest, UpdateUserRequest, ChangePasswordRequest, createUserSchema, updateUserSchema, queryUserSchema, loginSchema, changePasswordSchema, idParamSchema } from '../dto/requests/user.dto';
+import {
+  CreateUserRequest,
+  UpdateUserRequest,
+  ChangePasswordRequest,
+  createUserSchema,
+  updateUserSchema,
+  queryUserSchema,
+  loginSchema,
+  changePasswordSchema,
+  idParamSchema,
+  queryUserEldersSchema,
+  createUserElderRelationSchema,
+  userElderRelationIdParamSchema
+} from '../dto/requests/user.dto';
+import { UserElderRelationService } from '../services/userElderRelation.service';
+import { RoleCode } from '../config/rbac.config';
 
 export class UserController {
   /**
@@ -527,6 +542,71 @@ export class UserController {
     const { userId } = ctx.state.user!;
     const result = await UserService.getUserById(userId);
     ctx.success(result);
+  }
+
+  static async getMyElders(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const roles = userState.roles || [];
+    const hasAllowedRole =
+      roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
+    if (!hasAllowedRole) {
+      ctx.forbidden('当前用户角色不允许关联老人');
+      return;
+    }
+
+    const data = (ctx.state.validatedData || ctx.query) as any;
+    const { page, pageSize, elder_name } = data;
+
+    const { items, total } = await UserElderRelationService.getUserElders(userState.userId, {
+      page,
+      pageSize,
+      elder_name
+    });
+
+    ctx.paginate(items, page, pageSize, total);
+  }
+
+  static async addMyElder(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const roles = userState.roles || [];
+    const hasAllowedRole =
+      roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
+    if (!hasAllowedRole) {
+      ctx.forbidden('当前用户角色不允许关联老人');
+      return;
+    }
+
+    const data = ctx.state.validatedData || ctx.request.body;
+    const result = await UserElderRelationService.addUserElderRelation(userState.userId, data);
+    ctx.success(result, '关联老人成功');
+  }
+
+  static async deleteMyElder(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const params = ctx.state.validatedData || ctx.params;
+    const relationId = Number(params.relationId);
+    if (Number.isNaN(relationId)) {
+      ctx.badRequest('关联ID无效');
+      return;
+    }
+
+    await UserElderRelationService.removeUserElderRelation(userState.userId, relationId);
+    ctx.success(null, '取消关联成功');
   }
 
   /**

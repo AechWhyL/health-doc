@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { ElderResponse } from './elder.dto';
 
 export const createUserSchema = Joi.object({
   username: Joi.string().alphanum().min(3).max(30).required().messages({
@@ -148,6 +149,50 @@ export const idParamSchema = Joi.object({
   })
 });
 
+export const queryUserEldersSchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1).messages({
+    'number.base': '页码必须是数字',
+    'number.integer': '页码必须是整数',
+    'number.min': '页码必须大于0'
+  }),
+  pageSize: Joi.number().integer().min(1).max(100).default(10).messages({
+    'number.base': '每页数量必须是数字',
+    'number.integer': '每页数量必须是整数',
+    'number.min': '每页数量必须大于0',
+    'number.max': '每页数量不能超过100'
+  }),
+  elder_name: Joi.string().max(50).optional().allow('').messages({
+    'string.base': '老人姓名必须是字符串',
+    'string.max': '老人姓名长度不能超过50个字符'
+  })
+});
+
+export const createUserElderRelationSchema = Joi.object({
+  elder_id: Joi.number().integer().positive().required().messages({
+    'number.base': '老人ID必须是数字',
+    'number.integer': '老人ID必须是整数',
+    'number.positive': '老人ID必须是正数',
+    'any.required': '老人ID为必填项'
+  }),
+  relation_name: Joi.string().max(50).optional().allow('').messages({
+    'string.base': '关系名称必须是字符串',
+    'string.max': '关系名称长度不能超过50个字符'
+  }),
+  remark: Joi.string().max(200).optional().allow('').messages({
+    'string.base': '备注必须是字符串',
+    'string.max': '备注长度不能超过200个字符'
+  })
+});
+
+export const userElderRelationIdParamSchema = Joi.object({
+  relationId: Joi.number().integer().positive().required().messages({
+    'number.base': '关联ID必须是数字',
+    'number.integer': '关联ID必须是整数',
+    'number.positive': '关联ID必须是正数',
+    'any.required': '关联ID为必填项'
+  })
+});
+
 export interface CreateUserRequest {
   username: string;
   password: string;
@@ -224,4 +269,24 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   user: UserWithRoleResponse;
+}
+
+export interface QueryUserEldersRequest {
+  page: number;
+  pageSize: number;
+  elder_name?: string;
+}
+
+export interface CreateUserElderRelationRequest {
+  elder_id: number;
+  relation_name?: string;
+  remark?: string;
+}
+
+export interface UserElderRelationItemResponse {
+  relation_id: number;
+  elder_id: number;
+  relation_name: string | null;
+  remark: string | null;
+  elder: ElderResponse;
 }
