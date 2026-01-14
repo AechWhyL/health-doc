@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>健康关护平台 · 鸿蒙移动端原型</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "HarmonyOS Sans", "Helvetica Neue", Arial, sans-serif;
+}
+body {
+  background: #f2f4f7;
+  color: #111827;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+.app-shell {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 680px;
+}
+.status-bar {
+  padding: 8px 16px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+.app-header {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.app-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.app-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+}
+.role-switcher {
+  display: flex;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 999px;
+}
+.role-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.role-tab.active {
+  background: #111827;
+  color: #f9fafb;
+}
+.role-tab-label {
+  display: block;
+  font-weight: 500;
+}
+.role-tab-caption {
+  display: block;
+  font-size: 10px;
+  opacity: 0.82;
+}
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 65%, #e5e7eb 100%);
+}
+.role-screen {
+  display: none;
+  flex: 1;
+  padding: 12px 12px 0;
+}
+.role-screen.active {
+  display: flex;
+  flex-direction: column;
+}
+.summary-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 118, 110, 0.06);
+  color: #0f766e;
+}
+.pill.warning {
+  background: rgba(220, 38, 38, 0.06);
+  color: #b91c1c;
+}
+.pill.info {
+  background: rgba(37, 99, 235, 0.06);
+  color: #1d4ed8;
+}
+.modules-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.module-tab {
+  flex: 1;
+  border-radius: 16px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.4);
+  color: #4b5563;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.module-tab span {
+  display: block;
+}
+.module-tab-title {
+  font-weight: 500;
+}
+.module-tab-caption {
+  font-size: 10px;
+}
+.module-tab.active {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #111827;
+}
+.module-tab.active .module-tab-caption {
+  opacity: 0.86;
+}
+.screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 72px;
+}
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 12px 12px 10px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  margin-bottom: 10px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #6b7280;
+}
+.card-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.card-tag.alt {
+  background: #ecfdf3;
+  color: #166534;
+}
+.card-section-title {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.field-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.field-label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.field-value {
+  font-size: 12px;
+  color: #111827;
+}
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.badge.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.badge.success {
+  background: #dcfce7;
+  color: #15803d;
+}
+.timeline {
+  margin-top: 4px;
+}
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: 4px;
+}
+.timeline-dot.primary {
+  background: #111827;
+}
+.timeline-dot.muted {
+  background: #d1d5db;
+}
+.timeline-content {
+  flex: 1;
+}
+.timeline-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+.timeline-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.input-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+.metric-input {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.metric-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+.metric-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.metric-control input {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+.metric-unit {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.primary-button {
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  padding: 7px 0;
+  font-size: 13px;
+  font-weight: 500;
+  background: #111827;
+  color: #f9fafb;
+  cursor: pointer;
+}
+.primary-button.secondary {
+  background: #f9fafb;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+.chart-placeholder {
+  margin-top: 6px;
+  height: 120px;
+  border-radius: 14px;
+  background: radial-gradient(circle at 10% 20%, #dbeafe 0, #eff6ff 40%, #e5e7eb 90%);
+  position: relative;
+  overflow: hidden;
+}
+.chart-grid {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: flex-end;
+  gap: 4px;
+}
+.chart-bar {
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, #1d4ed8 0%, rgba(37, 99, 235, 0.6) 100%);
+}
+.chart-bar.warn {
+  background: linear-gradient(180deg, #b91c1c 0%, rgba(239, 68, 68, 0.7) 100%);
+}
+.chart-x-axis {
+  position: absolute;
+  bottom: 4px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #6b7280;
+}
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.plan-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+.plan-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plan-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+.plan-meta {
+  font-size: 11px;
+  color: #6b7280;
+}
+.plan-progress {
+  font-size: 11px;
+  color: #16a34a;
+}
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #ffffff;
+}
+.checkbox.checked {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+.bottom-nav {
+  position: relative;
+  padding: 6px 14px 10px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: #9ca3af;
+}
+.nav-item span {
+  font-size: 18px;
+}
+.nav-item.active {
+  color: #111827;
+}
+.nav-item.badge-dot::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  position: relative;
+  top: -10px;
+  right: -10px;
+}
+.role-name-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.role-bottom-nav {
+  display: none;
+}
+.role-screen.active .role-bottom-nav {
+  display: flex;
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="status-bar">
+    <div>9:41</div>
+    <div>4G · 80%</div>
+  </div>
+  <header class="app-header">
+    <div class="app-title-row">
+      <div>
+        <div class="app-title">健康关护平台</div>
+        <div class="app-subtitle">老人档案 · 健康数据 · 干预计划</div>
+      </div>
+      <div class="role-name-chip" id="roleNameChip">老人端视角</div>
+    </div>
+    <div class="role-switcher">
+      <button class="role-tab active" data-role="elder">
+        <span class="role-tab-label">老人端</span>
+        <span class="role-tab-caption">查看档案与执行计划</span>
+      </button>
+      <button class="role-tab" data-role="family">
+        <span class="role-tab-label">家属端</span>
+        <span class="role-tab-caption">协助录入与提醒关注</span>
+      </button>
+      <button class="role-tab" data-role="care">
+        <span class="role-tab-label">医护端</span>
+        <span class="role-tab-caption">评估分析与干预管理</span>
+      </button>
+    </div>
+  </header>
+  <main class="app-main">
+    <section class="role-screen active" data-role="elder">
+      <div class="summary-strip">
+        <div class="pill">
+          <span>●</span>
+          <span>本周已完成干预 3/5 项</span>
+        </div>
+        <div class="pill warning">
+          <span>●</span>
+          <span>近3次血压偏高</span>
+        </div>
+      </div>
+      <div class="modules-nav" data-role-modules="elder">
+        <button class="module-tab active" data-module="profile">
+          <span class="module-tab-title">我的档案</span>
+          <span class="module-tab-caption">个人信息与健康档案</span>
+        </button>
+        <button class="module-tab" data-module="health">
+          <span class="module-tab-title">健康数据</span>
+          <span class="module-tab-caption">录入指标与趋势</span>
+        </button>
+        <button class="module-tab" data-module="plan">
+          <span class="module-tab-title">干预计划</span>
+          <span class="module-tab-caption">用药与康复任务</span>
+        </button>
+      </div>
+      <div class="screen-scroll">
+        <div class="module-screen" data-role="elder" data-module="profile">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">老人基本信息</div>
+                <div class="card-subtitle">基于档案管理模块</div>
+              </div>
+              <div class="card-tag">档案完整度 92%</div>
+            </div>
+            <div class="field-list">
+              <div class="field-item">
+                <div class="field-label">姓名</div>
+                <div class="field-value">张阿姨</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">年龄</div>
+                <div class="field-value">72 岁</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">联系方式</div>
+                <div class="field-value">138****5620</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">紧急联系人</div>
+                <div class="field-value">女儿 · 李女士</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">既往病史</div>
+                <div class="field-value">高血压 · 2 型糖尿病</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">药物过敏史</div>
+                <div class="field-value">青霉素</div>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge">家庭住址已验证</div>
+              <div class="badge">联系方式已更新</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">健康档案概览</div>
+                <div class="card-subtitle">病史 · 就医记录 · 检查报告</div>
+              </div>
+              <div class="card-tag alt">近 6 个月数据</div>
+            </div>
+            <div class="card-section-title">最近就医</div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot primary"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">心内科复查</div>
+                  <div class="timeline-meta">2025-12-02 · 市一医院</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot muted"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">年度体检报告已入档</div>
+                  <div class="timeline-meta">2025-10-18 · 报告 12 项指标录入</div>
+                </div>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge success">档案状态正常</div>
+              <div class="badge">用药记录完整</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">档案版本追踪</div>
+                <div class="card-subtitle">查看档案修改历史</div>
+              </div>
+              <div class="card-tag">最近更新</div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot primary"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">医护更新用药方案</div>
+                  <div class="timeline-meta">2025-12-08 · 操作人：王护士</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot muted"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">补充家庭住址与联系人</div>
+                  <div class="timeline-meta">2025-11-21 · 操作人：家属李女士</div>
+                </div>
+              </div>
+            </div>
+            <button class="primary-button secondary">查看全部历史版本</button>
+          </div>
+        </div>
+        <div class="module-screen" data-role="elder" data-module="health" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">今日健康数据录入</div>
+                <div class="card-subtitle">按指标表单录入</div>
+              </div>
+              <div class="card-tag">非实时 · 日常记录</div>
+            </div>
+            <div class="input-row">
+              <div class="metric-input">
+                <div class="metric-label">血压</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="120/80">
+                  <div class="metric-unit">mmHg</div>
+                </div>
+              </div>
+              <div class="metric-input">
+                <div class="metric-label">空腹血糖</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="5.6">
+                  <div class="metric-unit">mmol/L</div>
+                </div>
+              </div>
+              <div class="metric-input">
+                <div class="metric-label">体重</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="60.5">
+                  <div class="metric-unit">kg</div>
+                </div>
+              </div>
+              <div class="metric-input">
+                <div class="metric-label">静息心率</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="72">
+                  <div class="metric-unit">次/分</div>
+                </div>
+              </div>
+            </div>
+            <button class="primary-button">提交今日记录</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">血压趋势可视化</div>
+                <div class="card-subtitle">最近 7 天早晨测量</div>
+              </div>
+              <div class="card-tag alt">异常将触发提醒</div>
+            </div>
+            <div class="chart-placeholder">
+              <div class="chart-grid">
+                <div class="chart-bar" style="height:55%"></div>
+                <div class="chart-bar" style="height:62%"></div>
+                <div class="chart-bar warn" style="height:80%"></div>
+                <div class="chart-bar warn" style="height:82%"></div>
+                <div class="chart-bar" style="height:60%"></div>
+                <div class="chart-bar" style="height:57%"></div>
+              </div>
+              <div class="chart-x-axis">
+                <span>周一</span>
+                <span>周二</span>
+                <span>周三</span>
+                <span>周四</span>
+                <span>周五</span>
+                <span>周六</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge danger">近 3 天连续偏高</div>
+              <div class="badge">建议听取医护建议</div>
+            </div>
+          </div>
+        </div>
+        <div class="module-screen" data-role="elder" data-module="plan" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">用药计划提醒</div>
+                <div class="card-subtitle">来源于干预计划管理模块</div>
+              </div>
+              <div class="card-tag">今日需服药 3 次</div>
+            </div>
+            <div class="plan-list">
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">早晨 8:00 降压药</div>
+                  <div class="plan-meta">奥美沙坦 20mg · 饭后</div>
+                </div>
+                <div class="checkbox checked">✓</div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">中午 12:00 降糖药</div>
+                  <div class="plan-meta">二甲双胍 0.5g · 饭中</div>
+                </div>
+                <div class="checkbox"></div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">晚上 20:00 复查血压</div>
+                  <div class="plan-meta">测量后录入健康数据</div>
+                </div>
+                <div class="checkbox"></div>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge success">已按时服药 1/3</div>
+              <div class="badge">家属与医护均可查看执行情况</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">康复训练任务</div>
+                <div class="card-subtitle">按计划完成保持记录</div>
+              </div>
+              <div class="card-tag alt">周目标完成度 60%</div>
+            </div>
+            <div class="plan-list">
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">步行 20 分钟</div>
+                  <div class="plan-meta">晚餐后 · 轻松步伐</div>
+                </div>
+                <div class="plan-progress">进行中</div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">呼吸训练 10 分钟</div>
+                  <div class="plan-meta">跟随视频节奏</div>
+                </div>
+                <div class="plan-progress">未开始</div>
+              </div>
+            </div>
+            <button class="primary-button">查看本周干预效果</button>
+          </div>
+        </div>
+      </div>
+      <nav class="bottom-nav role-bottom-nav" data-role-nav="elder">
+        <div class="nav-item active" data-module="profile">
+          <span>◎</span>
+          <div>档案</div>
+        </div>
+        <div class="nav-item" data-module="health">
+          <span>▴</span>
+          <div>健康数据</div>
+        </div>
+        <div class="nav-item" data-module="plan">
+          <span>✓</span>
+          <div>干预计划</div>
+        </div>
+      </nav>
+    </section>
+    <section class="role-screen" data-role="family">
+      <div class="summary-strip">
+        <div class="pill info">
+          <span>●</span>
+          <span>有 2 条医护更新待查看</span>
+        </div>
+        <div class="pill warning">
+          <span>●</span>
+          <span>近 3 天未补全健康数据</span>
+        </div>
+      </div>
+      <div class="modules-nav" data-role-modules="family">
+        <button class="module-tab active" data-module="profile">
+          <span class="module-tab-title">档案协同</span>
+          <span class="module-tab-caption">补充联系人与生活信息</span>
+        </button>
+        <button class="module-tab" data-module="health">
+          <span class="module-tab-title">代录数据</span>
+          <span class="module-tab-caption">帮老人录入健康指标</span>
+        </button>
+        <button class="module-tab" data-module="plan">
+          <span class="module-tab-title">提醒与风险</span>
+          <span class="module-tab-caption">关注异常并督促执行</span>
+        </button>
+      </div>
+      <div class="screen-scroll">
+        <div class="module-screen" data-role="family" data-module="profile">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">协助完善老人档案</div>
+                <div class="card-subtitle">补充家庭住址与生活习惯</div>
+              </div>
+              <div class="card-tag">档案管理模块</div>
+            </div>
+            <div class="field-list">
+              <div class="field-item">
+                <div class="field-label">与老人关系</div>
+                <div class="field-value">女儿</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">家庭住址</div>
+                <div class="field-value">上海市徐汇区 · 已验证</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">紧急联系人优先级</div>
+                <div class="field-value">一级</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">生活方式标签</div>
+                <div class="field-value">清淡饮食 · 规律作息</div>
+              </div>
+            </div>
+            <button class="primary-button secondary">编辑生活习惯与作息</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">档案版本变更提醒</div>
+                <div class="card-subtitle">医护与家属的近期修改</div>
+              </div>
+              <div class="card-tag alt">版本追踪</div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot primary"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">医护调整干预计划</div>
+                  <div class="timeline-meta">2025-12-08 · 需确认是否已知晓</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot muted"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">家属补充老人用餐时间</div>
+                  <div class="timeline-meta">2025-11-20 · 已同步到医护端</div>
+                </div>
+              </div>
+            </div>
+            <button class="primary-button">确认并通知老人</button>
+          </div>
+        </div>
+        <div class="module-screen" data-role="family" data-module="health" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">代老人录入健康数据</div>
+                <div class="card-subtitle">基于健康数据记录模块</div>
+              </div>
+              <div class="card-tag">支持报告辅助录入</div>
+            </div>
+            <div class="input-row">
+              <div class="metric-input">
+                <div class="metric-label">上传体检报告</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="选择文件">
+                  <div class="metric-unit">PDF/JPG</div>
+                </div>
+              </div>
+              <div class="metric-input">
+                <div class="metric-label">上传纸质检测单照片</div>
+                <div class="metric-control">
+                  <input type="text" placeholder="拍照或相册">
+                  <div class="metric-unit">图片</div>
+                </div>
+              </div>
+            </div>
+            <button class="primary-button">识别并解析报告数据</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">最近一周健康趋势</div>
+                <div class="card-subtitle">家属视角一览</div>
+              </div>
+              <div class="card-tag alt">数据驱动监控</div>
+            </div>
+            <div class="chart-placeholder">
+              <div class="chart-grid">
+                <div class="chart-bar" style="height:40%"></div>
+                <div class="chart-bar" style="height:48%"></div>
+                <div class="chart-bar" style="height:44%"></div>
+                <div class="chart-bar warn" style="height:72%"></div>
+                <div class="chart-bar" style="height:50%"></div>
+                <div class="chart-bar" style="height:46%"></div>
+              </div>
+              <div class="chart-x-axis">
+                <span>日</span>
+                <span>一</span>
+                <span>二</span>
+                <span>三</span>
+                <span>四</span>
+                <span>五</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge danger">周三起血压波动偏大</div>
+              <div class="badge">建议与医护沟通</div>
+            </div>
+          </div>
+        </div>
+        <div class="module-screen" data-role="family" data-module="plan" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">干预计划提醒中心</div>
+                <div class="card-subtitle">关注老人执行情况</div>
+              </div>
+              <div class="card-tag">健康干预模块</div>
+            </div>
+            <div class="plan-list">
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">晚间用药提醒</div>
+                  <div class="plan-meta">20:00 前确认老人已服药</div>
+                </div>
+                <div class="plan-progress">待确认</div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">本周康复完成度</div>
+                  <div class="plan-meta">5 项中已完成 3 项</div>
+                </div>
+                <div class="plan-progress">60%</div>
+              </div>
+            </div>
+            <button class="primary-button">标记已提醒并添加备注</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">风险提示与建议</div>
+                <div class="card-subtitle">来自系统与医护联合评估</div>
+              </div>
+              <div class="card-tag alt">风险提示</div>
+            </div>
+            <div class="badge-row">
+              <div class="badge danger">血压持续偏高 3 天</div>
+              <div class="badge">建议陪同就医复查</div>
+              <div class="badge">注意饮食清淡与规律作息</div>
+            </div>
+            <button class="primary-button secondary">与医护在线沟通</button>
+          </div>
+        </div>
+      </div>
+      <nav class="bottom-nav role-bottom-nav" data-role-nav="family">
+        <div class="nav-item active" data-module="profile">
+          <span>◎</span>
+          <div>档案协同</div>
+        </div>
+        <div class="nav-item" data-module="health">
+          <span>▴</span>
+          <div>代录数据</div>
+        </div>
+        <div class="nav-item" data-module="plan">
+          <span>⚑</span>
+          <div>提醒与风险</div>
+        </div>
+      </nav>
+    </section>
+    <section class="role-screen" data-role="care">
+      <div class="summary-strip">
+        <div class="pill">
+          <span>●</span>
+          <span>今日待评估老人 4 人</span>
+        </div>
+        <div class="pill info">
+          <span>●</span>
+          <span>已生成 3 份干预效果报告</span>
+        </div>
+      </div>
+      <div class="modules-nav" data-role-modules="care">
+        <button class="module-tab active" data-module="profile">
+          <span class="module-tab-title">档案管理</span>
+          <span class="module-tab-caption">结构化老人资料</span>
+        </button>
+        <button class="module-tab" data-module="health">
+          <span class="module-tab-title">数据分析</span>
+          <span class="module-tab-caption">多维指标与阈值判断</span>
+        </button>
+        <button class="module-tab" data-module="plan">
+          <span class="module-tab-title">干预计划</span>
+          <span class="module-tab-caption">制定与评估方案</span>
+        </button>
+      </div>
+      <div class="screen-scroll">
+        <div class="module-screen" data-role="care" data-module="profile">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">老人档案列表</div>
+                <div class="card-subtitle">核心基础数据管理</div>
+              </div>
+              <div class="card-tag">档案管理模块</div>
+            </div>
+            <div class="plan-list">
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">张阿姨 · 72 岁</div>
+                  <div class="plan-meta">高血压 · 糖尿病 · 关注用药依从性</div>
+                </div>
+                <div class="plan-progress">查看</div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">王叔叔 · 78 岁</div>
+                  <div class="plan-meta">脑卒中恢复期 · 康复训练中</div>
+                </div>
+                <div class="plan-progress">查看</div>
+              </div>
+            </div>
+            <button class="primary-button secondary">新建老人档案</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">档案版本审计</div>
+                <div class="card-subtitle">自动记录修改时间与操作人</div>
+              </div>
+              <div class="card-tag alt">审计追踪</div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot primary"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">更新降压联合用药方案</div>
+                  <div class="timeline-meta">2025-12-08 · 操作人：王医生</div>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot muted"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">补录体检报告关键指标</div>
+                  <div class="timeline-meta">2025-11-29 · 操作人：护士张丽</div>
+                </div>
+              </div>
+            </div>
+            <button class="primary-button">导出档案审计记录</button>
+          </div>
+        </div>
+        <div class="module-screen" data-role="care" data-module="health" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">健康数据多维分析</div>
+                <div class="card-subtitle">血压 · 血糖 · 体重 · 心率</div>
+              </div>
+              <div class="card-tag">趋势可视化</div>
+            </div>
+            <div class="chart-placeholder">
+              <div class="chart-grid">
+                <div class="chart-bar" style="height:35%"></div>
+                <div class="chart-bar" style="height:40%"></div>
+                <div class="chart-bar warn" style="height:70%"></div>
+                <div class="chart-bar" style="height:45%"></div>
+                <div class="chart-bar" style="height:42%"></div>
+                <div class="chart-bar" style="height:38%"></div>
+              </div>
+              <div class="chart-x-axis">
+                <span>Q1</span>
+                <span>Q2</span>
+                <span>Q3</span>
+                <span>Q4</span>
+                <span>Q5</span>
+                <span>Q6</span>
+              </div>
+            </div>
+            <div class="badge-row">
+              <div class="badge danger">高血压风险指数升高</div>
+              <div class="badge">建议调整干预频次</div>
+              <div class="badge">适当增加复查次数</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">指标阈值策略</div>
+                <div class="card-subtitle">按阈值生成提醒与风险提示</div>
+              </div>
+              <div class="card-tag alt">规则配置</div>
+            </div>
+            <div class="field-list">
+              <div class="field-item">
+                <div class="field-label">收缩压预警值</div>
+                <div class="field-value">≥ 150 mmHg</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">空腹血糖预警值</div>
+                <div class="field-value">≥ 7.0 mmol/L</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">预警策略</div>
+                <div class="field-value">连续异常 3 次触发提醒</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">提醒方式</div>
+                <div class="field-value">APP 消息 · 短信通知家属</div>
+              </div>
+            </div>
+            <button class="primary-button secondary">调整阈值与提醒策略</button>
+          </div>
+        </div>
+        <div class="module-screen" data-role="care" data-module="plan" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">健康干预计划管理</div>
+                <div class="card-subtitle">制定个性化方案</div>
+              </div>
+              <div class="card-tag">干预管理模块</div>
+            </div>
+            <div class="plan-list">
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">高血压综合干预方案</div>
+                  <div class="plan-meta">用药 + 运动 + 饮食管理</div>
+                </div>
+                <div class="plan-progress">执行中</div>
+              </div>
+              <div class="plan-item">
+                <div class="plan-main">
+                  <div class="plan-title">糖尿病生活方式干预</div>
+                  <div class="plan-meta">控糖饮食 + 血糖自测</div>
+                </div>
+                <div class="plan-progress">待启动</div>
+              </div>
+            </div>
+            <button class="primary-button">新建干预计划</button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">干预效果评估</div>
+                <div class="card-subtitle">根据数据动态调整方案</div>
+              </div>
+              <div class="card-tag alt">效果记录</div>
+            </div>
+            <div class="field-list">
+              <div class="field-item">
+                <div class="field-label">近 3 个月收缩压变化</div>
+                <div class="field-value">平均下降 8 mmHg</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">用药依从性</div>
+                <div class="field-value">约 85%</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">康复训练完成率</div>
+                <div class="field-value">约 70%</div>
+              </div>
+              <div class="field-item">
+                <div class="field-label">医护综合评价</div>
+                <div class="field-value">效果良好 · 建议继续观察</div>
+              </div>
+            </div>
+            <button class="primary-button secondary">生成干预效果报告</button>
+          </div>
+        </div>
+      </div>
+      <nav class="bottom-nav role-bottom-nav" data-role-nav="care">
+        <div class="nav-item active" data-module="profile">
+          <span>◎</span>
+          <div>档案管理</div>
+        </div>
+        <div class="nav-item" data-module="health">
+          <span>▴</span>
+          <div>数据分析</div>
+        </div>
+        <div class="nav-item" data-module="plan">
+          <span>✓</span>
+          <div>干预计划</div>
+        </div>
+      </nav>
+    </section>
+  </main>
+</div>
+<script>
+var roleTabs = document.querySelectorAll(".role-tab");
+var roleScreens = document.querySelectorAll(".role-screen");
+var roleNameChip = document.getElementById("roleNameChip");
+var roleNameMap = {
+  elder: "老人端视角",
+  family: "家属端视角",
+  care: "医护端视角"
+};
+roleTabs.forEach(function (tab) {
+  tab.addEventListener("click", function () {
+    var role = tab.getAttribute("data-role");
+    roleTabs.forEach(function (t) {
+      t.classList.remove("active");
+    });
+    tab.classList.add("active");
+    roleScreens.forEach(function (screen) {
+      if (screen.getAttribute("data-role") === role) {
+        screen.classList.add("active");
+      } else {
+        screen.classList.remove("active");
+      }
+    });
+    roleNameChip.textContent = roleNameMap[role] || "";
+  });
+});
+var moduleGroups = document.querySelectorAll(".modules-nav");
+moduleGroups.forEach(function (group) {
+  var role = group.getAttribute("data-role-modules");
+  var tabs = group.querySelectorAll(".module-tab");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      var moduleKey = tab.getAttribute("data-module");
+      tabs.forEach(function (t) {
+        t.classList.remove("active");
+      });
+      tab.classList.add("active");
+      var screens = document.querySelectorAll('.module-screen[data-role="' + role + '"]');
+      screens.forEach(function (screen) {
+        if (screen.getAttribute("data-module") === moduleKey) {
+          screen.style.display = "";
+        } else {
+          screen.style.display = "none";
+        }
+      });
+      var nav = document.querySelector('.role-bottom-nav[data-role-nav="' + role + '"]');
+      if (nav) {
+        var navItems = nav.querySelectorAll(".nav-item");
+        navItems.forEach(function (item) {
+          if (item.getAttribute("data-module") === moduleKey) {
+            item.classList.add("active");
+          } else {
+            item.classList.remove("active");
+          }
+        });
+      }
+    });
+  });
+});
+var roleNavs = document.querySelectorAll(".role-bottom-nav");
+roleNavs.forEach(function (nav) {
+  var role = nav.getAttribute("data-role-nav");
+  var items = nav.querySelectorAll(".nav-item");
+  items.forEach(function (item) {
+    item.addEventListener("click", function () {
+      var moduleKey = item.getAttribute("data-module");
+      items.forEach(function (i) {
+        i.classList.remove("active");
+      });
+      item.classList.add("active");
+      var group = document.querySelector('.modules-nav[data-role-modules="' + role + '"]');
+      if (group) {
+        var tabs = group.querySelectorAll(".module-tab");
+        tabs.forEach(function (t) {
+          if (t.getAttribute("data-module") === moduleKey) {
+            t.classList.add("active");
+          } else {
+            t.classList.remove("active");
+          }
+        });
+      }
+      var screens = document.querySelectorAll('.module-screen[data-role="' + role + '"]');
+      screens.forEach(function (screen) {
+        if (screen.getAttribute("data-module") === moduleKey) {
+          screen.style.display = "";
+        } else {
+          screen.style.display = "none";
+        }
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -49,6 +49,11 @@ ArkTS不允许类中存在多个静态块。如果存在多个静态块语句，
 级别：错误
 错误码：10605017
 ArkTS不允许index signature，改用数组。
+## Record类型的值不支持undefined
+规则：arkts-no-optional-props-in-record
+级别：错误
+错误码：10605018
+ArkTS不支持Record类型的可选属性。优先使用null显示代替undefined。
 ## 使用继承而非intersection type
 规则：arkts-no-intersection-types
 级别：错误

@@ -126,6 +126,9 @@ backend/src/
 
 ### TypeScript类型安全规范 (TypeScript Type Safety Standards)
 
+#### 事务规范
+当业务逻辑设计多个数据库操作时，必须使用事务确保数据一致性。
+
 #### 类型定义规范 (Type Definition Standards)
 1. **严格类型检查**
    - 启用 `strict: true` 在 tsconfig.json
@@ -335,85 +338,10 @@ backend/src/
 
 ### 安全规范 (Security Standards)
 
-#### 数据安全 (Data Security)
-- 敏感数据加密存储（密码、身份证号等）
-- 实现认证和授权机制
-- 防止SQL注入、XSS攻击
-- 限制请求频率（Rate Limiting）
-
 #### 输入验证 (Input Validation)
 - 所有用户输入必须验证
 - 验证数据类型、格式、长度、范围
 - 使用白名单验证，避免黑名单
-- 文件上传必须验证文件类型和大小
 
-### 性能优化规范 (Performance Optimization Standards)
 
-#### 数据库优化 (Database Optimization)
-- 使用索引优化查询
-- 避免N+1查询问题
-- 使用连接池管理数据库连接
-- 复杂查询使用分页
-- 避免在循环中执行数据库查询
-
-#### 缓存策略 (Caching Strategy)
-- 合理使用缓存（Redis、内存缓存）
-- 缓存热点数据
-- 设置合理的缓存过期时间
-- 缓存更新策略（Cache-Aside、Write-Through）
-
-#### 代码优化 (Code Optimization)
-- 避免不必要的计算和查询
-- 使用异步操作提高并发性能
-- 合理使用批量操作
-- 避免深层嵌套和过长的函数
-
-### 测试规范 (Testing Standards)
-
-#### 测试覆盖 (Test Coverage)
-- 单元测试覆盖率不低于80%
-- 关键业务逻辑必须有测试
-- 每个服务层方法必须有测试
-- API接口必须有集成测试
-
-#### 测试类型 (Test Types)
-1. **单元测试**: 测试单个函数或方法
-2. **集成测试**: 测试多个模块的协作
-3. **端到端测试**: 测试完整的业务流程
-
-#### 测试命名 (Test Naming)
-- 使用描述性的测试名称
-- 格式：`should_期望行为_when_条件`
-- 示例：`should_return_user_when_user_exists`
-
-### Git提交规范 (Git Commit Standards)
-
-#### 提交信息格式 (Commit Message Format)
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
-#### 类型 (Type)
-- `feat`: 新功能
-- `fix`: 修复bug
-- `docs`: 文档更新
-- `style`: 代码格式调整
-- `refactor`: 重构
-- `test`: 测试相关
-- `chore`: 构建/工具链相关
-
-#### 示例 (Example)
-```
-feat(user): add user registration API
-
-- Implement user registration endpoint
-- Add email validation
-- Add password hashing
-
-Closes #123
-```
 

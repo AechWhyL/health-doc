@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>健康关护平台 · 登录与注册原型</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "HarmonyOS Sans", "Helvetica Neue", Arial, sans-serif;
+}
+body {
+  background: #f2f4f7;
+  color: #111827;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+.app-shell {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 640px;
+}
+.status-bar {
+  padding: 8px 16px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+.app-header {
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.app-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 65%, #e5e7eb 100%);
+}
+.auth-toggle {
+  display: flex;
+  margin: 10px 16px 0;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 999px;
+}
+.auth-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+}
+.auth-tab.active {
+  background: #111827;
+  color: #f9fafb;
+}
+.auth-screen {
+  display: none;
+  flex: 1;
+  padding: 12px 16px 0;
+}
+.auth-screen.active {
+  display: flex;
+  flex-direction: column;
+}
+.screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.section-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.input-group {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+.field-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.field-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-control input,
+.field-control select {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+.field-control input[type="checkbox"] {
+  flex: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+.field-inline-text {
+  font-size: 12px;
+  color: #4b5563;
+}
+.role-chip-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.role-chip {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+.role-chip span {
+  display: block;
+}
+.role-chip-title {
+  font-weight: 500;
+}
+.role-chip-caption {
+  font-size: 11px;
+}
+.role-chip.active {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #111827;
+}
+.primary-button {
+  margin-top: 18px;
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  background: #111827;
+  color: #f9fafb;
+  cursor: pointer;
+}
+.secondary-button {
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  padding: 9px 0;
+  font-size: 13px;
+  background: #f9fafb;
+  color: #111827;
+  cursor: pointer;
+}
+.helper-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+.helper-link {
+  color: #2563eb;
+  cursor: pointer;
+}
+.hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+.api-tag {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.api-tag span {
+  opacity: 0.78;
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="status-bar">
+    <div>9:41</div>
+    <div>4G · 82%</div>
+  </div>
+  <header class="app-header">
+    <div class="app-title">老年人健康档案管理平台</div>
+    <div class="app-subtitle">统一登录入口，支持老人/家属/医护三端</div>
+  </header>
+  <main class="app-main">
+    <div class="auth-toggle">
+      <button class="auth-tab active" data-auth-tab="login">登录</button>
+      <button class="auth-tab" data-auth-tab="register">注册</button>
+    </div>
+    <section class="auth-screen active" data-auth-screen="login">
+      <div class="screen-scroll">
+        <div class="section-title">欢迎回来</div>
+        <div class="section-subtitle">使用手机号或邮箱登录，系统将自动识别角色</div>
+        <div class="input-group">
+          <div class="field">
+            <div class="field-label">手机号/邮箱</div>
+            <div class="field-control">
+              <input placeholder="请输入手机号或邮箱">
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">密码</div>
+            <div class="field-control">
+              <input type="password" placeholder="请输入登录密码">
+            </div>
+            <div class="field-meta">登录API：POST /api/v1/auth/login</div>
+          </div>
+          <div class="field">
+            <div class="field-control">
+              <input type="checkbox" id="rememberMe">
+              <label for="rememberMe" class="field-inline-text">记住我（使用更长有效期的刷新令牌）</label>
+            </div>
+          </div>
+        </div>
+        <button class="primary-button">立即登录</button>
+        <div class="helper-row">
+          <div class="helper-link">忘记密码</div>
+          <div>还没有账号？<span class="helper-link" data-jump-register>立即注册</span></div>
+        </div>
+        <div class="hint">
+          登录成功后，前端根据 /api/v1/auth/login 返回的用户角色信息自动跳转：
+          老人 → 老人端首页，家属 → 家属端首页，医护人员 → 医护端首页，无需用户手动选择角色。
+        </div>
+        <div class="api-tag">
+          <strong>登录接口</strong>
+          <span>POST /api/v1/auth/login · 返回Token与用户角色列表</span>
+        </div>
+      </div>
+    </section>
+    <section class="auth-screen" data-auth-screen="register">
+      <div class="screen-scroll">
+        <div class="section-title">注册新账号</div>
+        <div class="section-subtitle">选择要注册的角色，支持老人、家属、医护人员</div>
+        <div class="input-group">
+          <div class="field">
+            <div class="field-label">注册角色</div>
+            <div class="role-chip-row">
+              <div class="role-chip active" data-role="ELDER">
+                <span class="role-chip-title">老人</span>
+                <span class="role-chip-caption">用于自我管理健康档案与干预执行</span>
+              </div>
+              <div class="role-chip" data-role="FAMILY">
+                <span class="role-chip-title">家属</span>
+                <span class="role-chip-caption">可绑定老人，代录数据并发起咨询</span>
+              </div>
+              <div class="role-chip" data-role="MEDICAL_STAFF">
+                <span class="role-chip-title">医护人员</span>
+                <span class="role-chip-caption">管理档案与干预计划，需机构审核</span>
+              </div>
+            </div>
+            <div class="field-meta">角色代码示例：ELDER / FAMILY / MEDICAL_STAFF</div>
+          </div>
+          <div class="field">
+            <div class="field-label">手机号</div>
+            <div class="field-control">
+              <input placeholder="用于登录与找回密码">
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">邮箱（可选）</div>
+            <div class="field-control">
+              <input placeholder="也可作为登录账号">
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">登录密码</div>
+            <div class="field-control">
+              <input type="password" placeholder="至少8位，包含字母和数字">
+            </div>
+            <div class="field-meta">密码强度校验：长度≥8，包含字母和数字</div>
+          </div>
+          <div class="field">
+            <div class="field-label">确认密码</div>
+            <div class="field-control">
+              <input type="password" placeholder="再次输入以确认密码">
+            </div>
+          </div>
+        </div>
+        <button class="primary-button">立即注册并登录</button>
+        <button class="secondary-button" data-jump-login>已有账号？去登录</button>
+        <div class="hint">
+          注册API：POST /api/v1/auth/register，提交字段示意：
+          phone/email、password、selectedRole，后端根据角色为用户分配默认权限并返回JWT Token。
+          前端收到Token后直接视为登录成功，再引导用户进入对应角色的基础信息完善流程。
+        </div>
+        <div class="api-tag">
+          <strong>注册接口</strong>
+          <span>POST /api/v1/auth/register · 角色选择与分配</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+var authTabs = document.querySelectorAll(".auth-tab");
+var authScreens = document.querySelectorAll(".auth-screen");
+authTabs.forEach(function (tab) {
+  tab.addEventListener("click", function () {
+    var target = tab.getAttribute("data-auth-tab");
+    authTabs.forEach(function (t) {
+      t.classList.remove("active");
+    });
+    tab.classList.add("active");
+    authScreens.forEach(function (screen) {
+      if (screen.getAttribute("data-auth-screen") === target) {
+        screen.classList.add("active");
+      } else {
+        screen.classList.remove("active");
+      }
+    });
+  });
+});
+var roleChips = document.querySelectorAll(".role-chip");
+roleChips.forEach(function (chip) {
+  chip.addEventListener("click", function () {
+    var parent = chip.parentElement;
+    if (!parent) return;
+    var siblings = parent.querySelectorAll(".role-chip");
+    siblings.forEach(function (c) {
+      c.classList.remove("active");
+    });
+    chip.classList.add("active");
+  });
+});
+var jumpRegister = document.querySelector("[data-jump-register]");
+var jumpLogin = document.querySelector("[data-jump-login]");
+function switchAuth(target) {
+  authTabs.forEach(function (t) {
+    var tabKey = t.getAttribute("data-auth-tab");
+    if (tabKey === target) {
+      t.classList.add("active");
+    } else {
+      t.classList.remove("active");
+    }
+  });
+  authScreens.forEach(function (screen) {
+    var screenKey = screen.getAttribute("data-auth-screen");
+    if (screenKey === target) {
+      screen.classList.add("active");
+    } else {
+      screen.classList.remove("active");
+    }
+  });
+}
+if (jumpRegister) {
+  jumpRegister.addEventListener("click", function () {
+    switchAuth("register");
+  });
+}
+if (jumpLogin) {
+  jumpLogin.addEventListener("click", function () {
+    switchAuth("login");
+  });
+}
+</script>
+</body>
+</html>
+
