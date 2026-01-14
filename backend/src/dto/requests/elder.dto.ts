@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 
 export const createElderSchema = Joi.object({
   name: Joi.string().min(1).max(50).required().messages({
@@ -113,6 +114,10 @@ export const queryElderSchema = Joi.object({
     'string.base': '姓名必须是字符串',
     'string.max': '姓名长度不能超过50个字符'
   }),
+  phone: Joi.string().max(20).optional().allow('').messages({
+    'string.base': '手机号必须是字符串',
+    'string.max': '手机号长度不能超过20个字符'
+  }),
   orderBy: Joi.string().optional().allow('')
 });
 
@@ -158,10 +163,9 @@ export interface UpdateElderRequest {
   blood_type?: string;
 }
 
-export interface QueryElderRequest {
-  page: number;
-  pageSize: number;
+export interface QueryElderRequest extends PaginationQuery {
   name?: string;
+  phone?: string;
   orderBy?: string;
 }
 

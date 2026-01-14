@@ -22,3 +22,37 @@ export interface HealthRule {
   description?: string;
   evaluate(context: HealthRuleContext): HealthRuleResult | null;
 }
+
+export interface PersonalHealthRuleConfig {
+  id: string;
+  name: string;
+  elderId?: number;
+  level: HealthStatusLevel;
+  logic: unknown;
+  messageTemplate?: string;
+  isActive: boolean;
+}
+
+export interface HealthIndicatorSummary {
+  avgSbp: number | null;
+  avgDbp: number | null;
+  avgFpg: number | null;
+  avgPpg2h: number | null;
+  avgSteps: number | null;
+  latestWeight: number | null;
+  earliestWeight: number | null;
+  weightDiff: number | null;
+}
+
+export interface PersonalHealthRuleRecord {
+  id: number;
+  elder_id: number | null;
+  name: string;
+  level: HealthStatusLevel;
+  logic: unknown;
+  message_template: string | null;
+  is_active: number;
+  created_by_user_id: number | null;
+  created_at?: string;
+  updated_at?: string;
+}

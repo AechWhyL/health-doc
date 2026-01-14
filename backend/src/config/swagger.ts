@@ -16,6 +16,43 @@ const options = {
     ],
     components: {
       schemas: {
+        MedicalStaffInfoResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '医护人员信息ID',
+            },
+            gender: {
+              type: 'integer',
+              description: '性别(0:男,1:女,2:其他)',
+            },
+            birth_date: {
+              type: 'string',
+              format: 'date',
+              nullable: true,
+              description: '出生日期',
+            },
+            role_type: {
+              type: 'string',
+              description: '医护类型(如doctor,nurse,therapist)',
+            },
+            job_title: {
+              type: 'string',
+              nullable: true,
+              description: '职称',
+            },
+            good_at_tags: {
+              type: 'string',
+              nullable: true,
+              description: '擅长领域标签(逗号分隔字符串)',
+            },
+            enable_online_service: {
+              type: 'boolean',
+              description: '是否可在咨询功能中被搜索',
+            },
+          },
+        },
         ElderBasicInfo: {
           type: 'object',
           properties: {

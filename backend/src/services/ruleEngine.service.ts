@@ -1,7 +1,16 @@
+import jsonLogic from 'json-logic-js';
 import { ElderRepository } from '../repositories/elder.repository';
 import { DailyHealthMeasurementRepository } from '../repositories/dailyHealthMeasurement.repository';
-import { HealthRule, HealthRuleContext, HealthRuleResult, HealthStatusLevel } from '../types/ruleEngine';
+import {
+  HealthIndicatorSummary,
+  HealthRule,
+  HealthRuleContext,
+  HealthRuleResult,
+  HealthStatusLevel,
+  PersonalHealthRuleConfig
+} from '../types/ruleEngine';
 import { NotFoundError } from '../utils/errors';
+import { PersonalHealthRuleService } from './personalHealthRule.service';
 
 function calcAverage(values: (number | undefined)[]): number | null {
   const filtered = values.filter(v => v !== undefined) as number[];
@@ -86,6 +95,112 @@ function stepsLevel(steps?: number): HealthStatusLevel | null {
 }
 
 const rules: HealthRule[] = [];
+
+function buildIndicatorSummary(context: HealthRuleContext): HealthIndicatorSummary {
+  const recent = context.measurements.slice(0, context.windowDays);
+  const recentWithSbp = recent.filter(m => m.sbp !== undefined);
+  const recentWithDbp = recent.filter(m => m.dbp !== undefined);
+  const recentWithFpg = recent.filter(m => m.fpg !== undefined);
+  const recentWithPpg2h = recent.filter(m => m.ppg_2h !== undefined);
+  const recentWithSteps = recent.filter(m => m.steps !== undefined);
+  const withWeight = recent.filter(m => m.weight !== undefined);
+
+  const avgSbp = recentWithSbp.length ? calcAverage(recentWithSbp.map(m => m.sbp)) : null;
+  const avgDbp = recentWithDbp.length ? calcAverage(recentWithDbp.map(m => m.dbp)) : null;
+  const avgFpg = recentWithFpg.length ? calcAverage(recentWithFpg.map(m => m.fpg)) : null;
+  const avgPpg2h = recentWithPpg2h.length ? calcAverage(recentWithPpg2h.map(m => m.ppg_2h)) : null;
+  const avgSteps = recentWithSteps.length ? calcAverage(recentWithSteps.map(m => m.steps)) : null;
+
+  let latestWeight: number | null = null;
+  let earliestWeight: number | null = null;
+  let weightDiff: number | null = null;
+
+  if (withWeight.length >= 2) {
+    const latest = withWeight[0];
+    const earliest = withWeight[withWeight.length - 1];
+    latestWeight = latest.weight ?? null;
+    earliestWeight = earliest.weight ?? null;
+    if (latestWeight !== null && earliestWeight !== null) {
+      weightDiff = latestWeight - earliestWeight;
+    }
+  }
+
+  return {
+    avgSbp,
+    avgDbp,
+    avgFpg,
+    avgPpg2h,
+    avgSteps,
+    latestWeight,
+    earliestWeight,
+    weightDiff
+  };
+}
+
+function formatTemplate(template: string, variables: Record<string, string | number | null>): string {
+  let result = template;
+  Object.keys(variables).forEach(key => {
+    const value = variables[key];
+    const safeValue = value === null || value === undefined ? '' : String(value);
+    result = result.replace(new RegExp(`{{\\s*${key}\\s*}}`, 'g'), safeValue);
+  });
+  return result;
+}
+
+function evaluatePersonalRules(context: HealthRuleContext, personalRules: PersonalHealthRuleConfig[]): HealthRuleResult[] {
+  if (!personalRules.length) {
+    return [];
+  }
+  const summary = buildIndicatorSummary(context);
+  const data = {
+    elder: context.elder,
+    windowDays: context.windowDays,
+    measurementsCount: context.measurements.length,
+    indicators: summary
+  };
+
+  const results: HealthRuleResult[] = [];
+
+  personalRules.forEach(ruleConfig => {
+    if (!ruleConfig.isActive) {
+      return;
+    }
+    if (ruleConfig.elderId && ruleConfig.elderId !== context.elder.id) {
+      return;
+    }
+    try {
+      const passed = jsonLogic.apply(ruleConfig.logic as jsonLogic.RulesLogic, data);
+      if (passed) {
+        const variables: Record<string, string | number | null> = {
+          elderName: context.elder.name,
+          windowDays: context.windowDays,
+          avgSbp: summary.avgSbp,
+          avgDbp: summary.avgDbp,
+          avgFpg: summary.avgFpg,
+          avgPpg2h: summary.avgPpg2h,
+          avgSteps: summary.avgSteps,
+          latestWeight: summary.latestWeight,
+          earliestWeight: summary.earliestWeight,
+          weightDiff: summary.weightDiff
+        };
+        const message =
+          ruleConfig.messageTemplate !== undefined && ruleConfig.messageTemplate !== ''
+            ? formatTemplate(ruleConfig.messageTemplate, variables)
+            : ruleConfig.name;
+        results.push({
+          id: `P_${ruleConfig.id}`,
+          name: ruleConfig.name,
+          level: ruleConfig.level,
+          message
+        });
+      }
+    } catch {
+      return;
+    }
+  });
+
+  return results;
+}
 
 function defineRules(): HealthRule[] {
   const list: HealthRule[] = [];
@@ -398,6 +513,12 @@ export class RuleEngineService {
         results.push(result);
       }
     });
+
+    const personalRuleConfigs = await PersonalHealthRuleService.getActiveForElder(elderId);
+    const personalRuleResults = evaluatePersonalRules(context, personalRuleConfigs);
+    if (personalRuleResults.length) {
+      results.push(...personalRuleResults);
+    }
 
     return results;
   }

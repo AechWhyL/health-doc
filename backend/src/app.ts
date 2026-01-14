@@ -1,9 +1,11 @@
 import Koa from 'koa';
 import { createServer } from 'http';
-import bodyParser from '@koa/bodyparser';
 import cors from '@koa/cors';
 import helmet from 'koa-helmet';
 import logger from 'koa-logger';
+import serve from 'koa-static';
+import path from 'path';
+import { koaBody } from 'koa-body';
 import { koaSwagger } from 'koa2-swagger-ui';
 import config from './config/env';
 import { responseFormatter } from './middlewares/responseFormatter';
@@ -31,8 +33,25 @@ app.use(helmet({
 }));
 app.use(cors());
 app.use(logger());
-app.use(bodyParser());
+
+const uploadsRoot = path.resolve(__dirname, '../uploads');
+
+app.use(koaBody({
+  multipart: true,
+  urlencoded: true,
+  json: true,
+  formidable: {
+    uploadDir: uploadsRoot,
+    keepExtensions: true
+  }
+}));
+
 app.use(responseFormatter);
+
+app.use(serve(uploadsRoot, {
+  maxage: 7 * 24 * 60 * 60 * 1000,
+  index: false
+}));
 
 app.use(koaSwagger({
   routePrefix: '/swagger',

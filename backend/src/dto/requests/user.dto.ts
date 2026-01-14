@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 import { ElderResponse } from './elder.dto';
 
 export const createUserSchema = Joi.object({
@@ -37,6 +38,13 @@ export const createUserSchema = Joi.object({
   }),
   is_verified: Joi.boolean().optional().messages({
     'boolean.base': '是否验证必须是布尔值'
+  }),
+  role_code: Joi.string()
+    .valid('admin', 'medical_staff', 'family', 'elder')
+    .optional()
+    .messages({
+      'string.base': '角色编码必须是字符串',
+      'any.only': '角色编码只能是admin、medical_staff、family或elder'
   })
 });
 
@@ -215,9 +223,7 @@ export interface UpdateUserRequest {
   is_verified?: boolean;
 }
 
-export interface QueryUserRequest {
-  page: number;
-  pageSize: number;
+export interface QueryUserRequest extends PaginationQuery {
   username?: string;
   email?: string;
   phone?: string;
@@ -241,8 +247,19 @@ export interface UserResponse {
   updated_at: string;
 }
 
+export interface MedicalStaffInfoResponse {
+  id: number;
+  gender: number;
+  birth_date: string | null;
+  role_type: string;
+  job_title: string | null;
+  good_at_tags: string | null;
+  enable_online_service: boolean;
+}
+
 export interface UserWithRoleResponse extends UserResponse {
   roles: RoleResponse[];
+  medical_staff_info?: MedicalStaffInfoResponse | null;
 }
 
 export interface RoleResponse {
@@ -271,9 +288,7 @@ export interface LoginResponse {
   user: UserWithRoleResponse;
 }
 
-export interface QueryUserEldersRequest {
-  page: number;
-  pageSize: number;
+export interface QueryUserEldersRequest extends PaginationQuery {
   elder_name?: string;
 }
 

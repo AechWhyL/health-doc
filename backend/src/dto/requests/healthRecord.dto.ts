@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 import {
   HealthRecordType,
   HealthRecordContent,
@@ -259,9 +260,7 @@ export interface UpdateHealthRecordRequest {
   content_structured?: HealthRecordContent;
 }
 
-export interface QueryHealthRecordRequest {
-  page: number;
-  pageSize: number;
+export interface QueryHealthRecordRequest extends PaginationQuery {
   elder_id?: number;
   record_type?: HealthRecordType;
   start_date?: string;

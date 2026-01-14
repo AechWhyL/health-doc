@@ -1,0 +1,14 @@
+{
+  "routerMap": [
+    {
+      "name": "Medical_DocTab",
+      "pageSourceFile": "src/main/ets/pages/medical/doc/DocTab.ets",
+      "buildFunction": "DocTabBuilder"
+    },
+    {
+      "name": "Medical_DocTab_ElderArchive",
+      "pageSourceFile": "src/main/ets/pages/medical/doc/ElderArchive.ets",
+      "buildFunction": "ElderArchiveBuilder"
+    }
+  ]
+}

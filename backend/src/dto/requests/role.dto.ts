@@ -9,9 +9,9 @@ export interface UpdateRoleRequest {
   description?: string;
 }
 
-export interface QueryRoleRequest {
-  page: number;
-  pageSize: number;
+import { PaginationQuery } from './common.dto';
+
+export interface QueryRoleRequest extends PaginationQuery {
   role_code?: string;
   role_name?: string;
   orderBy?: string;

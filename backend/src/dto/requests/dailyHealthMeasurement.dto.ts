@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 
 export const createDailyHealthMeasurementSchema = Joi.object({
   elder_id: Joi.number().integer().positive().required().messages({
@@ -90,9 +91,7 @@ export interface UpdateDailyHealthMeasurementRequest {
   remark?: string;
 }
 
-export interface QueryDailyHealthMeasurementRequest {
-  page?: number;
-  pageSize?: number;
+export interface QueryDailyHealthMeasurementRequest extends PaginationQuery {
   elder_id?: number;
 }
 

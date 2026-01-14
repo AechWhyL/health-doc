@@ -21,6 +21,7 @@ declare module 'koa' {
 export const authMiddleware = async (ctx: Context, next: Next): Promise<void> => {
   try {
     console.log(ctx.headers)
+    console.log(ctx.body)
     const authHeader = ctx.headers.authorization;
 
     if (!authHeader) {

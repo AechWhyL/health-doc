@@ -34,13 +34,18 @@ export class ElderService {
     return this.toResponse(elder);
   }
 
-  static async getElderList(page: number, pageSize: number, name?: string, idCard?: string): Promise<{ items: ElderResponse[]; total: number }> {
+  static async getElderList(page: number, pageSize: number, name?: string, phone?: string): Promise<{ items: ElderResponse[]; total: number }> {
     let where = '1=1';
     const params: any[] = [];
 
     if (name) {
       where += ' AND name LIKE ?';
       params.push(`%${name}%`);
+    }
+
+    if (phone) {
+      where += ' AND phone LIKE ?';
+      params.push(`%${phone}%`);
     }
 
     const { items, total } = await ElderRepository.findAll(page, pageSize, where, params);

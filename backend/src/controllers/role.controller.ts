@@ -56,9 +56,9 @@ export class RoleController {
    *         description: 未授权
    *       500:
    *         description: 服务器内部错误
-   */
+  */
   static async createRole(ctx: Context) {
-    const data: CreateRoleRequest = ctx.request.body;
+    const data = ctx.request.body as CreateRoleRequest;
     const result = await RoleService.createRole(data);
     ctx.success(result, '角色创建成功');
   }
@@ -266,7 +266,7 @@ export class RoleController {
       return;
     }
 
-    const data: UpdateRoleRequest = ctx.request.body;
+    const data = ctx.request.body as UpdateRoleRequest;
     const result = await RoleService.updateRole(roleId, data);
     ctx.success(result, '角色更新成功');
   }
@@ -510,7 +510,7 @@ export class RoleController {
       return;
     }
 
-    const { role_ids } = ctx.request.body;
+    const { role_ids } = ctx.request.body as { role_ids: (number | string)[] };
     if (!Array.isArray(role_ids)) {
       ctx.badRequest('角色ID必须是数组');
       return;

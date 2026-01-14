@@ -9,9 +9,9 @@ export interface UpdateAllergyRequest {
   allergy_desc?: string;
 }
 
-export interface QueryAllergyRequest {
-  page: number;
-  pageSize: number;
+import { PaginationQuery } from './common.dto';
+
+export interface QueryAllergyRequest extends PaginationQuery {
   elder_id?: number;
   allergy_item?: string;
   orderBy?: string;

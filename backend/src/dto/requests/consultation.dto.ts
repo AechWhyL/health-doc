@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 import {
   ConsultationContentType,
   ConsultationCreatorType,
@@ -178,9 +179,7 @@ export interface CreateConsultationQuestionRequest {
 
 export interface ConsultationQuestionResponse extends ConsultationQuestionRecord {}
 
-export interface QueryConsultationQuestionRequest {
-  page: number;
-  pageSize: number;
+export interface QueryConsultationQuestionRequest extends PaginationQuery {
   status?: ConsultationStatus;
   creator_id?: number;
   category?: string;
@@ -207,8 +206,4 @@ export interface ConsultationMessageResponse extends ConsultationMessageRecord {
   attachments?: ConsultationAttachmentInput[];
 }
 
-export interface QueryConsultationMessageRequest {
-  page: number;
-  pageSize: number;
-}
-
+export interface QueryConsultationMessageRequest extends PaginationQuery {}

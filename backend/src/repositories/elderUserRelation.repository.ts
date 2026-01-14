@@ -110,11 +110,10 @@ export class ElderUserRelationRepository {
       INNER JOIN elder_basic_info e ON r.elder_id = e.id
       WHERE ${whereClause}
       ORDER BY r.created_at DESC, r.id DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(String(pageSize), 10)} OFFSET ${parseInt(String(offset), 10)}
     `;
 
-    const dataParams = params.concat([pageSize, offset]);
-    const items = await Database.query<ElderUserRelationWithElderRaw>(dataSql, dataParams);
+    const items = await Database.query<ElderUserRelationWithElderRaw>(dataSql, params);
 
     return { items, total };
   }
@@ -128,4 +127,3 @@ export class ElderUserRelationRepository {
     return result > 0;
   }
 }
-

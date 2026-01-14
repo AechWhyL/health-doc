@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 
 export const createMedicationSchema = Joi.object({
   elder_id: Joi.number().integer().positive().required().messages({
@@ -135,9 +136,7 @@ export interface UpdateMedicationRequest {
   notes?: string;
 }
 
-export interface QueryMedicationRequest {
-  page: number;
-  pageSize: number;
+export interface QueryMedicationRequest extends PaginationQuery {
   elder_id?: number;
   drug_name?: string;
   start_date?: string;

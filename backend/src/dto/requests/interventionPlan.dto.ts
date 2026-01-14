@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 import { InterventionPlanStatus, InterventionPlanResponse } from '../../types/interventionPlan';
 
 export const createInterventionPlanSchema = Joi.object({
@@ -119,9 +120,7 @@ export interface UpdateInterventionPlanRequest {
   endDate?: string | null;
 }
 
-export interface QueryInterventionPlanRequest {
-  page: number;
-  pageSize: number;
+export interface QueryInterventionPlanRequest extends PaginationQuery {
   status?: InterventionPlanStatus;
   orderBy?: string;
 }
@@ -131,4 +130,3 @@ export interface InterventionPlanStatusUpdateRequest {
 }
 
 export { InterventionPlanResponse };
-

@@ -4,6 +4,7 @@ import {
   CreateUserRequest,
   UpdateUserRequest,
   ChangePasswordRequest,
+  QueryUserEldersRequest,
   createUserSchema,
   updateUserSchema,
   queryUserSchema,
@@ -14,6 +15,8 @@ import {
   createUserElderRelationSchema,
   userElderRelationIdParamSchema
 } from '../dto/requests/user.dto';
+import { UpsertMedicalStaffInfoRequest } from '../dto/requests/medicalStaff.dto';
+import { MedicalStaffService } from '../services/medicalStaff.service';
 import { UserElderRelationService } from '../services/userElderRelation.service';
 import { RoleCode } from '../config/rbac.config';
 
@@ -77,6 +80,10 @@ export class UserController {
    *                 type: boolean
    *                 description: 是否验证
    *                 example: true
+   *               role_code:
+   *                 type: string
+   *                 enum: [admin, medical_staff, family, elder]
+   *                 description: 用户角色编码
    *     responses:
    *       200:
    *         description: 创建成功
@@ -92,7 +99,7 @@ export class UserController {
    *                   type: string
    *                   example: 用户创建成功
    *                 data:
-   *                   $ref: '#/components/schemas/UserResponse'
+   *                   $ref: '#/components/schemas/UserWithRoleResponse'
    *       400:
    *         description: 请求参数错误
    *       500:
@@ -134,7 +141,7 @@ export class UserController {
    *                   type: string
    *                   example: success
    *                 data:
-   *                   $ref: '#/components/schemas/UserResponse'
+   *                   $ref: '#/components/schemas/UserWithRoleResponse'
    *       400:
    *         description: 请求参数错误
    *       404:
@@ -544,8 +551,179 @@ export class UserController {
     ctx.success(result);
   }
 
+  /**
+   * @swagger
+   * /api/v1/users/me/medical-staff:
+   *   put:
+   *     summary: 编辑当前医护人员详情
+   *     description: 编辑当前登录医护人员的详细信息
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - gender
+   *               - role_type
+   *             properties:
+   *               gender:
+   *                 type: integer
+   *                 enum: [0, 1, 2]
+   *                 description: 性别（0-男，1-女，2-其他）
+   *               birth_date:
+   *                 type: string
+   *                 format: date
+   *                 description: 出生日期
+   *               role_type:
+   *                 type: string
+   *                 description: 医护类型（如doctor、nurse、therapist）
+   *               job_title:
+   *                 type: string
+   *                 description: 职称
+   *               good_at_tags:
+   *                 type: string
+   *                 description: 擅长领域标签（逗号分隔）
+   *               enable_online_service:
+   *                 type: boolean
+   *                 description: 是否可在咨询功能中被搜索
+   *     responses:
+   *       200:
+   *         description: 更新成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 医护人员信息更新成功
+   *                 data:
+   *                   $ref: '#/components/schemas/MedicalStaffInfoResponse'
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不是医护人员
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async updateMyMedicalStaffInfo(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const roles = userState.roles || [];
+    const hasMedicalRole = roles.includes(RoleCode.MEDICAL_STAFF);
+    if (!hasMedicalRole) {
+      ctx.forbidden('当前用户角色不是医护人员');
+      return;
+    }
+
+    const data: UpsertMedicalStaffInfoRequest =
+      ctx.state.validatedData || ctx.request.body;
+    const result = await MedicalStaffService.upsertForUser(userState.userId, data);
+    ctx.success(result, '医护人员信息更新成功');
+  }
+
+  /**
+   * @swagger
+   * /api/v1/users/me/elders:
+   *   get:
+   *     summary: 获取当前用户关联的老人列表
+   *     description: 分页获取当前登录用户关联的老人列表，可按老人姓名搜索
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: 页码
+   *       - in: query
+   *         name: pageSize
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *         description: 每页大小
+   *       - in: query
+   *         name: elder_name
+   *         required: false
+   *         schema:
+   *           type: string
+   *           maxLength: 50
+   *         description: 老人姓名（模糊匹配）
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                       description: 总记录数
+   *                     pages:
+   *                       type: integer
+   *                       description: 总页数
+   *                     current:
+   *                       type: integer
+   *                       description: 当前页码
+   *                     size:
+   *                       type: integer
+   *                       description: 每页大小
+   *                     records:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           relation_id:
+   *                             type: integer
+   *                             description: 关联关系ID
+   *                           elder_id:
+   *                             type: integer
+   *                             description: 老人ID
+   *                           relation_name:
+   *                             type: string
+   *                             nullable: true
+   *                             description: 与老人的关系名称
+   *                           remark:
+   *                             type: string
+   *                             nullable: true
+   *                             description: 备注
+   *                           elder:
+   *                             $ref: '#/components/schemas/ElderResponse'
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不允许关联老人
+   *       500:
+   *         description: 服务器内部错误
+   */
   static async getMyElders(ctx: Context) {
     const userState = ctx.state.user;
+    console.log(userState)
     if (!userState) {
       ctx.unauthorized('未授权');
       return;
@@ -559,7 +737,7 @@ export class UserController {
       return;
     }
 
-    const data = (ctx.state.validatedData || ctx.query) as any;
+    const data = (ctx.state.validatedQuery || ctx.state.validatedData || ctx.query) as QueryUserEldersRequest;
     const { page, pageSize, elder_name } = data;
 
     const { items, total } = await UserElderRelationService.getUserElders(userState.userId, {
@@ -571,6 +749,79 @@ export class UserController {
     ctx.paginate(items, page, pageSize, total);
   }
 
+  /**
+   * @swagger
+   * /api/v1/users/me/elders:
+   *   post:
+   *     summary: 关联老人
+   *     description: 为当前登录用户新增与某位老人的关联关系
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - elder_id
+   *             properties:
+   *               elder_id:
+   *                 type: integer
+   *                 description: 要关联的老人ID
+   *               relation_name:
+   *                 type: string
+   *                 maxLength: 50
+   *                 description: 与老人的关系名称（如父亲、母亲等）
+   *               remark:
+   *                 type: string
+   *                 maxLength: 200
+   *                 description: 备注
+   *     responses:
+   *       200:
+   *         description: 关联成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 关联老人成功
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     relation_id:
+   *                       type: integer
+   *                       description: 关联关系ID
+   *                     elder_id:
+   *                       type: integer
+   *                       description: 老人ID
+   *                     relation_name:
+   *                       type: string
+   *                       nullable: true
+   *                       description: 与老人的关系名称
+   *                     remark:
+   *                       type: string
+   *                       nullable: true
+   *                       description: 备注
+   *                     elder:
+   *                       $ref: '#/components/schemas/ElderResponse'
+   *       400:
+   *         description: 请求参数错误或关联关系已存在
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不允许关联老人
+   *       404:
+   *         description: 老人信息不存在
+   *       500:
+   *         description: 服务器内部错误
+   */
   static async addMyElder(ctx: Context) {
     const userState = ctx.state.user;
     if (!userState) {
@@ -591,6 +842,50 @@ export class UserController {
     ctx.success(result, '关联老人成功');
   }
 
+  /**
+   * @swagger
+   * /api/v1/users/me/elders/{relationId}:
+   *   delete:
+   *     summary: 取消关联老人
+   *     description: 取消当前登录用户与某位老人的关联关系
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: relationId
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: 关联关系ID
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: 取消关联成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 取消关联成功
+   *                 data:
+   *                   type: null
+   *       400:
+   *         description: 请求参数错误或关联ID无效
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不允许关联老人
+   *       404:
+   *         description: 关联关系不存在
+   *       500:
+   *         description: 服务器内部错误
+   */
   static async deleteMyElder(ctx: Context) {
     const userState = ctx.state.user;
     if (!userState) {

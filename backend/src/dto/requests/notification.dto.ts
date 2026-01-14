@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { NotificationStatus, UserNotificationRecord } from '../../types/notification';
+import { PaginationQuery } from './common.dto';
 
 export const queryNotificationSchema = Joi.object({
   page: Joi.number().integer().min(1).default(1).messages({
@@ -31,9 +32,7 @@ export const notificationIdParamSchema = Joi.object({
   })
 });
 
-export interface QueryNotificationRequest {
-  page: number;
-  pageSize: number;
+export interface QueryNotificationRequest extends PaginationQuery {
   status?: NotificationStatus;
 }
 
@@ -48,4 +47,3 @@ export interface NotificationResponse extends UserNotificationRecord {
   created_at: string;
   read_at: string | null;
 }
-

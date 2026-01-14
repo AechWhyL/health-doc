@@ -13,6 +13,7 @@ import {
   createUserElderRelationSchema,
   userElderRelationIdParamSchema
 } from '../dto/requests/user.dto';
+import { upsertMedicalStaffInfoSchema } from '../dto/requests/medicalStaff.dto';
 
 const router = new Router({
   prefix: '/api/v1/users'
@@ -39,6 +40,12 @@ router.delete(
   authMiddleware,
   validateParams(userElderRelationIdParamSchema),
   UserController.deleteMyElder
+);
+router.put(
+  '/me/medical-staff',
+  authMiddleware,
+  validateBody(upsertMedicalStaffInfoSchema),
+  UserController.updateMyMedicalStaffInfo
 );
 router.get('/:id', validateParams(idParamSchema), UserController.getUserById);
 router.get('/', validateQuery(queryUserSchema), UserController.getUserList);

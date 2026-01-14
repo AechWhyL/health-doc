@@ -146,7 +146,7 @@ export class ElderController {
    * /api/v1/elder-health/elder/list:
    *   get:
    *     summary: 查询老人信息列表
-   *     description: 分页查询老人信息列表，支持按姓名搜索
+   *     description: 分页查询老人信息列表，支持按姓名或手机号搜索
    *     tags: [老人信息管理]
    *     parameters:
    *       - in: query
@@ -170,6 +170,13 @@ export class ElderController {
    *           type: string
    *           maxLength: 50
    *         description: 姓名（模糊搜索）
+   *       - in: query
+   *         name: phone
+   *         required: false
+   *         schema:
+   *           type: string
+   *           maxLength: 20
+   *         description: 手机号（模糊搜索）
    *     responses:
    *       200:
    *         description: 查询成功
@@ -210,9 +217,9 @@ export class ElderController {
    */
   static async getElderList(ctx: Context) {
     const data: QueryElderRequest = ctx.state.validatedData || ctx.query;
-    const { page, pageSize, name } = data;
+    const { page, pageSize, name, phone } = data;
 
-    const { items, total } = await ElderService.getElderList(page, pageSize, name);
+    const { items, total } = await ElderService.getElderList(page, pageSize, name, phone);
     
     ctx.paginate(items, page, pageSize, total);
   }

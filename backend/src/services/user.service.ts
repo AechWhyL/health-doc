@@ -1,5 +1,6 @@
 import { UserRepository, User, UserWithRoles } from '../repositories/user.repository';
 import { RoleRepository, Role } from '../repositories/role.repository';
+import { MedicalStaffRepository, MedicalStaffBasicInfo } from '../repositories/medicalStaff.repository';
 import { CreateUserRequest, UpdateUserRequest, UserResponse, UserWithRoleResponse, ChangePasswordRequest, LoginRequest, LoginResponse } from '../dto/requests/user.dto';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
@@ -107,6 +108,30 @@ export class UserService {
         ];
 
         await connection.execute(insertElderSql, elderParams);
+      } else if (roleCode === RoleCode.MEDICAL_STAFF) {
+        const insertMedicalStaffSql = `
+          INSERT INTO medical_staff_basic_info (
+            user_id,
+            gender,
+            birth_date,
+            role_type,
+            job_title,
+            good_at_tags,
+            enable_online_service
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `;
+        const medicalParams = [
+          insertId,
+          2,
+          null,
+          'medical_staff',
+          null,
+          null,
+          0
+        ];
+
+        await connection.execute(insertMedicalStaffSql, medicalParams);
       }
 
       await Database.commitTransaction(connection);
@@ -117,7 +142,9 @@ export class UserService {
         throw new Error('创建用户失败');
       }
 
-      return this.toResponseWithRoles(user);
+      const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(user);
+
+      return this.toResponseWithRoles(user, medicalStaffInfo);
     } catch (error) {
       await Database.rollbackTransaction(connection);
       throw error;
@@ -129,7 +156,8 @@ export class UserService {
     if (!user) {
       throw new NotFoundError('用户不存在');
     }
-    return this.toResponseWithRoles(user);
+    const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(user);
+    return this.toResponseWithRoles(user, medicalStaffInfo);
   }
 
   static async getUserList(
@@ -254,9 +282,11 @@ export class UserService {
 
     const token = this.generateToken(userWithRoles);
 
+    const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(userWithRoles);
+
     return {
       token,
-      user: this.toResponseWithRoles(userWithRoles)
+      user: this.toResponseWithRoles(userWithRoles, medicalStaffInfo)
     };
   }
 
@@ -314,15 +344,45 @@ export class UserService {
     };
   }
 
-  private static toResponseWithRoles(user: UserWithRoles): UserWithRoleResponse {
-    return {
-      ...this.toResponse(user),
-      roles: user.roles.map(role => ({
-        id: role.id,
-        role_code: role.role_code,
-        role_name: role.role_name,
-        description: role.description
-      }))
+  private static toResponseWithRoles(
+    user: UserWithRoles,
+    medicalStaffInfo?: MedicalStaffBasicInfo | null
+  ): UserWithRoleResponse {
+    const base = this.toResponse(user);
+    const roles = user.roles.map(role => ({
+      id: role.id,
+      role_code: role.role_code,
+      role_name: role.role_name,
+      description: role.description
+    }));
+
+    const result: UserWithRoleResponse = {
+      ...base,
+      roles
     };
+
+    if (medicalStaffInfo) {
+      result.medical_staff_info = {
+        id: medicalStaffInfo.id,
+        gender: medicalStaffInfo.gender,
+        birth_date: medicalStaffInfo.birth_date,
+        role_type: medicalStaffInfo.role_type,
+        job_title: medicalStaffInfo.job_title,
+        good_at_tags: medicalStaffInfo.good_at_tags,
+        enable_online_service: medicalStaffInfo.enable_online_service
+      };
+    }
+
+    return result;
+  }
+
+  private static async getMedicalStaffInfoIfNeeded(
+    user: UserWithRoles
+  ): Promise<MedicalStaffBasicInfo | null> {
+    const hasMedicalStaffRole = user.roles.some(role => role.role_code === RoleCode.MEDICAL_STAFF);
+    if (!hasMedicalStaffRole) {
+      return null;
+    }
+    return await MedicalStaffRepository.findByUserId(user.id);
   }
 }

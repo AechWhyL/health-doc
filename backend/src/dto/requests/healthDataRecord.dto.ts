@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { PaginationQuery } from './common.dto';
 
 export const createHealthDataRecordSchema = Joi.object({
   elder_id: Joi.number().integer().positive().required().messages({
@@ -95,9 +96,7 @@ export interface UpdateHealthDataRecordRequest {
   operation_reason?: string;
 }
 
-export interface QueryHealthDataRecordRequest {
-  page?: number;
-  pageSize?: number;
+export interface QueryHealthDataRecordRequest extends PaginationQuery {
   elder_id?: number;
   indicator_type_id?: number;
   start_date?: string;
