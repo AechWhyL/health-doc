@@ -1,245 +1,270 @@
-import apiService, { ApiResponse, LoginResponseData, UserWithRolesSummary } from '../common/api/ApiService';
+import { promptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
-import { preferences } from '@kit.ArkData';
-import { BusinessError } from '@kit.BasicServicesKit';
-import HttpUtil from '../common/api/HttpUtil';
+import { httpRequest } from '../common/api/HttpUtil';
+import { RequestEnum } from '../common/api/httpEnum';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+
+interface ApiResponse<T = Object> {
+  code: number;
+  message: string;
+  data?: T;
+  timestamp: number;
+}
+
+interface RoleResponse {
+  id: number;
+  role_code: string;
+  role_name: string;
+  description: string | null;
+}
+
+interface UserWithRoleResponse {
+  id: number;
+  username: string;
+  email: string | null;
+  phone: string | null;
+  real_name: string | null;
+  avatar: string | null;
+  status: 'active' | 'inactive' | 'locked';
+  is_verified: boolean;
+  last_login_at: string | null;
+  last_login_ip: string | null;
+  created_at: string;
+  updated_at: string;
+  roles: RoleResponse[];
+}
+
+interface LoginResponse {
+  token: string;
+  user: UserWithRoleResponse;
+}
+
+interface LoginFormState {
+  username: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+interface LoginPayload {
+  username: string;
+  password: string;
+}
 
 @Entry
 @Component
 struct Login {
-  @State username: string = '';
-  @State password: string = '';
-  @State rememberMe: boolean = false;
-  @State loading: boolean = false;
-  @State error: string = '';
-  private autoLoginChecked: boolean = false;
+  @State private form: LoginFormState = {
+    username: '',
+    password: '',
+    rememberMe: false
+  };
 
-  aboutToAppear() {
-    if (this.autoLoginChecked) {
+  @State private isSubmitting: boolean = false;
+  @State private errorMessage: string = '';
+
+  aboutToAppear(): void {
+  }
+
+  private async handleSubmit(): Promise<void> {
+    if (this.isSubmitting) {
       return;
     }
-    this.autoLoginChecked = true;
-    this.tryAutoLogin();
-  }
 
-  private async doLogin(): Promise<void> {
-    this.loading = true;
-    this.error = '';
+    const username = this.form.username.trim();
+    const password = this.form.password.trim();
+
+    if (username === '' || password === '') {
+      this.errorMessage = '请输入用户名和密码';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
+      return;
+    }
+
+    this.errorMessage = '';
+    this.isSubmitting = true;
+
     try {
-      const resp: ApiResponse<LoginResponseData> = await apiService.login(this.username, this.password);
-      if (resp.code === 200) {
-        const data: LoginResponseData = resp.data;
-        if (this.rememberMe) {
-          this.saveLoginInfo(data);
-        } else {
-          this.clearLoginInfo();
-        }
-        const homeUrl: string = this.getHomeUrl(data);
-        router.replaceUrl({ url: homeUrl });
+      const payload: LoginPayload = {
+        username: username,
+        password: password
+      };
+
+      const response = await httpRequest<ApiResponse<LoginResponse>, LoginPayload>({
+        url: '/api/v1/users/login',
+        method: RequestEnum.POST,
+        params: payload
+      });
+
+      if (response.code !== 200 || !response.data) {
+        const msg = response.message || '登录失败';
+        this.errorMessage = msg;
+        promptAction.showToast({
+          message: msg
+        });
+        this.isSubmitting = false;
         return;
       }
-      this.error = resp.message;
-    } catch (e) {
-      if ((e as Object) instanceof Error) {
-        const err = e as Error;
-        this.error = err.message;
-      } else {
-        this.error = '登录失败';
+
+      const loginData = response.data;
+
+
+      const roles = loginData.user.roles;
+      let target: string = 'pages/Login';
+      if (roles && roles.length > 0) {
+        const roleCodes = roles.map(role => role.role_code);
+        if (roleCodes.indexOf('medical_staff') >= 0 || roleCodes.indexOf('MEDICAL_STAFF') >= 0) {
+          target = 'pages/medical/Index';
+        }
       }
+
+      router.pushUrl({
+        url: target
+      }).catch(() => {});
+    } catch (error) {
+      console.log(error);
+      this.errorMessage = '网络异常，请稍后重试';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
     } finally {
-      this.loading = false;
+      this.isSubmitting = false;
     }
   }
 
-  private tryAutoLogin(): void {
-    const context = getContext(this);
-    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
-      if (err) {
-        return;
-      }
-      pref.get('token', '', (getErr: BusinessError, tokenValue: preferences.ValueType) => {
-        if (getErr) {
-          return;
-        }
-        if (typeof tokenValue !== 'string') {
-          return;
-        }
-        const token = tokenValue as string;
-        if (!token || token.length === 0) {
-          return;
-        }
-        pref.get('user', '', (userErr: BusinessError, userValue: preferences.ValueType) => {
-          if (userErr) {
-            return;
-          }
-          if (typeof userValue !== 'string') {
-            return;
-          }
-          const userJson = userValue as string;
-          let parsedUser: UserWithRolesSummary | null = null;
-          try {
-            const temp = JSON.parse(userJson) as UserWithRolesSummary;
-            parsedUser = temp;
-          } catch (parseError) {
-            return;
-          }
-          if (parsedUser === null) {
-            return;
-          }
-          const data: LoginResponseData = {
-            token: token,
-            user: parsedUser
-          };
-          HttpUtil.setAuthToken(token);
-          const homeUrl: string = this.getHomeUrl(data);
-          router.replaceUrl({ url: homeUrl });
-        });
-      });
-    });
+  private handleGoRegister(): void {
+    router.pushUrl({
+      url: 'pages/Register'
+    }).catch(() => {});
   }
 
-  private saveLoginInfo(data: LoginResponseData): void {
-    const context = getContext(this);
-    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
-      if (err) {
-        return;
-      }
-      const userJson: string = JSON.stringify(data.user);
-      pref.put('token', data.token, (putErr: BusinessError) => {
-        if (putErr) {
-          return;
-        }
-        pref.put('user', userJson, (userErr: BusinessError) => {
-          if (userErr) {
-            return;
-          }
-          pref.flush((flushErr: BusinessError) => {
-            if (flushErr) {
-              return;
-            }
-          });
-        });
-      });
-    });
+  private toggleRememberMe(): void {
+    this.form.rememberMe = !this.form.rememberMe;
   }
 
-  private clearLoginInfo(): void {
-    const context = getContext(this);
-    preferences.getPreferences(context, 'authStore', (err: BusinessError, pref: preferences.Preferences) => {
-      if (err) {
-        return;
-      }
-      pref.delete('token', (delErr: BusinessError) => {
-        if (delErr) {
-          return;
-        }
-      });
-      pref.delete('user', (delUserErr: BusinessError) => {
-        if (delUserErr) {
-          return;
-        }
-      });
-      pref.flush((flushErr: BusinessError) => {
-        if (flushErr) {
-          return;
-        }
-      });
-    });
+  private updateUsername(value: string): void {
+    this.form.username = value;
   }
 
-  private getHomeUrl(data: LoginResponseData): string {
-    const roles = data.user.roles;
-    let hasAdmin: boolean = false;
-    let hasMedical: boolean = false;
-    let hasFamily: boolean = false;
-    let hasElder: boolean = false;
-
-    for (let i = 0; i < roles.length; i++) {
-      const code = roles[i].role_code;
-      if (code === 'admin') {
-        hasAdmin = true;
-      } else if (code === 'medical_staff') {
-        hasMedical = true;
-      } else if (code === 'family') {
-        hasFamily = true;
-      } else if (code === 'elder') {
-        hasElder = true;
-      }
-    }
-
-    if (hasAdmin || hasMedical) {
-      return 'pages/medical/Index';
-    }
-    if (hasFamily) {
-      return 'pages/family/Index';
-    }
-    if (hasElder) {
-      return 'pages/elder/Index';
-    }
-    return 'pages/elder/Index';
+  private updatePassword(value: string): void {
+    this.form.password = value;
   }
 
   build() {
     Column() {
-      Text('老年人健康档案管理平台')
-        .fontSize(22)
-        .fontWeight(FontWeight.Bold)
-        .margin({ top: 24, bottom: 24 })
+      Column() {
+        Text('老年人健康档案管理平台')
+          .fontSize(24)
+          .fontWeight(FontWeight.Bold)
+          .margin({ bottom: 8 });
 
-      TextInput({ placeholder: '用户名/邮箱/手机号' })
-        .margin({ bottom: 12 })
-        .onChange((value: string) => {
-          this.username = value;
-        })
-
-      TextInput({ placeholder: '密码' })
-        .type(InputType.Password)
-        .margin({ bottom: 12 })
-        .onChange((value: string) => {
-          this.password = value;
-        })
-
-      Row() {
-        Checkbox({ name: 'remember' })
-          .select(this.rememberMe)
-          .onChange((checked: boolean) => {
-            this.rememberMe = checked;
-          })
-        Text('记住我')
-          .fontSize(16)
-          .margin({ left: 8 })
+        Text('统一登录入口，支持老人/家属/医护三端')
+          .fontSize(12)
+          .fontColor('#6b7280');
       }
-      .margin({ bottom: 16 })
+      .width('100%')
+      .padding({ top: 32, left: 24, right: 24 });
 
-      if (this.error) {
-        Text(this.error)
-          .fontColor(Color.Red)
-          .margin({ bottom: 12 })
+      Column() {
+        Text('欢迎回来')
+          .fontSize(20)
+          .fontWeight(FontWeight.Medium)
+          .margin({ bottom: 4 });
+
+        Text('使用手机号或邮箱登录，系统将自动识别角色')
+          .fontSize(12)
+          .fontColor('#6b7280');
+
+        Column() {
+          Text('手机号/邮箱')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.username,placeholder:'请输入手机号或邮箱' })
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updateUsername(value);
+            });
+        }
+        .margin({ top: 24 });
+
+        Column() {
+          Text('密码')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.password,placeholder:'请输入登录密码' })
+            .type(InputType.Password)
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updatePassword(value);
+            });
+        }
+        .margin({ top: 16 });
+
+        Row() {
+          Checkbox({ name: 'remember', group: 'login-remember' })
+            .select(this.form.rememberMe)
+            .size({ width: 18, height: 18 })
+            .onChange(() => {
+              this.toggleRememberMe();
+            });
+
+          Text('记住我（使用更长有效期的刷新令牌）')
+            .fontSize(12)
+            .fontColor('#4b5563')
+            .margin({ left: 8 });
+        }
+        .margin({ top: 12 });
+
+        if (this.errorMessage !== '') {
+          Text(this.errorMessage)
+            .fontSize(12)
+            .fontColor('#dc2626')
+            .margin({ top: 8 });
+        }
+
+        Button(this.isSubmitting ? '正在登录...' : '立即登录')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .height(44)
+          .margin({ top: 24 })
+          .backgroundColor('#111827')
+          .fontColor('#f9fafb')
+          .enabled(!this.isSubmitting)
+          .onClick(() => {
+            this.handleSubmit();
+          });
+
+        Row() {
+          Text('忘记密码')
+            .fontSize(12)
+            .fontColor('#2563eb');
+
+          Blank();
+
+          Text('还没有账号？立即注册')
+            .fontSize(12)
+            .fontColor('#2563eb')
+            .onClick(() => {
+              this.handleGoRegister();
+            });
+        }
+        .margin({ top: 16 });
       }
-
-      Button('立即登录')
-        .type(ButtonType.Capsule)
-        .width('100%')
-        .height(44)
-        .onClick(() => {
-          if (this.loading) {
-            return;
-          }
-          this.doLogin();
-        })
-
-      Button('没有账号？去注册')
-        .type(ButtonType.Normal)
-        .width('100%')
-        .height(44)
-        .margin({ top: 12 })
-        .onClick(() => {
-          router.pushUrl({ url: 'pages/Register' });
-        })
+      .width('100%')
+      .padding({ left: 24, right: 24, top: 8 });
     }
     .width('100%')
     .height('100%')
-    .padding(24)
-    .justifyContent(FlexAlign.Start)
+    .backgroundColor('#f2f4f7');
   }
 }

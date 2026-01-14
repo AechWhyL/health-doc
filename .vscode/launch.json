@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/backend/src/app.ts",
             "runtimeArgs": [
                 "-r",
-                "ts-node/register/transpile-only"
+                "ts-node"
             ],
             "cwd": "${workspaceFolder}/backend",
             "envFile": "${workspaceFolder}/backend/.env",

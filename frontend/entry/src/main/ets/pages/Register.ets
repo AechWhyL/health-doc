@@ -1,191 +1,371 @@
-import apiService, { ApiResponse, UserSummary } from '../common/api/ApiService';
+import { promptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
+import { httpRequest } from '../common/api/HttpUtil';
+import { RequestEnum } from '../common/api/httpEnum';
 
-type UserRole = 'elder' | 'family' | 'medical';
+interface ApiResponse<T = Object> {
+  code: number;
+  message: string;
+  data?: T;
+  timestamp: number;
+}
+
+type RoleCode = 'elder' | 'family' | 'medical_staff';
+
+interface RegisterFormState {
+  roleCode: RoleCode;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface RegisterPayload {
+  username: string;
+  password: string;
+  phone?: string;
+  email?: string;
+  role_code: RoleCode;
+}
+
+interface RoleChipConfig {
+  code: RoleCode;
+  title: string;
+  caption: string;
+}
+
+const ROLE_CHIPS: RoleChipConfig[] = [
+  {
+    code: 'elder',
+    title: '老人',
+    caption: '用于自我管理健康档案与干预执行'
+  },
+  {
+    code: 'family',
+    title: '家属',
+    caption: '可绑定老人，代录数据并发起咨询'
+  },
+  {
+    code: 'medical_staff',
+    title: '医护人员',
+    caption: '管理档案与干预计划，需机构审核'
+  }
+];
+
+interface CreateUserResponse {
+  id: number;
+}
 
 @Entry
 @Component
-struct Register {
-  @State role: UserRole = 'elder';
-  @State contact: string = '';
-  @State password: string = '';
-  @State confirmPassword: string = '';
-  @State loading: boolean = false;
-  @State error: string = '';
-  @State success: string = '';
+export struct Register {
+  @State private form: RegisterFormState = {
+    roleCode: 'elder',
+    phone: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  };
 
-  private isEmail(value: string): boolean {
-    return value.indexOf('@') >= 0;
+  @State private isSubmitting: boolean = false;
+  @State private errorMessage: string = '';
+
+  aboutToAppear(): void {
   }
 
-  private isPhone(value: string): boolean {
-    const phoneReg = /^1[3-9]\d{9}$/;
-    return phoneReg.test(value);
+  private selectRole(roleCode: RoleCode): void {
+    this.form.roleCode = roleCode;
   }
 
-  private isValidPassword(value: string): boolean {
-    if (value.length < 8) {
+  private updatePhone(value: string): void {
+    this.form.phone = value;
+  }
+
+  private updateEmail(value: string): void {
+    this.form.email = value;
+  }
+
+  private updatePassword(value: string): void {
+    this.form.password = value;
+  }
+
+  private updateConfirmPassword(value: string): void {
+    this.form.confirmPassword = value;
+  }
+
+  private validatePassword(password: string): boolean {
+    if (password.length < 8) {
       return false;
     }
-    let hasLetter = false;
-    let hasDigit = false;
-    for (let i = 0; i < value.length; i++) {
-      const ch = value.charAt(i);
+    let hasLetter: boolean = false;
+    let hasDigit: boolean = false;
+    for (let i = 0; i < password.length; i++) {
+      const ch = password.charAt(i);
       if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
         hasLetter = true;
       } else if (ch >= '0' && ch <= '9') {
         hasDigit = true;
       }
-      if (hasLetter && hasDigit) {
-        return true;
-      }
     }
-    return false;
+    return hasLetter && hasDigit;
   }
 
-  private async doRegister(): Promise<void> {
-    if (!this.role) {
-      this.error = '请选择注册角色';
-      return;
-    }
-    if (!this.contact) {
-      this.error = '请输入手机号或邮箱';
-      return;
-    }
-    if (!this.isEmail(this.contact) && !this.isPhone(this.contact)) {
-      this.error = '请输入有效的手机号或邮箱';
-      return;
-    }
-    if (!this.password || !this.confirmPassword) {
-      this.error = '请输入密码并确认密码';
-      return;
-    }
-    if (this.password !== this.confirmPassword) {
-      this.error = '两次输入的密码不一致';
-      return;
-    }
-    if (!this.isValidPassword(this.password)) {
-      this.error = '密码至少8位，且需包含字母和数字';
+  private async handleSubmit(): Promise<void> {
+    if (this.isSubmitting) {
       return;
     }
 
-    this.loading = true;
-    this.error = '';
-    this.success = '';
+    const phone = this.form.phone.trim();
+    const email = this.form.email.trim();
+    const password = this.form.password;
+    const confirmPassword = this.form.confirmPassword;
+
+    if (phone === '' && email === '') {
+      this.errorMessage = '请至少填写手机号或邮箱';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
+      return;
+    }
+
+    if (!this.validatePassword(password)) {
+      this.errorMessage = '密码至少8位，且包含字母和数字';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      this.errorMessage = '两次输入的密码不一致';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
+      return;
+    }
+
+      this.errorMessage = '';
+      this.isSubmitting = true;
+
     try {
-      let email: string | undefined = undefined;
-      let phone: string | undefined = undefined;
-      const username: string = this.contact;
-      if (this.isEmail(this.contact)) {
-        email = this.contact;
-      } else {
-        phone = this.contact;
-      }
+      const username = phone !== '' ? phone : email;
+      const payload: RegisterPayload = {
+        username: username,
+        password: password,
+        phone: phone !== '' ? phone : undefined,
+        email: email !== '' ? email : undefined,
+        role_code: this.form.roleCode
+      };
 
-      const resp: ApiResponse<UserSummary> = await apiService.register(
-        username,
-        this.password,
-        email,
-        phone,
-        undefined
-      );
-      if (resp.code === 200) {
-        this.success = '注册成功，去完善信息';
-        router.replaceUrl({ url: 'pages/Login' });
+      const response = await httpRequest<ApiResponse<CreateUserResponse>, RegisterPayload>({
+        url: '/api/v1/users',
+        method: RequestEnum.POST,
+        params: payload
+      });
+
+      if (response.code !== 200 || !response.data) {
+        const msg = response.message || '注册失败';
+        this.errorMessage = msg;
+        promptAction.showToast({
+          message: msg
+        });
+        this.isSubmitting = false;
         return;
       }
-      this.error = resp.message;
-    } catch (e) {
-      if (e instanceof Error) {
-        const err = e as Error;
-        this.error = err.message;
-      } else {
-        this.error = '注册失败';
-      }
+
+      promptAction.showToast({
+        message: '注册成功，请使用账号登录'
+      });
+
+      router.replaceUrl({
+        url: 'pages/Login'
+      }).catch(() => {});
+    } catch (error) {
+      this.errorMessage = '网络异常，请稍后重试';
+      promptAction.showToast({
+        message: this.errorMessage
+      });
     } finally {
-      this.loading = false;
+      this.isSubmitting = false;
     }
+  }
+
+  private handleGoLogin(): void {
+    router.replaceUrl({
+      url: 'pages/Login'
+    }).catch(() => {});
   }
 
   build() {
     Column() {
-      Text('注册账号')
-        .fontSize(22)
-        .fontWeight(FontWeight.Bold)
-        .margin({ top: 24, bottom: 24 })
+      Column() {
+        Text('注册新账号')
+          .fontSize(22)
+          .fontWeight(FontWeight.Bold)
+          .margin({ bottom: 4 });
 
-      Text('选择注册角色')
-        .fontSize(16)
-        .margin({ bottom: 8 })
-
-      Row() {
-        Button('老人')
-          .type(this.role === 'elder' ? ButtonType.Capsule : ButtonType.Normal)
-          .margin({ right: 8 })
-          .onClick(() => {
-            this.role = 'elder';
-          })
-
-        Button('家属')
-          .type(this.role === 'family' ? ButtonType.Capsule : ButtonType.Normal)
-          .margin({ right: 8 })
-          .onClick(() => {
-            this.role = 'family';
-          })
-
-        Button('医护人员')
-          .type(this.role === 'medical' ? ButtonType.Capsule : ButtonType.Normal)
-          .onClick(() => {
-            this.role = 'medical';
-          })
+        Text('选择要注册的角色，支持老人、家属、医护人员')
+          .fontSize(12)
+          .fontColor('#6b7280');
       }
-      .margin({ bottom: 16 })
+      .width('100%')
+      .padding({ top: 32, left: 24, right: 24 });
 
-      TextInput({ placeholder: '手机号或邮箱' })
-        .margin({ bottom: 12 })
-        .onChange((value: string) => {
-          this.contact = value;
-        })
+      Column() {
+        Column() {
+          Text('注册角色')
+            .fontSize(12)
+            .fontColor('#6b7280');
 
-      TextInput({ placeholder: '设置登录密码' })
-        .type(InputType.Password)
-        .margin({ bottom: 12 })
-        .onChange((value: string) => {
-          this.password = value;
-        })
-
-      TextInput({ placeholder: '确认密码' })
-        .margin({ bottom: 12 })
-        .onChange((value: string) => {
-          this.confirmPassword = value;
-        })
-
-      if (this.error) {
-        Text(this.error)
-          .fontColor(Color.Red)
-          .margin({ bottom: 12 })
-      }
-
-      if (this.success) {
-        Text(this.success)
-          .fontColor(Color.Green)
-          .margin({ bottom: 12 })
-      }
-
-      Button('立即注册')
-        .type(ButtonType.Capsule)
-        .width('100%')
-        .height(44)
-        .onClick(() => {
-          if (this.loading) {
-            return;
+          Row() {
+            ForEach(ROLE_CHIPS, (chip: RoleChipConfig) => {
+              Column() {
+                Text(chip.title)
+                  .fontSize(13)
+                  .fontWeight(FontWeight.Medium);
+              }
+              .padding({ left: 10, right: 10, top: 8, bottom: 8 })
+              .borderRadius(999)
+              .border({
+                width: 1,
+                color: chip.code === this.form.roleCode ? '#111827' : '#e5e7eb'
+              })
+              .backgroundColor(chip.code === this.form.roleCode ? '#ffc2d4f8' : '#f9fafb')
+              .layoutWeight(1)
+              .margin({ right: 8 })
+              .onClick(() => {
+                this.selectRole(chip.code);
+              });
+            }, (chip: RoleChipConfig) => chip.code);
           }
-          this.doRegister();
-        })
+          .margin({ top: 8 });
+
+          Text('角色代码示例：ELDER / FAMILY / MEDICAL_STAFF')
+            .fontSize(11)
+            .fontColor('#9ca3af')
+            .margin({ top: 4 });
+        }
+        .margin({ top: 16 });
+
+        Column() {
+          Text('手机号')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.phone, placeholder: '用于登录与找回密码' })
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updatePhone(value);
+            });
+        }
+        .margin({ top: 20 });
+
+        Column() {
+          Text('邮箱（可选）')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.email, placeholder: '也可作为登录账号' })
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updateEmail(value);
+            });
+        }
+        .margin({ top: 16 });
+
+        Column() {
+          Text('登录密码')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.password, placeholder: '至少8位，包含字母和数字' })
+            .type(InputType.Password)
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updatePassword(value);
+            });
+
+          Text('密码强度校验：长度≥8，包含字母和数字')
+            .fontSize(11)
+            .fontColor('#9ca3af')
+            .margin({ top: 4 });
+        }
+        .margin({ top: 16 });
+
+        Column() {
+          Text('确认密码')
+            .fontSize(12)
+            .fontColor('#6b7280');
+
+          TextInput({ text: this.form.confirmPassword, placeholder: '再次输入以确认密码' })
+            .type(InputType.Password)
+            .height(40)
+            .fontSize(14)
+            .padding({ left: 16, right: 16 })
+            .borderRadius(20)
+            .backgroundColor('#f9fafb')
+            .onChange((value: string) => {
+              this.updateConfirmPassword(value);
+            });
+        }
+        .margin({ top: 16 });
+
+        if (this.errorMessage !== '') {
+          Text(this.errorMessage)
+            .fontSize(12)
+            .fontColor('#dc2626')
+            .margin({ top: 8 });
+        }
+
+        Button(this.isSubmitting ? '正在注册...' : '立即注册并登录')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .height(44)
+          .margin({ top: 24 })
+          .backgroundColor('#111827')
+          .fontColor('#f9fafb')
+          .enabled(!this.isSubmitting)
+          .onClick(() => {
+            this.handleSubmit();
+          });
+
+        Button('已有账号？去登录')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .height(42)
+          .margin({ top: 12 })
+          .backgroundColor('#f9fafb')
+          .fontColor('#111827')
+          .border({
+            width: 1,
+            color: '#e5e7eb'
+          })
+          .onClick(() => {
+            this.handleGoLogin();
+          });
+
+        Text('注册API：POST /api/v1/users，提交字段示意：phone/email、password、role_code')
+          .fontSize(10)
+          .fontColor('#9ca3af')
+          .margin({ top: 10 });
+      }
+      .width('100%')
+      .padding({ left: 24, right: 24, top: 8 });
     }
     .width('100%')
     .height('100%')
-    .padding(24)
-    .justifyContent(FlexAlign.Start)
+    .backgroundColor('#f2f4f7');
   }
 }
