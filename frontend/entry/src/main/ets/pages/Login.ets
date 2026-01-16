@@ -2,6 +2,7 @@ import { promptAction } from '@kit.ArkUI';
 import router from '@ohos.router';
 import { httpRequest } from '../common/api/HttpUtil';
 import { RequestEnum } from '../common/api/httpEnum';
+import { preferenceUtils } from '../common/preferenceUtils';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 interface ApiResponse<T = Object> {
@@ -108,6 +109,13 @@ struct Login {
 
       const loginData = response.data;
 
+      // 保存 token 和用户信息到 Preference
+      const context = getContext(this);
+      await preferenceUtils().set(context, 'token_store', 'token', loginData.token);
+      await preferenceUtils().set(context, 'user_store', 'current_user', JSON.stringify(loginData.user));
+      
+      // 同时更新 AppStorage，方便应用内使用
+      AppStorage.setOrCreate('currentUser', loginData.user);
 
       const roles = loginData.user.roles;
       let target: string = 'pages/Login';
@@ -115,6 +123,8 @@ struct Login {
         const roleCodes = roles.map(role => role.role_code);
         if (roleCodes.indexOf('medical_staff') >= 0 || roleCodes.indexOf('MEDICAL_STAFF') >= 0) {
           target = 'pages/medical/Index';
+        } else if (roleCodes.indexOf('elder') >= 0 || roleCodes.indexOf('ELDER') >= 0) {
+          target = 'pages/elder/Index';
         }
       }
 

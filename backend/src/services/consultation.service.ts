@@ -40,7 +40,7 @@ export class ConsultationService {
       description: data.description ?? null,
       creator_type: data.creator_type,
       creator_id: data.creator_id,
-      target_org_id: data.target_org_id ?? null,
+      target_staff_id: data.target_staff_id,
       category: data.category ?? null,
       status: 'PENDING',
       priority: (data.priority || 'NORMAL') as ConsultationPriority,
@@ -67,7 +67,7 @@ export class ConsultationService {
   static async getQuestionList(
     query: QueryConsultationQuestionRequest
   ): Promise<{ items: ConsultationQuestionResponse[]; total: number }> {
-    const { page, pageSize, status, creator_id, category, orderBy } = query;
+    const { page, pageSize, status, creator_id, target_staff_id, category, orderBy } = query;
 
     let where = '1=1';
     const params: any[] = [];
@@ -80,6 +80,11 @@ export class ConsultationService {
     if (creator_id) {
       where += ' AND creator_id = ?';
       params.push(creator_id);
+    }
+
+    if (target_staff_id) {
+      where += ' AND target_staff_id = ?';
+      params.push(target_staff_id);
     }
 
     if (category) {
@@ -221,6 +226,7 @@ export class ConsultationService {
     questionId: number,
     query: QueryConsultationMessageRequest
   ): Promise<{ items: ConsultationMessageResponse[]; total: number }> {
+    console.log("questionId", questionId)
     const question = await ConsultationQuestionRepository.findById(questionId);
     if (!question) {
       throw new Error('咨询问题不存在');

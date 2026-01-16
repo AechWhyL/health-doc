@@ -122,7 +122,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async createPlanItem(ctx: Context): Promise<void> {
-    const { planId } = ctx.state.validatedData || ctx.params;
+    const { planId } = ctx.params;
     const data: CreatePlanItemRequest = ctx.state.validatedData || ctx.request.body;
     const result = await InterventionPlanItemService.createPlanItem(Number(planId), data);
     ctx.success(result, '计划项创建成功');
@@ -174,7 +174,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async getPlanItemsByPlanId(ctx: Context): Promise<void> {
-    const { planId } = ctx.state.validatedData || ctx.params;
+    const { planId } = ctx.params;
     const query: QueryPlanItemRequest = ctx.state.validatedData || ctx.query;
     const result = await InterventionPlanItemService.getPlanItemsByPlanId(Number(planId), query);
     ctx.success(result, 'success');
@@ -217,7 +217,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async getPlanItemById(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } =  ctx.params;
     const result = await InterventionPlanItemService.getPlanItemById(Number(itemId));
     ctx.success(result, 'success');
   }
@@ -312,7 +312,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async updatePlanItem(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     const data: UpdatePlanItemRequest = ctx.state.validatedData || ctx.request.body;
     const result = await InterventionPlanItemService.updatePlanItem(Number(itemId), data);
     ctx.success(result, '计划项更新成功');
@@ -370,7 +370,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async updatePlanItemStatus(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     const data = ctx.state.validatedData || ctx.request.body;
     const result = await InterventionPlanItemService.updatePlanItemStatus(Number(itemId), data.status);
     ctx.success(result, '计划项状态更新成功');
@@ -413,7 +413,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async deletePlanItem(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     await InterventionPlanItemService.deletePlanItem(Number(itemId));
     ctx.success(null, '计划项删除成功');
   }
@@ -497,7 +497,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async createPlanItemSchedule(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     const data: CreatePlanItemScheduleRequest =
       ctx.state.validatedData || ctx.request.body;
     const result = await InterventionPlanItemService.createPlanItemSchedule(
@@ -546,7 +546,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async getPlanItemSchedules(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     const result = await InterventionPlanItemService.getPlanItemSchedules(
       Number(itemId)
     );
@@ -813,7 +813,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async getTaskInstancesByItemId(ctx: Context): Promise<void> {
-    const { itemId } = ctx.state.validatedData || ctx.params;
+    const { itemId } = ctx.params;
     const query: QueryPlanTaskInstanceRequest =
       ctx.state.validatedData || ctx.query;
     const result = await InterventionPlanItemService.getTaskInstancesByItemId(

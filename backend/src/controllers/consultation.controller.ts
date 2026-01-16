@@ -23,13 +23,14 @@ export class ConsultationController {
 
   static async getQuestionList(ctx: Context) {
     const data: QueryConsultationQuestionRequest = ctx.state.validatedData || ctx.query;
-    const { page, pageSize, status, creator_id, category, orderBy } = data;
+    const { page, pageSize, status, creator_id, target_staff_id, category, orderBy } = data;
 
     const { items, total } = await ConsultationService.getQuestionList({
       page,
       pageSize,
       status,
       creator_id,
+      target_staff_id,
       category,
       orderBy
     });
@@ -38,7 +39,7 @@ export class ConsultationController {
   }
 
   static async createMessage(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
+    const { id } = ctx.params;
     const questionId = Number(id);
     const data: CreateConsultationMessageRequest = ctx.state.validatedData || ctx.request.body;
     const result = await ConsultationService.createMessage(questionId, data);
@@ -46,7 +47,7 @@ export class ConsultationController {
   }
 
   static async getMessageList(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
+    const { id } = ctx.params;
     const questionId = Number(id);
     const data: QueryConsultationMessageRequest = ctx.state.validatedData || ctx.query;
     const { page, pageSize } = data;

@@ -8,17 +8,22 @@ export struct ElderListItem {
   };
 
   build() {
-    Row() {
+    Flex({
+      justifyContent: FlexAlign.Start,
+      alignItems: ItemAlign.Center
+    }) {
       Column() {
         Text(this.elderName + ' · ' + this.elderAge + ' 岁')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
-        Text(this.relationText + (this.phoneText !== '' ? ' · ' + this.phoneText : ''))
+        Text((this.phoneText !== '' ? ' · ' + this.phoneText : ''))
           .fontSize(11)
           .fontColor('#6b7280')
           .margin({ top: 2 })
       }
       .layoutWeight(1)
+      .flexGrow(1)
+      .justifyContent(FlexAlign.Start)
 
       Text('查看档案')
         .fontSize(11)

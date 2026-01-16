@@ -47,7 +47,8 @@ export class UserElderRelationService {
         elder_id: elder.id,
         relation_name: item.relation_name,
         remark: item.remark,
-        elder
+        elder,
+        elder_info: elder
       };
     });
 
@@ -89,7 +90,8 @@ export class UserElderRelationService {
       elder_id: elderResponse.id,
       relation_name: data.relation_name ?? null,
       remark: data.remark ?? null,
-      elder: elderResponse
+      elder: elderResponse,
+      elder_info: elderResponse
     };
   }
 

@@ -54,6 +54,8 @@ export interface PlanTaskInstance {
   task_time?: string | null;
   status: PlanTaskStatus;
   complete_time?: string | null;
+  remark?: string | null;
+  proof_image_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -106,6 +108,8 @@ export interface PlanTaskInstanceResponse {
   task_time: string | null;
   status: PlanTaskStatus;
   complete_time: string | null;
+  remark?: string | null;
+  proof_image_url?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -714,6 +714,8 @@ export class UserController {
    *                             description: 备注
    *                           elder:
    *                             $ref: '#/components/schemas/ElderResponse'
+   *                           elder_info:
+   *                             $ref: '#/components/schemas/ElderResponse'
    *       401:
    *         description: 未授权
    *       403:
@@ -810,6 +812,8 @@ export class UserController {
    *                       nullable: true
    *                       description: 备注
    *                     elder:
+   *                       $ref: '#/components/schemas/ElderResponse'
+   *                     elder_info:
    *                       $ref: '#/components/schemas/ElderResponse'
    *       400:
    *         description: 请求参数错误或关联关系已存在

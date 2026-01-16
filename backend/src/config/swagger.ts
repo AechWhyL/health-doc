@@ -305,6 +305,71 @@ const options = {
             }
           }
         },
+        ElderResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '老人ID',
+            },
+            name: {
+              type: 'string',
+              description: '姓名',
+            },
+            gender: {
+              type: 'integer',
+              description: '性别(0:女,1:男)',
+              enum: [0, 1],
+            },
+            birth_date: {
+              type: 'string',
+              format: 'date',
+              description: '出生日期',
+            },
+            phone: {
+              type: 'string',
+              description: '联系电话',
+            },
+            address: {
+              type: 'string',
+              nullable: true,
+              description: '居住地址',
+            },
+            emergency_contact: {
+              type: 'string',
+              description: '紧急联系人',
+            },
+            height: {
+              type: 'number',
+              nullable: true,
+              description: '身高(cm)',
+            },
+            weight: {
+              type: 'number',
+              nullable: true,
+              description: '体重(kg)',
+            },
+            blood_type: {
+              type: 'string',
+              nullable: true,
+              description: '血型',
+            },
+            age: {
+              type: 'integer',
+              description: '年龄',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间',
+            },
+          },
+        },
         InterventionPlanResponse: {
           type: 'object',
           properties: {
@@ -663,6 +728,177 @@ const options = {
                   },
                 },
               },
+            },
+          },
+        },
+        ConsultationQuestionResponse: {
+          type: 'object',
+          required: [
+            'title',
+            'creator_type',
+            'creator_id',
+            'target_staff_id',
+            'priority',
+          ],
+          properties: {
+            id: {
+              type: 'integer',
+              description: '问题ID',
+            },
+            code: {
+              type: 'string',
+              description: '问题编号',
+            },
+            title: {
+              type: 'string',
+              description: '标题',
+            },
+            description: {
+              type: 'string',
+              description: '详细描述',
+              nullable: true,
+            },
+            creator_type: {
+              type: 'string',
+              enum: ['ELDER', 'FAMILY', 'STAFF'],
+              description: '创建者类型',
+            },
+            creator_id: {
+              type: 'integer',
+              description: '创建者ID',
+            },
+            target_staff_id: {
+              type: 'integer',
+              description: '目标医护人员ID',
+            },
+            category: {
+              type: 'string',
+              description: '分类',
+              nullable: true,
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+              description: '状态',
+            },
+            priority: {
+              type: 'string',
+              enum: ['NORMAL', 'URGENT'],
+              description: '优先级',
+            },
+            is_anonymous: {
+              type: 'boolean',
+              description: '是否匿名',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新时间',
+            },
+            resolved_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '解决时间',
+              nullable: true,
+            },
+            closed_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '关闭时间',
+              nullable: true,
+            },
+          },
+        },
+        ConsultationAttachmentResponse: {
+          type: 'object',
+          properties: {
+            url: {
+              type: 'string',
+              description: '附件URL',
+            },
+            thumbnail_url: {
+              type: 'string',
+              description: '缩略图URL',
+              nullable: true,
+            },
+            duration: {
+              type: 'integer',
+              description: '时长(秒)',
+              nullable: true,
+            },
+            size: {
+              type: 'integer',
+              description: '文件大小(字节)',
+              nullable: true,
+            },
+          },
+        },
+        ConsultationMessageResponse: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: '消息ID',
+            },
+            question_id: {
+              type: 'integer',
+              description: '问题ID',
+            },
+            sender_type: {
+              type: 'string',
+              enum: ['ELDER', 'FAMILY', 'STAFF', 'SYSTEM'],
+              description: '发送者类型',
+            },
+            sender_id: {
+              type: 'integer',
+              description: '发送者ID',
+              nullable: true,
+            },
+            role_display_name: {
+              type: 'string',
+              description: '角色展示名称',
+              nullable: true,
+            },
+            content_type: {
+              type: 'string',
+              enum: ['TEXT', 'IMAGE', 'AUDIO', 'SYSTEM'],
+              description: '内容类型',
+            },
+            content_text: {
+              type: 'string',
+              description: '文本内容',
+              nullable: true,
+            },
+            sent_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '发送时间',
+            },
+            status: {
+              type: 'string',
+              enum: ['SENT', 'DELIVERED', 'READ', 'FAILED'],
+              description: '消息状态',
+            },
+            is_visible_to_patient: {
+              type: 'boolean',
+              description: '患者是否可见',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: '创建时间',
+            },
+            attachments: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/ConsultationAttachmentResponse',
+              },
+              description: '附件列表',
             },
           },
         },

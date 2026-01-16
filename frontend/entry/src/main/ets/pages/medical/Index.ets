@@ -2,6 +2,11 @@ import { promptAction } from '@kit.ArkUI';
 import { CareCard } from '../../components/medical/CareCard';
 import { DocTab } from './doc/DocTab';
 import { ElderArchive } from './doc/ElderArchive';
+import { ChatPage } from './consultation/ChatPage'
+import { ConsultationList } from './consultation/ConsultationList';
+import { InterventionIndex } from './intervention/InterventionIndex'
+import { ElderInterventionPlanList } from './intervention/ElderInterventionPlanList';
+import { InterventionPlanForm } from './intervention/InterventionPlanForm';
 
 type CareTabKey = 'elder' | 'data' | 'plan' | 'consult'
 
@@ -42,31 +47,19 @@ struct MedicalIndex {
   @Builder
   private buildPlanTab() {
     Column() {
-      CareCard({
-        content: this.buildPlanCardContent
-      });
+      InterventionIndex()
     }
-    .padding({
-      left: 16,
-      right: 16,
-      top: 10,
-      bottom: 10
-    })
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
   private buildConsultTab() {
     Column() {
-      CareCard({
-        content: this.buildConsultCardContent
-      });
+      ConsultationList()
     }
-    .padding({
-      left: 16,
-      right: 16,
-      top: 10,
-      bottom: 10
-    })
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
@@ -191,62 +184,9 @@ struct MedicalIndex {
         width: 1,
         color: '#e5e7eb'
       })
-  }
-
-  @Builder
-  private buildConsultCardContent() {
-    Row() {
-      Column() {
-        Text('待处理咨询列表')
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-        Text('按状态与优先级过滤')
-          .fontSize(11)
-          .fontColor('#6b7280')
-          .margin({ top: 2 })
-      }
-      .layoutWeight(1)
-
-      Text('咨询消息')
-        .fontSize(11)
-        .fontColor('#1d4ed8')
-        .padding({
-          left: 8,
-          right: 8,
-          top: 2,
-          bottom: 2
-        })
-        .borderRadius(999)
-        .backgroundColor('#eff6ff')
-    }
-    .margin({ bottom: 6 })
-
-    Column() {
-      Row() {
-        Column() {
-          Text('最近血压偏高怎么办？')
-            .fontSize(12)
-            .fontWeight(FontWeight.Medium)
-          Text('状态：待处理 · 优先级：紧急 · 发起人：老人')
-            .fontSize(11)
-            .fontColor('#6b7280')
-            .margin({ top: 2 })
-        }
-        .layoutWeight(1)
-
-        Text('去回复')
-          .fontSize(11)
-          .fontColor('#b91c1c')
-      }
-      .padding({
-        left: 8,
-        right: 8,
-        top: 6,
-        bottom: 6
+      .onClick(() => {
+        promptAction.showToast({ message: '功能开发中' })
       })
-      .borderRadius(12)
-      .backgroundColor('#f9fafb')
-    }
   }
 
   @Builder
@@ -286,6 +226,21 @@ struct MedicalIndex {
     if (name === 'Medical_DocTab_ElderArchive') {
       ElderArchive()
     }
+    if (name === 'Medical_ConsultationTab_ChatPage') {
+      ChatPage()
+    }
+    if (name === 'Medical_Intervention_ElderPlanList') {
+      ElderInterventionPlanList()
+    }
+    if (name === 'Medical_Intervention_PlanForm') {
+      InterventionPlanForm()
+    }
+    // if (name === 'Medical_Intervention_PlanItemForm') {
+    //   InterventionPlanItemForm()
+    // }
+    // if (name === 'Medical_Intervention_PlanItemDetail') {
+    //   InterventionPlanItemDetail()
+    // }
   }
 
   build() {

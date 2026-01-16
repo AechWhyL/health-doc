@@ -304,4 +304,5 @@ export interface UserElderRelationItemResponse {
   relation_name: string | null;
   remark: string | null;
   elder: ElderResponse;
+  elder_info: ElderResponse;
 }

@@ -405,6 +405,8 @@ export interface CreateTaskInstancesRequest {
 
 export interface UpdateTaskInstanceStatusRequest {
   status: PlanTaskStatus;
+  remark?: string;
+  proof_image_url?: string;
 }
 
 export {

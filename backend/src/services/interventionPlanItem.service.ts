@@ -174,6 +174,7 @@ export class InterventionPlanItemService {
     planId: number,
     query: QueryPlanItemRequest
   ): Promise<PlanItemResponse[]> {
+    console.log(planId);
     const plan = await InterventionPlanRepository.findById(planId);
     if (!plan) {
       throw new NotFoundError('干预计划不存在');
@@ -515,6 +516,8 @@ export class InterventionPlanItemService {
       task_time: task.task_time ?? null,
       status: task.status,
       complete_time: task.complete_time ?? null,
+      remark: task.remark ?? null,
+      proof_image_url: task.proof_image_url ?? null,
       created_at: task.created_at!,
       updated_at: task.updated_at!
     }));
@@ -529,7 +532,12 @@ export class InterventionPlanItemService {
       throw new NotFoundError('任务实例不存在');
     }
 
-    await InterventionPlanItemRepository.updateTaskInstanceStatus(taskId, data.status);
+    await InterventionPlanItemRepository.updateTaskInstanceStatus(
+      taskId,
+      data.status,
+      data.remark,
+      data.proof_image_url
+    );
 
     const updated = await InterventionPlanItemRepository.findTaskInstanceById(taskId);
     if (!updated) {
@@ -544,6 +552,8 @@ export class InterventionPlanItemService {
       task_time: updated.task_time ?? null,
       status: updated.status,
       complete_time: updated.complete_time ?? null,
+      remark: updated.remark ?? null,
+      proof_image_url: updated.proof_image_url ?? null,
       created_at: updated.created_at!,
       updated_at: updated.updated_at!
     };

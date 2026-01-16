@@ -15,7 +15,7 @@ export interface ConsultationQuestionRecord {
   description?: string | null;
   creator_type: ConsultationCreatorType;
   creator_id: number;
-  target_org_id?: number | null;
+  target_staff_id: number;
   category?: string | null;
   status: ConsultationStatus;
   priority: ConsultationPriority;

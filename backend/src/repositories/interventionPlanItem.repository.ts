@@ -461,15 +461,27 @@ export class InterventionPlanItemRepository {
 
   static async updateTaskInstanceStatus(
     id: number,
-    status: string
+    status: string,
+    remark?: string,
+    proof_image_url?: string
   ): Promise<number> {
     const fields: string[] = ['status = ?'];
-    const params: (string | number)[] = [status];
+    const params: (string | number | null)[] = [status];
 
     if (status === 'COMPLETED') {
       fields.push('complete_time = NOW()');
     } else {
       fields.push('complete_time = NULL');
+    }
+
+    if (remark !== undefined) {
+      fields.push('remark = ?');
+      params.push(remark);
+    }
+
+    if (proof_image_url !== undefined) {
+      fields.push('proof_image_url = ?');
+      params.push(proof_image_url);
     }
 
     const sql = `

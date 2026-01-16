@@ -29,7 +29,7 @@ export class ConsultationQuestionRepository {
       data.description ?? null,
       data.creator_type,
       data.creator_id,
-      data.target_org_id ?? null,
+      data.target_staff_id,
       data.category ?? null,
       data.status,
       data.priority,

@@ -34,10 +34,11 @@ export const createConsultationQuestionSchema = Joi.object({
     'number.positive': '创建人ID必须是正数',
     'any.required': '创建人ID为必填项'
   }),
-  target_org_id: Joi.number().integer().positive().optional().messages({
-    'number.base': '目标机构ID必须是数字',
-    'number.integer': '目标机构ID必须是整数',
-    'number.positive': '目标机构ID必须是正数'
+  target_staff_id: Joi.number().integer().positive().required().messages({
+    'number.base': '目标医护人员ID必须是数字',
+    'number.integer': '目标医护人员ID必须是整数',
+    'number.positive': '目标医护人员ID必须是正数',
+    'any.required': '目标医护人员ID为必填项'
   }),
   category: Joi.string().max(100).optional().allow('').messages({
     'string.base': '分类必须是字符串',
@@ -78,6 +79,11 @@ export const queryConsultationQuestionSchema = Joi.object({
     'number.base': '创建人ID必须是数字',
     'number.integer': '创建人ID必须是整数',
     'number.positive': '创建人ID必须是正数'
+  }),
+  target_staff_id: Joi.number().integer().positive().optional().messages({
+    'number.base': '目标医护人员ID必须是数字',
+    'number.integer': '目标医护人员ID必须是整数',
+    'number.positive': '目标医护人员ID必须是正数'
   }),
   category: Joi.string().max(100).optional().allow('').messages({
     'string.base': '分类必须是字符串',
@@ -171,7 +177,7 @@ export interface CreateConsultationQuestionRequest {
   description?: string;
   creator_type: ConsultationCreatorType;
   creator_id: number;
-  target_org_id?: number;
+  target_staff_id: number;
   category?: string;
   priority: ConsultationPriority;
   is_anonymous?: boolean;
@@ -182,6 +188,7 @@ export interface ConsultationQuestionResponse extends ConsultationQuestionRecord
 export interface QueryConsultationQuestionRequest extends PaginationQuery {
   status?: ConsultationStatus;
   creator_id?: number;
+  target_staff_id?: number;
   category?: string;
   orderBy?: string;
 }

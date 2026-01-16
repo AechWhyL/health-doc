@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SocketIO Bridge</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+<script>
+    let socket = null;
+
+    window.bridge = {
+        connect: (url, options) => {
+            if (socket) socket.disconnect();
+
+            socket = io(url, {
+                transports: ['websocket'],
+                reconnection: true,
+                ...options
+            });
+
+            socket.on('connect', () => {
+                console.log("[socket debug]: js socket on connect")
+                window.bridgeProxy.postMessage(JSON.stringify({ type: 'connect' }));
+            });
+
+            socket.on('disconnect', (reason) => {
+                window.bridgeProxy.postMessage(JSON.stringify({ type: 'disconnect', data: reason }));
+            });
+
+            socket.on('connect_error', (error) => {
+                window.bridgeProxy.postMessage(JSON.stringify({ type: 'error', data: error.message }));
+            });
+
+            // 通用消息监听
+            const onevent = socket.onevent;
+            socket.onevent = function (packet) {
+                const args = packet.data || [];
+                onevent.call(this, packet);
+                packet.data = ["*"].concat(args);
+                onevent.call(this, packet);
+            };
+
+            socket.on("*", function(event, data) {
+                window.bridgeProxy.postMessage(JSON.stringify({
+                    type: 'event',
+                    event: event,
+                    data: typeof data === 'object' ? JSON.stringify(data) : data
+                }));
+            });
+        },
+
+        emit: (event, data) => {
+            if (socket) {
+                let parsedData = data;
+                try {
+                    parsedData = JSON.parse(data);
+                } catch (e) {}
+                socket.emit(event, parsedData);
+            }
+        },
+
+        disconnect: () => {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+    };
+</script>
+</body>
+</html>

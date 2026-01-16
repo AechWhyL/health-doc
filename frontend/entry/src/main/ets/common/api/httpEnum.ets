@@ -16,6 +16,7 @@ export enum RequestEnum {
   POST = "post",
   PUT = "put",
   DELETE = "delete",
+  PATCH = "patch"
 }
 
 /**
@@ -34,5 +35,6 @@ export enum ContentTypeEnum {
  * baseUrl
  */
 export enum BASEURL {
-  baseUrl = 'http://localhost:3000'
+  // baseUrl = 'http://localhost:3000'
+  baseUrl = 'http://10.0.2.2:3000'
 }
