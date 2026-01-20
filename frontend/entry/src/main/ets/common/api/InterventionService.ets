@@ -14,7 +14,9 @@ import {
   CreatePlanItemScheduleRequest,
   MyEldersListData,
   PlanListResponse,
-  PlanTaskStatus
+  PlanTaskStatus,
+  PlanItemStatus,
+  TodayTaskStatsResponse
 } from '../../models/DTO/intervention';
 
 export class InterventionService {
@@ -118,6 +120,33 @@ export class InterventionService {
       method: RequestEnum.PATCH,
       token: 'auth',
       params: data
+    });
+  }
+
+  /**
+   * 更新计划项状态 (停止计划项时会同时跳过未完成的任务)
+   */
+  static async updatePlanItemStatus(itemId: number, status: PlanItemStatus): Promise<ApiResponse<PlanItemResponse>> {
+    interface UpdateStatusRequest {
+      status: PlanItemStatus;
+    }
+    const data: UpdateStatusRequest = { status };
+    return httpRequest<ApiResponse<PlanItemResponse>, UpdateStatusRequest>({
+      url: `/api/v1/intervention/items/${itemId}/status`,
+      method: RequestEnum.POST,
+      token: 'auth',
+      params: data
+    });
+  }
+
+  /**
+   * 获取今日任务统计
+   */
+  static async getTodayTaskStats(): Promise<ApiResponse<TodayTaskStatsResponse>> {
+    return httpRequest<ApiResponse<TodayTaskStatsResponse>, Record<string, Object>>({
+      url: '/api/v1/intervention/stats/today',
+      method: RequestEnum.GET,
+      token: 'auth'
     });
   }
 }

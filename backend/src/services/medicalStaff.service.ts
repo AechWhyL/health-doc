@@ -9,7 +9,9 @@ export class MedicalStaffService {
     const existing = await MedicalStaffRepository.findByUserId(userId);
 
     const birthDateValue =
-      data.birth_date && data.birth_date.trim() !== '' ? data.birth_date : null;
+      data.birth_date && data.birth_date.trim() !== ''
+        ? data.birth_date.split('T')[0]  // 确保只取日期部分，避免ISO时间戳格式
+        : null;
     const jobTitleValue =
       data.job_title && data.job_title.trim() !== '' ? data.job_title : null;
     const goodAtTagsValue =
@@ -38,12 +40,29 @@ export class MedicalStaffService {
       });
     }
 
+    if (data.real_name) {
+      // Lazy import to avoid circular dependency if possible, or usually UserService imports Repository
+      // But here we are in Service, so let's import UserRepository at top level if not present, but wait,
+      // MedicalStaffService doesn't import UserRepository yet.
+      // Let's check imports first.
+      const { UserRepository } = require('../repositories/user.repository');
+      await UserRepository.update(userId, { real_name: data.real_name });
+    }
+
     const updated = await MedicalStaffRepository.findByUserId(userId);
     if (!updated) {
       throw new Error('更新医护人员信息失败');
     }
 
     return updated;
+  }
+
+  static async getOnlineStaff(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: { goodAtTags?: string; phone?: string }
+  ) {
+    return await MedicalStaffRepository.findOnlineStaff(page, pageSize, filters);
   }
 }
 

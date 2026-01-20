@@ -15,7 +15,7 @@ export class ConsultationQuestionRepository {
         description,
         creator_type,
         creator_id,
-        target_org_id,
+        target_staff_id,
         category,
         status,
         priority,

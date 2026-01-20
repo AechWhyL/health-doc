@@ -12,11 +12,26 @@ export const createDailyHealthMeasurementSchema = Joi.object({
     'date.base': '测量时间必须是有效的日期',
     'any.required': '测量时间为必填项'
   }),
-  sbp: Joi.number().precision(2).optional(),
-  dbp: Joi.number().precision(2).optional(),
-  fpg: Joi.number().precision(2).optional(),
-  ppg_2h: Joi.number().precision(2).optional(),
-  weight: Joi.number().precision(2).optional(),
+  sbp: Joi.number().precision(2).required().messages({
+    'number.base': '收缩压必须是数字',
+    'any.required': '收缩压为必填项'
+  }),
+  dbp: Joi.number().precision(2).required().messages({
+    'number.base': '舒张压必须是数字',
+    'any.required': '舒张压为必填项'
+  }),
+  fpg: Joi.number().precision(2).required().messages({
+    'number.base': '空腹血糖必须是数字',
+    'any.required': '空腹血糖为必填项'
+  }),
+  ppg_2h: Joi.number().precision(2).required().messages({
+    'number.base': '餐后2小时血糖必须是数字',
+    'any.required': '餐后2小时血糖为必填项'
+  }),
+  weight: Joi.number().precision(2).required().messages({
+    'number.base': '体重必须是数字',
+    'any.required': '体重为必填项'
+  }),
   steps: Joi.number().integer().min(0).optional(),
   source: Joi.string().valid('MANUAL', 'DEVICE', 'REPORT').default('MANUAL'),
   remark: Joi.string().max(255).optional().messages({
@@ -54,6 +69,9 @@ export const queryDailyHealthMeasurementSchema = Joi.object({
     'number.base': '老人ID必须是数字',
     'number.integer': '老人ID必须是整数',
     'number.positive': '老人ID必须是正数'
+  }),
+  include_judgment: Joi.boolean().optional().default(false).messages({
+    'boolean.base': 'include_judgment必须是布尔值'
   })
 });
 
@@ -69,11 +87,11 @@ export const idParamSchema = Joi.object({
 export interface CreateDailyHealthMeasurementRequest {
   elder_id: number;
   measured_at: string;
-  sbp?: number;
-  dbp?: number;
-  fpg?: number;
-  ppg_2h?: number;
-  weight?: number;
+  sbp: number;
+  dbp: number;
+  fpg: number;
+  ppg_2h: number;
+  weight: number;
   steps?: number;
   source?: string;
   remark?: string;
@@ -93,6 +111,7 @@ export interface UpdateDailyHealthMeasurementRequest {
 
 export interface QueryDailyHealthMeasurementRequest extends PaginationQuery {
   elder_id?: number;
+  include_judgment?: boolean;
 }
 
 export interface DailyHealthMeasurementResponse {
@@ -109,4 +128,9 @@ export interface DailyHealthMeasurementResponse {
   remark?: string;
   created_at: string;
   updated_at: string;
+  judgment?: {
+    bp_level?: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+    fpg_level?: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+    ppg_level?: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+  };
 }

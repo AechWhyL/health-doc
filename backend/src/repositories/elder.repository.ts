@@ -26,6 +26,11 @@ export class ElderRepository {
     return await Database.queryOne<ElderBasicInfo>(sql, [id]);
   }
 
+  static async findByUserId(userId: number): Promise<ElderBasicInfo | null> {
+    const sql = 'SELECT * FROM elder_basic_info WHERE user_id = ?';
+    return await Database.queryOne<ElderBasicInfo>(sql, [userId]);
+  }
+
   static async findAll(page: number, pageSize: number, where: string = '1=1', params: any[] = [], orderBy: string = 'created_at DESC'): Promise<{ items: ElderBasicInfo[]; total: number }> {
     return await Database.paginate<ElderBasicInfo>('elder_basic_info', page, pageSize, where, params, orderBy);
   }

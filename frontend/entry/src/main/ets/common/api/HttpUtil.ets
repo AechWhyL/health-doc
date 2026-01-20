@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig,Int
 import { ResultEnum, RequestEnum, BASEURL } from './httpEnum';
 import { preferenceUtils } from '../preferenceUtils'
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { UIContext } from '@kit.ArkUI';
 
 let context = getContext(this);
 
@@ -12,6 +13,7 @@ interface RequestData<P> {
   token?: string;
   params?: P;
   method: RequestEnum;
+  context?:UIContext
 }
 
 const instance: AxiosInstance = axios.create({
@@ -70,7 +72,7 @@ export async function httpRequest<T, P>(requestData: RequestData<P>): Promise<T>
     method: requestData.method,
     headers,
   };
-  if (requestData.method === RequestEnum.POST || requestData.method === RequestEnum.PUT) {
+  if (requestData.method === RequestEnum.POST || requestData.method === RequestEnum.PUT || requestData.method === RequestEnum.PATCH) {
     config.data = requestData.params;
   } else {
     config.params = requestData.params;

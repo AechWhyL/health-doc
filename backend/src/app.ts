@@ -5,7 +5,7 @@ import helmet from 'koa-helmet';
 import logger from 'koa-logger';
 import serve from 'koa-static';
 import path from 'path';
-import { koaBody } from 'koa-body';
+import { HttpMethodEnum, koaBody } from 'koa-body';
 import { koaSwagger } from 'koa2-swagger-ui';
 import config from './config/env';
 import { responseFormatter } from './middlewares/responseFormatter';
@@ -43,7 +43,8 @@ app.use(koaBody({
   formidable: {
     uploadDir: uploadsRoot,
     keepExtensions: true
-  }
+  },
+  parsedMethods: [HttpMethodEnum.POST, HttpMethodEnum.PUT]
 }));
 
 app.use(responseFormatter);

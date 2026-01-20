@@ -220,7 +220,7 @@ export class ElderController {
     const { page, pageSize, name, phone } = data;
 
     const { items, total } = await ElderService.getElderList(page, pageSize, name, phone);
-    
+
     ctx.paginate(items, page, pageSize, total);
   }
 
@@ -308,7 +308,7 @@ export class ElderController {
    *         description: 服务器内部错误
    */
   static async updateElder(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
+    const id = ctx.state.validatedParams?.id || ctx.params.id;
     const data: UpdateElderRequest = ctx.state.validatedData || ctx.request.body;
     const result = await ElderService.updateElder(id, data);
     ctx.success(result, '老人信息更新成功');

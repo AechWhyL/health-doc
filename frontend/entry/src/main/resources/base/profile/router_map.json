@@ -9,6 +9,76 @@
       "name": "Medical_DocTab_ElderArchive",
       "pageSourceFile": "src/main/ets/pages/medical/doc/ElderArchive.ets",
       "buildFunction": "ElderArchiveBuilder"
+    },
+    {
+      "name": "Medical_Intervention_ElderPlanList",
+      "pageSourceFile": "src/main/ets/pages/medical/intervention/ElderInterventionPlanList.ets",
+      "buildFunction": "ElderInterventionPlanListBuilder"
+    },
+    {
+      "name": "Medical_Intervention_PlanForm",
+      "pageSourceFile": "src/main/ets/pages/medical/intervention/InterventionPlanForm.ets",
+      "buildFunction": "InterventionPlanFormBuilder"
+    },
+    {
+      "name": "Medical_Intervention_PlanItemForm",
+      "pageSourceFile": "src/main/ets/pages/medical/intervention/PlanItemFormPage.ets",
+      "buildFunction": "PlanItemFormPageBuilder"
+    },
+    {
+      "name": "Medical_Intervention_PlanItemDetail",
+      "pageSourceFile": "src/main/ets/pages/medical/intervention/PlanItemDetailPage.ets",
+      "buildFunction": "PlanItemDetailPageBuilder"
+    },
+    {
+      "name": "Medical_ConsultationTab_ChatPage",
+      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "buildFunction": "ChatPageBuilder"
+    },
+    {
+      "name": "Family_ElderArchive",
+      "pageSourceFile": "src/main/ets/pages/family/FamilyElderArchive.ets",
+      "buildFunction": "FamilyElderArchiveBuilder"
+    },
+    {
+      "name": "Family_ConsultationChat",
+      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "buildFunction": "ChatPageBuilder"
+    },
+    {
+      "name": "Family_CreateConsultation",
+      "pageSourceFile": "src/main/ets/pages/family/CreateConsultation.ets",
+      "buildFunction": "CreateConsultationBuilder"
+    },
+    {
+      "name": "Family_AddHealthData",
+      "pageSourceFile": "src/main/ets/pages/family/AddHealthDataPage.ets",
+      "buildFunction": "AddHealthDataPageBuilder"
+    },
+    {
+      "name": "Family_HealthArchiveDetail",
+      "pageSourceFile": "src/main/ets/pages/family/HealthArchiveDetailPage.ets",
+      "buildFunction": "HealthArchiveDetailPageBuilder"
+    },
+    {
+      "name": "Family_AttachmentPreview",
+      "pageSourceFile": "src/main/ets/pages/family/AttachmentPreviewPage.ets",
+      "buildFunction": "AttachmentPreviewPageBuilder"
+    },
+    {
+      "name": "Elder_TaskDetail",
+      "pageSourceFile": "src/main/ets/pages/elder/ElderTaskDetailPage.ets",
+      "buildFunction": "ElderTaskDetailPageBuilder"
+    },
+    {
+      "name": "Elder_TaskCheckIn",
+      "pageSourceFile": "src/main/ets/pages/elder/ElderTaskCheckInPage.ets",
+      "buildFunction": "ElderTaskCheckInPageBuilder"
+    },
+    {
+      "name": "Elder_ConsultationChat",
+      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "buildFunction": "ChatPageBuilder"
     }
   ]
 }

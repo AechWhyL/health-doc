@@ -217,7 +217,7 @@ export class InterventionPlanItemController {
    *         description: 服务器内部错误
    */
   static async getPlanItemById(ctx: Context): Promise<void> {
-    const { itemId } =  ctx.params;
+    const { itemId } = ctx.params;
     const result = await InterventionPlanItemService.getPlanItemById(Number(itemId));
     ctx.success(result, 'success');
   }
@@ -755,6 +755,62 @@ export class InterventionPlanItemController {
 
   /**
    * @swagger
+   * /api/v1/intervention/stats/today:
+   *   get:
+   *     summary: 获取今日任务统计信息
+   *     description: 获取当前医护人员关联的所有老人的今日任务完成情况统计
+   *     tags: [健康干预计划项管理]
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     total_elders:
+   *                       type: integer
+   *                       description: 关联老人总数(包含今日无任务的)
+   *                     total_tasks:
+   *                       type: integer
+   *                       description: 所有老人的今日任务总数
+   *                     completed_tasks:
+   *                       type: integer
+   *                       description: 所有老人的今日已完成任务数
+   *                     elder_stats:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           elder_id:
+   *                             type: integer
+   *                           total_tasks:
+   *                             type: integer
+   *                           completed_tasks:
+   *                             type: integer
+   *       500:
+   *         description: 服务器内部错误
+   *     security:
+   *       - bearerAuth: []
+   */
+  static async getTodayTaskStats(ctx: Context): Promise<void> {
+    const user = ctx.state.user as any;
+    const userId = user.userId;
+    const result = await InterventionPlanItemService.getTodayTaskStats(userId);
+    ctx.success(result, 'success');
+  }
+
+  /**
+   * @swagger
    * /api/v1/intervention/items/{itemId}/tasks:
    *   get:
    *     summary: 查询干预计划项的任务实例列表
@@ -825,6 +881,48 @@ export class InterventionPlanItemController {
 
   /**
    * @swagger
+   * /api/v1/intervention/tasks/{taskId}:
+   *   get:
+   *     summary: 获取任务实例详情
+   *     description: 根据任务实例ID获取任务详情
+   *     tags: [健康干预计划项管理]
+   *     parameters:
+   *       - in: path
+   *         name: taskId
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: 任务实例ID
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   $ref: '#/components/schemas/PlanTaskInstanceResponse'
+   *       404:
+   *         description: 任务实例不存在
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async getTaskInstanceById(ctx: Context): Promise<void> {
+    const { taskId } = ctx.params;
+    const result = await InterventionPlanItemService.getTaskInstanceById(Number(taskId));
+    ctx.success(result, 'success');
+  }
+
+  /**
+   * @swagger
    * /api/v1/intervention/tasks/{taskId}/status:
    *   patch:
    *     summary: 更新任务实例状态
@@ -883,5 +981,230 @@ export class InterventionPlanItemController {
       data
     );
     ctx.success(result, '任务实例状态更新成功');
+  }
+
+  /**
+   * @swagger
+   * /api/v1/intervention/elder/today-tasks:
+   *   get:
+   *     summary: 获取老人今日任务列表
+   *     description: 获取当前登录老人的今日任务列表，按计划和计划项分组聚合
+   *     tags: [健康干预计划项管理]
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     date:
+   *                       type: string
+   *                       format: date
+   *                       description: 查询日期
+   *                     total_tasks:
+   *                       type: integer
+   *                       description: 今日任务总数
+   *                     completed_tasks:
+   *                       type: integer
+   *                       description: 今日已完成任务数
+   *                     plans:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           plan:
+   *                             type: object
+   *                             description: 计划信息
+   *                           items:
+   *                             type: array
+   *                             items:
+   *                               type: object
+   *                               properties:
+   *                                 plan_item:
+   *                                   type: object
+   *                                   description: 计划项信息
+   *                                 tasks:
+   *                                   type: array
+   *                                   description: 任务实例列表
+   *       500:
+   *         description: 服务器内部错误
+   *     security:
+   *       - bearerAuth: []
+   */
+  /**
+   * @swagger
+   * /api/v1/intervention/check-in:
+   *   post:
+   *     summary: 老人端任务签到
+   *     description: 老人完成任务时提交签到，上传证明图片和备注
+   *     tags: [健康干预计划项管理]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - task_instance_id
+   *               - images
+   *             properties:
+   *               task_instance_id:
+   *                 type: integer
+   *                 description: 任务实例ID
+   *                 example: 1
+   *               remark:
+   *                 type: string
+   *                 description: 签到备注（可选）
+   *                 example: 今日已按时服药
+   *               images:
+   *                 type: array
+   *                 description: 签到证明图片（至少一张）
+   *                 items:
+   *                   type: string
+   *                   format: binary
+   *     responses:
+   *       200:
+   *         description: 签到成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 签到成功
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     task_instance_id:
+   *                       type: integer
+   *                     uploaded_images:
+   *                       type: array
+   *                       items:
+   *                         type: string
+   *       400:
+   *         description: 请求参数错误或缺少图片
+   *       404:
+   *         description: 任务实例不存在
+   *       500:
+   *         description: 服务器内部错误
+   *     security:
+   *       - bearerAuth: []
+   */
+  static async checkIn(ctx: Context): Promise<void> {
+    const path = require('path');
+    const fs = require('fs');
+    console.log("[check in] ctx.request: " + JSON.stringify(ctx.request))
+
+    // 获取表单字段
+    const taskInstanceId = (ctx.request as any).body?.task_instance_id;
+    console.log("[check in] taskInstanceId: " + taskInstanceId)
+    const remark = (ctx.request as any).body?.remark || null;
+
+    if (!taskInstanceId) {
+      ctx.badRequest('缺少任务实例ID');
+      return;
+    }
+
+    // 获取上传的图片文件
+    const files = (ctx.request as any).files?.images;
+
+    if (!files) {
+      console.log("[check in] files: " + files)
+      ctx.badRequest('至少需要上传一张图片');
+      return;
+    }
+
+    const fileArray = Array.isArray(files) ? files : [files];
+
+    if (fileArray.length === 0) {
+      ctx.badRequest('至少需要上传一张图片');
+      return;
+    }
+
+    // 确保 uploads/check-in 目录存在
+    const UPLOAD_ROOT = path.resolve(__dirname, '../../uploads/check-in');
+    if (!fs.existsSync(UPLOAD_ROOT)) {
+      fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
+    }
+
+    // 保存所有图片
+    const savedUrls: string[] = [];
+
+    try {
+      for (const file of fileArray) {
+        const originalName = file.originalFilename || file.name || 'image';
+        const ext = path.extname(originalName);
+        const base = path.basename(originalName, ext);
+        const safeBase = base.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const timestamp = Date.now();
+        const filename = `${safeBase}_${timestamp}${ext}`;
+        const targetPath = path.join(UPLOAD_ROOT, filename);
+
+        const readStream = fs.createReadStream(file.filepath || file.path);
+        const writeStream = fs.createWriteStream(targetPath);
+
+        await new Promise<void>((resolve, reject) => {
+          readStream.on('error', reject);
+          writeStream.on('error', reject);
+          writeStream.on('finish', () => resolve());
+          readStream.pipe(writeStream);
+        });
+
+        savedUrls.push(`/uploads/check-in/${filename}`);
+      }
+
+      // 将图片URL数组序列化为JSON字符串
+      const proofImageUrlJson = JSON.stringify(savedUrls);
+
+      // 调用service更新任务状态
+      await InterventionPlanItemService.updateTaskInstanceStatus(
+        Number(taskInstanceId),
+        {
+          status: 'COMPLETED',
+          remark: remark,
+          proof_image_url: proofImageUrlJson
+        }
+      );
+
+      ctx.success(
+        {
+          task_instance_id: Number(taskInstanceId),
+          uploaded_images: savedUrls
+        },
+        '签到成功'
+      );
+    } catch (error) {
+      // 如果更新失败，删除已上传的图片
+      for (const url of savedUrls) {
+        const filePath = path.resolve(__dirname, '../../', url.substring(1));
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async getElderTodayTasks(ctx: Context): Promise<void> {
+    const user = ctx.state.user as any;
+    const elderUserId = user.userId;
+
+    // 直接使用当前登录老人的ID查询
+    const result = await InterventionPlanItemService.getElderTodayTasks(elderUserId);
+    ctx.success(result, 'success');
   }
 }

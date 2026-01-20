@@ -23,11 +23,18 @@ router.post('/login', validateBody(loginSchema), UserController.login);
 
 router.post('/', validateBody(createUserSchema), UserController.createUser);
 router.get('/current', authMiddleware, UserController.getCurrentUser);
+router.get('/online-medical-staff', authMiddleware, UserController.getOnlineMedicalStaff);
 router.get(
   '/me/elders',
   authMiddleware,
   validateQuery(queryUserEldersSchema),
   UserController.getMyElders
+);
+router.get(
+  '/me/elders-with-health',
+  authMiddleware,
+  validateQuery(queryUserEldersSchema),
+  UserController.getMyEldersWithHealth
 );
 router.post(
   '/me/elders',
@@ -41,7 +48,7 @@ router.delete(
   validateParams(userElderRelationIdParamSchema),
   UserController.deleteMyElder
 );
-router.put(
+router.post(
   '/me/medical-staff',
   authMiddleware,
   validateBody(upsertMedicalStaffInfoSchema),

@@ -1,72 +1,32 @@
 import { promptAction } from '@kit.ArkUI';
 import { InterventionService } from '../../../common/api/InterventionService';
+import dayjs from 'dayjs';
 import {
   InterventionPlanResponse,
   InterventionPlanStatus,
   PlanItemResponse,
+  MedicationPlanItemResponse,
+  RehabPlanItemResponse,
   PlanTaskInstanceResponse,
-  UserElderRelationItem,
+  UserElderRelationItem
 } from '../../../models/DTO/intervention';
-import { PlanItemFormRouteParams } from './InterventionPlanItemForm'
 import { PlanFormRouteParams } from './InterventionPlanForm'
-import { InterventionPlanItemDetail } from '../intervention/InterventionPlanItemDetail'
-import { InterventionPlanItemForm } from '../intervention/InterventionPlanItemForm'
+import { PlanItemFormRouteParams } from './PlanItemFormPage'
+import { PlanItemDetailRouteParams } from './PlanItemDetailPage'
+import { CardContainer } from '../../../components/common/CardContainer'
 
 interface PlanViewModel extends InterventionPlanResponse {
   isExpanded: boolean;
   isLoadingItems: boolean;
   items: PlanItemResponse[];
-  todayTasks: PlanTaskInstanceResponse[]; // Tasks for all items in this plan for today
+  todayTasks: PlanTaskInstanceResponse[];
   completedTaskCount: number;
   totalTaskCount: number;
 }
 
-interface PlanItemBuilderParams {
-  plan: PlanViewModel,
-  index: number
-}
-
-@CustomDialog
-struct AddPlanItemDialog {
-  controller: CustomDialogController = new CustomDialogController({
-    builder: () => {
-    }
-  })
-  @Prop planId: number = -1
-
-  build() {
-    Column() {
-      InterventionPlanItemForm({
-        planId: this.planId
-      })
-    }
-    .height('100%')
-    .width('100%')
-  }
-}
-
-@CustomDialog
-struct PlanItemDetailDialog {
-  controller: CustomDialogController = new CustomDialogController({
-    builder: () => {
-    }
-  })
-  @Prop item: PlanItemResponse | null = null
-
-  build() {
-    Column() {
-      InterventionPlanItemDetail({
-        item: this.item,
-      })
-    }
-
-    .height
-    ('100%'
-    )
-    .width
-    ('100%'
-    )
-  }
+@Builder
+export function ElderInterventionPlanListBuilder (){
+  ElderInterventionPlanList()
 }
 
 @Component
@@ -76,8 +36,23 @@ export struct ElderInterventionPlanList {
   @State private isLoading: boolean = false
   @State private errorMsg: string = ''
   @Consume('navPathStack') navPathStack: NavPathStack;
-  addPlanItemDialogController: CustomDialogController | null = null
-  planItemDetailController: CustomDialogController | null = null
+
+  private formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) {
+      return '--'
+    }
+    return dayjs(dateStr).format('YYYY年M月D日')
+  }
+
+  private openItemForm(planId: number) {
+    const params: PlanItemFormRouteParams = { planId }
+    this.navPathStack.pushPathByName('Medical_Intervention_PlanItemForm', params)
+  }
+
+  private openItemDetail(item: PlanItemResponse) {
+    const params: PlanItemDetailRouteParams = { item }
+    this.navPathStack.pushPathByName('Medical_Intervention_PlanItemDetail', params)
+  }
 
   private async loadPlans() {
     if (!this.elderRelation) {
@@ -85,16 +60,14 @@ export struct ElderInterventionPlanList {
     }
     this.isLoading = true;
     try {
-      const response = await InterventionService.getPlansByElderUserId(this.elderRelation.elder_id, {
-        page: 1,
-        pageSize: 100, // Load all for now
-        orderBy: 'created_at desc'
+      // FIX: Use elder_user_id (user account ID) instead of elder_id (elder_basic_info.id)
+      const elderUserId = this.elderRelation.elder_user_id ?? this.elderRelation.elder_id
+      const response = await InterventionService.getPlansByElderUserId(elderUserId, {
+        page: 1, pageSize: 100, orderBy: 'created_at desc'
       });
-
       if (response.code === 200 && response.data) {
-        // Initialize ViewModels
         this.plans = response.data.records.map(plan => {
-          let viewModel: PlanViewModel = {
+          let vm: PlanViewModel = {
             id: plan.id,
             elder_user_id: plan.elder_user_id,
             title: plan.title,
@@ -112,94 +85,93 @@ export struct ElderInterventionPlanList {
             completedTaskCount: 0,
             totalTaskCount: 0
           };
-          return viewModel;
+          return vm;
         });
-        console.log(`got plans${this.plans.length}`)
-
-        // Eagerly load items and tasks for "ACTIVE" plans to show today's status
         this.loadActivePlansDetails();
       } else {
         this.errorMsg = response.message || '获取计划列表失败';
       }
     } catch (err) {
       this.errorMsg = '网络异常';
-      console.log(err)
     } finally {
       this.isLoading = false;
     }
   }
 
   private async loadActivePlansDetails() {
-    // For each plan, load items and then tasks
-    // This might be slow, so we do it progressively or in parallel
-    const promises = this.plans.map(async (plan, index) => {
-      // Only load for active plans to save bandwidth, or load all if required. 
-      // User said "show elder's all plan items' today's task items". So we should try to load all.
-      // But 'FINISHED' plans might not have tasks today.
-      if (plan.status !== 'ACTIVE' && plan.status !== 'PENDING') {
-        return;
+    for (let i = 0; i < this.plans.length; i++) {
+      if (this.plans[i].status === 'ACTIVE' || this.plans[i].status === 'PENDING') {
+        await this.loadPlanItemsAndTasks(i);
       }
-
-      await this.loadPlanItemsAndTasks(index);
-    });
-    await Promise.all(promises);
+    }
   }
 
   private async loadPlanItemsAndTasks(index: number) {
     const plan = this.plans[index];
-    this.plans[index].isLoadingItems = true;
-
     try {
-      // 1. Get Items
       const itemsResp = await InterventionService.getPlanItemsByPlanId(plan.id);
       if (itemsResp.code === 200 && itemsResp.data) {
-        console.log("got planItem info")
-        const newPlanItem = this.plans[index]
-        newPlanItem.items = itemsResp.data
-        this.plans.splice(index, 1, newPlanItem);
-
-        // 2. Get Today's Tasks for each item
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const today = new Date().toISOString().split('T')[0];
         let totalTasks: PlanTaskInstanceResponse[] = [];
-
-        const taskPromises = itemsResp.data.map(async (item) => {
-          const tasksResp = await InterventionService.getTaskInstancesByItemId(item.id, {
-            startDate: today,
-            endDate: today
-          });
+        for (const item of itemsResp.data) {
+          const tasksResp =
+            await InterventionService.getTaskInstancesByItemId(item.id, { startDate: today, endDate: today });
           if (tasksResp.code === 200 && tasksResp.data) {
-            return tasksResp.data;
+            totalTasks = totalTasks.concat(tasksResp.data);
           }
-          return [];
-        });
+        }
 
-        const tasksArrays = await Promise.all(taskPromises);
-        totalTasks = tasksArrays.flat();
-
-        this.plans[index].todayTasks = totalTasks;
-        this.plans[index].totalTaskCount = totalTasks.length;
-        this.plans[index].completedTaskCount = totalTasks.filter(t => t.status === 'COMPLETED').length;
+        const updated: PlanViewModel = {
+          id: plan.id,
+          elder_user_id: plan.elder_user_id,
+          title: plan.title,
+          description: plan.description,
+          status: plan.status,
+          start_date: plan.start_date,
+          end_date: plan.end_date,
+          created_by_user_id: plan.created_by_user_id,
+          created_at: plan.created_at,
+          updated_at: plan.updated_at,
+          isExpanded: plan.isExpanded,
+          isLoadingItems: false,
+          items: itemsResp.data,
+          todayTasks: totalTasks,
+          completedTaskCount: totalTasks.filter(t => t.status === 'COMPLETED').length,
+          totalTaskCount: totalTasks.length
+        };
+        const newPlans = this.plans.slice();
+        newPlans[index] = updated;
+        this.plans = newPlans;
       }
     } catch (e) {
-      console.error('Failed to load details for plan', plan.id);
-    } finally {
-      this.plans[index].isLoadingItems = false;
-      // Trigger update
-      // this.plans = [...this.plans]; // ArkTS array state update might need reassignment
-      // But changing properties of object in array might not trigger UI update if not using @Observed/@ObjectLink. 
-      // For simplicity in this structure, I'll reassign the element or the array.
-      let p = this.plans[index];
-      this.plans[index] = p; // This usually works for @State array index assignment
+      console.error('Failed to load plan items');
     }
   }
 
   private toggleExpand(index: number) {
-    const newPlan = this.plans[index]
-    newPlan.isExpanded = !this.plans[index].isExpanded
-    this.plans.splice(index, 1, newPlan);
-    console.log(`plan ${index}:`)
-    console.log(`is expanded:${this.plans[index].isExpanded}`)
-    // If expanding and no items, load them (if not already loaded by eager load)
+    const plan = this.plans[index];
+    const updated: PlanViewModel = {
+      id: plan.id,
+      elder_user_id: plan.elder_user_id,
+      title: plan.title,
+      description: plan.description,
+      status: plan.status,
+      start_date: plan.start_date,
+      end_date: plan.end_date,
+      created_by_user_id: plan.created_by_user_id,
+      created_at: plan.created_at,
+      updated_at: plan.updated_at,
+      isExpanded: !plan.isExpanded,
+      isLoadingItems: plan.isLoadingItems,
+      items: plan.items,
+      todayTasks: plan.todayTasks,
+      completedTaskCount: plan.completedTaskCount,
+      totalTaskCount: plan.totalTaskCount
+    };
+    const newPlans = this.plans.slice();
+    newPlans[index] = updated;
+    this.plans = newPlans;
+
     if (this.plans[index].isExpanded && this.plans[index].items.length === 0 && !this.plans[index].isLoadingItems) {
       this.loadPlanItemsAndTasks(index);
     }
@@ -209,200 +181,31 @@ export struct ElderInterventionPlanList {
     if (!this.elderRelation) {
       return;
     }
-    const param: PlanFormRouteParams = { elderUserId: this.elderRelation.elder_id };
-    this.navPathStack.pushPath({
-      name: 'Medical_Intervention_PlanForm',
-      param: param as Object
-    });
+    // FIX: Use elder_user_id (user account ID) instead of elder_id (elder_basic_info.id)
+    const elderUserId = this.elderRelation.elder_user_id ?? this.elderRelation.elder_id
+    const param: PlanFormRouteParams = { elderUserId: elderUserId };
+    this.navPathStack.pushPathByName('Medical_Intervention_PlanForm', param);
   }
 
-  private goToAddItem(planId: number) {
-    const param: PlanItemFormRouteParams = { planId: planId };
-    // this.navPathStack.pushPath({
-    //   name: 'Medical_Intervention_PlanItemForm', // User requested "Add Plan Item" form
-    //   param: param as Object
-    // });
-    this.addPlanItemDialogController = new CustomDialogController({
-      builder: AddPlanItemDialog({
-        planId
-      }),
-      customStyle: true
-    })
-    this.addPlanItemDialogController.open()
-  }
-
-  private goToItemDetail(item: PlanItemResponse) {
-    // this.navPathStack.pushPath({
-    //   name: 'Medical_Intervention_PlanItemDetail',
-    //   param: item as Object
-    // });
-    this.planItemDetailController = new CustomDialogController({
-      builder: PlanItemDetailDialog({
-        item: item
-      })
-    })
-    this.planItemDetailController.open()
-  }
-
-  @Builder
-  private buildPlanItem(plan: PlanViewModel, index: number) {
-    Column() {
-      // Plan Header
-      Row() {
-        Column() {
-          Text(plan.title)
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-          Row() {
-            Text(plan.status)
-              .fontSize(12)
-              .fontColor(this.getStatusColor(plan.status))
-              .backgroundColor(this.getStatusBgColor(plan.status))
-              .padding({
-                left: 6,
-                right: 6,
-                top: 2,
-                bottom: 2
-              })
-              .borderRadius(4)
-              .margin({ right: 8 })
-
-            Text(`今日任务: ${plan.completedTaskCount}/${plan.totalTaskCount}`)
-              .fontSize(12)
-              .fontColor('#6b7280')
-          }
-          .margin({ top: 4 })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        // Expand Icon
-        Text(plan.isExpanded ? '▲' : '▼')
-          .fontSize(12)
-          .fontColor('#9ca3af')
-          .padding(10)
-      }
-      .width('100%')
-      .padding(12)
-      .backgroundColor('#ffffff')
-      .borderRadius(8)
-      .onClick(() => {
-        this.toggleExpand(index);
-      })
-
-      // Expanded Content
-      if (plan.isExpanded) {
-        Column() {
-          if (plan.isLoadingItems) {
-            LoadingProgress().width(30).height(30).margin({ top: 10, bottom: 10 })
-          } else if (plan.items.length === 0) {
-            Text('暂无干预项')
-              .fontSize(14)
-              .fontColor('#9ca3af')
-              .padding(10)
-          } else {
-            List() {
-              ForEach(plan.items, (item: PlanItemResponse) => {
-                ListItem() {
-                  Row() {
-                    Column() {
-                      Text(item.name)
-                        .fontSize(14)
-                        .fontColor('#374151')
-                      Text(item.item_type === 'MEDICATION' ? '用药' : '康复')
-                        .fontSize(12)
-                        .fontColor('#6b7280')
-                    }
-                    .alignItems(HorizontalAlign.Start)
-
-                    Blank()
-
-                    Button('详情')
-                      .fontSize(12)
-                      .height(24)
-                      .backgroundColor('#e5e7eb')
-                      .fontColor('#374151')
-                      .onClick(() => {
-                        this.goToItemDetail(item);
-                      })
-                  }
-                  .width('100%')
-                  .padding({
-                    top: 8,
-                    bottom: 8,
-                    left: 12,
-                    right: 12
-                  })
-                  .border({ width: { bottom: 1 }, color: '#f3f4f6' })
-                }
-              })
-            }
-            .width('100%')
-          }
-
-          // Add Item Button
-          Button('+ 添加干预项')
-            .width('100%')
-            .height(36)
-            .fontSize(14)
-            .backgroundColor('#eff6ff')
-            .fontColor('#3b82f6')
-            .margin({ top: 8 })
-            .onClick(() => {
-              this.goToAddItem(plan.id);
-            })
-        }
-        .width('100%')
-        .backgroundColor('#f9fafb')
-        .padding({ bottom: 12 })
-        .borderRadius({ bottomLeft: 8, bottomRight: 8 })
-      }
+  private getStatusText(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return '执行中';
+      case 'PENDING':
+        return '未开始';
+      case 'FINISHED':
+        return '已完成';
+      case 'PAUSED':
+        return '已暂停';
+      case 'STOPPED':
+        return '已终止';
+      case 'CANCELLED':
+        return '已取消';
+      case 'DRAFT':
+        return '草稿';
+      default:
+        return status;
     }
-    .width('100%')
-    .margin({ bottom: 12 })
-  }
-
-  build() {
-    NavDestination() {
-      Column() {
-        if (this.isLoading && this.plans.length === 0) {
-          LoadingProgress().width(50).height(50).margin({ top: 50 })
-        } else if (this.errorMsg) {
-          Text(this.errorMsg)
-            .fontSize(16)
-            .fontColor(Color.Red)
-            .margin({ top: 50 })
-        } else {
-          List() {
-            ForEach(this.plans, (plan: PlanViewModel, index: number) => {
-              ListItem() {
-                this.buildPlanItem(plan, index)
-              }
-            })
-          }
-          .width('100%')
-          .height('100%')
-          .padding(16)
-        }
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor('#f3f4f6')
-    }
-    .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
-    .menus([
-      {
-        value: '新建',
-        action: () => {
-          this.goToAddPlan();
-        }
-      }
-    ])
-    .onReady((ctx: NavDestinationContext) => {
-      this.elderRelation = (ctx.pathInfo.param) as UserElderRelationItem
-      console.log("PlanList onReady")
-      this.loadPlans()
-    })
   }
 
   private getStatusColor(status: string): string {
@@ -412,7 +215,10 @@ export struct ElderInterventionPlanList {
       case 'FINISHED':
         return '#059669';
       case 'STOPPED':
+      case 'CANCELLED':
         return '#dc2626';
+      case 'PENDING':
+        return '#d97706';
       default:
         return '#6b7280';
     }
@@ -421,13 +227,153 @@ export struct ElderInterventionPlanList {
   private getStatusBgColor(status: string): string {
     switch (status) {
       case 'ACTIVE':
-        return '#dbeafe';
+        return '#eff6ff';
       case 'FINISHED':
-        return '#d1fae5';
+        return '#ecfdf5';
       case 'STOPPED':
-        return '#fee2e2';
+      case 'CANCELLED':
+        return '#fef2f2';
+      case 'PENDING':
+        return '#fffbeb';
       default:
         return '#f3f4f6';
     }
+  }
+
+  @Builder
+  buildPlanCard(plan: PlanViewModel, index: number) {
+    CardContainer() {
+      Column() {
+        Row() {
+          Column() {
+            Text(plan.title).fontSize(16).fontWeight(FontWeight.Bold).fontColor('#1e293b')
+            if (plan.description) {
+              Text(plan.description).fontSize(13).fontColor('#64748b').margin({ top: 4 }).maxLines(1)
+            }
+          }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+
+          Text(this.getStatusText(plan.status))
+            .fontSize(12)
+            .fontColor(this.getStatusColor(plan.status))
+            .padding({
+              left: 8,
+              right: 8,
+              top: 4,
+              bottom: 4
+            })
+            .backgroundColor(this.getStatusBgColor(plan.status))
+            .borderRadius(12)
+        }.width('100%')
+
+        Row() {
+          Text(`${this.formatDate(plan.start_date)} ~ ${plan.end_date ? this.formatDate(plan.end_date) : '长期'}`)
+            .fontSize(12)
+            .fontColor('#94a3b8')
+          if (plan.totalTaskCount > 0) {
+            Text(`今日 ${plan.completedTaskCount}/${plan.totalTaskCount}`)
+              .fontSize(12)
+              .fontColor('#2563eb')
+              .margin({ left: 12 })
+          }
+        }.width('100%').margin({ top: 8 })
+
+        Row() {
+          Text(plan.isExpanded ? '收起 ▲' : '展开 ▼').fontSize(13).fontColor('#2563eb')
+        }.width('100%').margin({ top: 12 }).justifyContent(FlexAlign.Center)
+        .onClick(() => {
+          this.toggleExpand(index)
+        })
+
+        if (plan.isExpanded) {
+          Divider().margin({ top: 12, bottom: 12 })
+          if (plan.isLoadingItems) {
+            LoadingProgress().width(24).height(24).color('#2563eb')
+          } else if (plan.items.length === 0) {
+            Text('暂无计划项').fontSize(13).fontColor('#9ca3af')
+          } else {
+            ForEach(plan.items, (item: PlanItemResponse) => {
+              Row() {
+                Text(item.item_type === 'MEDICATION' ? '💊' : '🏃').fontSize(20).margin({ right: 10 })
+                Column() {
+                  Text(item.name).fontSize(14).fontColor('#1e293b')
+                  Text(item.item_type === 'MEDICATION' ? item.drug_name || '' : item.exercise_name || '')
+                    .fontSize(12).fontColor('#64748b').margin({ top: 2 })
+                }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+
+                Text('→').fontSize(16).fontColor('#cbd5e1')
+              }
+              .width('100%')
+              .padding(10)
+              .backgroundColor('#f8fafc')
+              .borderRadius(8)
+              .margin({ bottom: 8 })
+              .onClick(() => {
+                this.openItemDetail(item)
+              })
+            })
+          }
+          Button('+ 添加计划项')
+            .type(ButtonType.Normal)
+            .fontSize(13)
+            .height(36)
+            .width('100%')
+            .backgroundColor('#eff6ff')
+            .fontColor('#2563eb')
+            .borderRadius(8)
+            .margin({ top: 8 })
+            .onClick(() => {
+              this.openItemForm(plan.id)
+            })
+        }
+      }
+    }
+  }
+
+  build() {
+    NavDestination() {
+      Column() {
+        if (this.isLoading && this.plans.length === 0) {
+          LoadingProgress().width(40).height(40).margin({ top: 50 }).color('#2563eb')
+        } else if (this.errorMsg) {
+          Text(this.errorMsg).fontSize(14).fontColor('#dc2626').margin({ top: 50 })
+        } else if (this.plans.length === 0) {
+          Column() {
+            Text('📋').fontSize(48)
+            Text('暂无干预计划').fontSize(14).fontColor('#64748b')
+          }.width('100%').margin({ top: 80 }).alignItems(HorizontalAlign.Center)
+        } else {
+          List() {
+            ForEach(this.plans, (plan: PlanViewModel, index: number) => {
+              ListItem() {
+                this.buildPlanCard(plan, index)
+              }
+            })
+          }.width('100%').height('100%').padding({ left: 16, right: 16, top: 12 })
+        }
+      }.width('100%').height('100%').backgroundColor('#f8fafc')
+    }
+    .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
+    .menus([{
+      value: '+', action: () => {
+        this.goToAddPlan()
+      }
+    }])
+    .onReady((ctx: NavDestinationContext) => {
+      console.info('[ElderInterventionPlanList] onReady called, param:', JSON.stringify(ctx.pathInfo.param))
+      const param = ctx.pathInfo.param as UserElderRelationItem
+      if (param && param.elder_id) {
+        this.elderRelation = param
+        this.loadPlans()
+      } else {
+        console.error('[ElderInterventionPlanList] Invalid param received')
+        this.errorMsg = '参数错误，请返回重试'
+      }
+    })
+    .onShown(() => {
+      // Reload plans when returning to this page (e.g., after creating a plan item)
+      if (this.elderRelation) {
+        this.loadPlans()
+      }
+    })
   }
 }

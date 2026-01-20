@@ -114,7 +114,7 @@ export class DailyHealthMeasurementController {
    * /api/v1/elder-health/daily-health/list:
    *   get:
    *     summary: 查询日常健康数据列表
-   *     description: 分页查询日常健康数据记录，支持按老人ID过滤
+   *     description: 分页查询日常健康数据记录，支持按老人ID过滤，可选附加健康状态判断结果
    *     tags: [日常健康管理]
    *     parameters:
    *       - in: query
@@ -137,6 +137,13 @@ export class DailyHealthMeasurementController {
    *         schema:
    *           type: integer
    *         description: 老人ID
+   *       - in: query
+   *         name: include_judgment
+   *         required: false
+   *         schema:
+   *           type: boolean
+   *           default: false
+   *         description: 是否附加健康状态判断结果（bp_level/fpg_level/ppg_level）
    *     responses:
    *       200:
    *         description: 查询成功
@@ -166,7 +173,26 @@ export class DailyHealthMeasurementController {
    *                     records:
    *                       type: array
    *                       items:
-   *                         $ref: '#/components/schemas/DailyHealthMeasurement'
+   *                         allOf:
+   *                           - $ref: '#/components/schemas/DailyHealthMeasurement'
+   *                           - type: object
+   *                             properties:
+   *                               judgment:
+   *                                 type: object
+   *                                 description: 健康状态判断结果（仅当include_judgment=true时返回）
+   *                                 properties:
+   *                                   bp_level:
+   *                                     type: string
+   *                                     enum: [NORMAL, MILD, MODERATE, SEVERE]
+   *                                     description: 血压状态级别
+   *                                   fpg_level:
+   *                                     type: string
+   *                                     enum: [NORMAL, MILD, MODERATE, SEVERE]
+   *                                     description: 空腹血糖状态级别
+   *                                   ppg_level:
+   *                                     type: string
+   *                                     enum: [NORMAL, MILD, MODERATE, SEVERE]
+   *                                     description: 餐后血糖状态级别
    *       400:
    *         description: 请求参数错误
    *       500:

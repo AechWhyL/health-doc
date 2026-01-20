@@ -1,5 +1,10 @@
 import { PaginationQuery } from "./DTO/types"
 
+export interface CreatorSummary {
+  name: string;
+  phone?: string;
+}
+
 export interface ConsultationQuestion {
   id: number;
   title: string;
@@ -12,6 +17,7 @@ export interface ConsultationQuestion {
   updated_at: string;
   last_message_at?: string;
   unread_count?: number;
+  creator_summary?: CreatorSummary;
 }
 
 type ConsultationStatus = 'SENDING' | 'SENT' | 'FAILED'

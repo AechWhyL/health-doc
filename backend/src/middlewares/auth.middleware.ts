@@ -40,6 +40,7 @@ export const authMiddleware = async (ctx: Context, next: Next): Promise<void> =>
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET) as JwtPayload;
       ctx.state.user = decoded;
+      console.log("authMiddleware:")
       console.log(ctx.state.user)
       await next();
     } catch (error) {

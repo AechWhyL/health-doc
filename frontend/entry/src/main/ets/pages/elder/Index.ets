@@ -1,82 +1,89 @@
-import { ElderInterventionIndex } from './intervention/ElderInterventionIndex';
-import { InterventionPlanDetail } from './intervention/InterventionPlanDetail';
-import { TaskCheckInPage } from './intervention/TaskCheckInPage';
+import { ElderHomeTab } from './ElderHomeTab';
+import { ElderHealthTab } from './ElderHealthTab';
+import { ElderConsultationTab } from './ElderConsultationTab';
+import { ElderProfileTab } from './ElderProfileTab';
+import { InterventionIndex } from '../medical/intervention/InterventionIndex';
+
+type ElderTabKey = 'home' | 'health' | 'intervention' | 'consult' | 'profile';
 
 @Entry
 @Component
 struct ElderIndex {
   @Provide('navPathStack') navPathStack: NavPathStack = new NavPathStack();
-  @State currentIndex: number = 0;
+  @State currentTab: ElderTabKey = 'home';
 
-  @Builder
-  PageMap(name: string) {
-    if (name === 'InterventionPlanDetail') {
-      InterventionPlanDetail()
-    } else if (name === 'TaskCheckInPage') {
-      TaskCheckInPage()
-    }
+  private switchTab(tab: ElderTabKey): void {
+    this.currentTab = tab;
   }
 
   @Builder
-  TabBuilder(index: number, name: string, icon: string, selectedIcon: string) {
+  private TabIcon(tab: ElderTabKey, icon: string, label: string) {
     Column() {
-      Text(icon) // 这里可以用 Image，暂时用 Text 模拟图标
-        .fontSize(24)
-        .fontColor(this.currentIndex === index ? '#007DFF' : '#999')
-        .margin({ bottom: 4 })
-      Text(name)
+      Text(icon)
+        .fontSize(22)
+        .fontColor(this.currentTab === tab ? '#16a34a' : '#9ca3af')
+      Text(label)
         .fontSize(10)
-        .fontColor(this.currentIndex === index ? '#007DFF' : '#999')
+        .fontColor(this.currentTab === tab ? '#16a34a' : '#6b7280')
+        .margin({ top: 2 })
     }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Center)
+    .padding({ top: 8, bottom: 8 })
+    .onClick(() => {
+      this.switchTab(tab);
+    })
   }
 
   build() {
-    Navigation(this.navPathStack) {
-      Tabs({ barPosition: BarPosition.End, index: this.currentIndex }) {
-        // 首页 Tab (占位)
-        TabContent() {
-          Column() {
-            Text('首页功能开发中...')
-              .fontSize(20)
-              .fontColor('#999')
+    Column() {
+      Navigation(this.navPathStack) {
+        Column() {
+          // 主内容区域
+          if (this.currentTab === 'home') {
+            ElderHomeTab()
+          } else if (this.currentTab === 'health') {
+            ElderHealthTab()
+          } else if (this.currentTab === 'intervention') {
+            InterventionIndex()
+          } else if (this.currentTab === 'consult') {
+            ElderConsultationTab()
+          } else if (this.currentTab === 'profile') {
+            ElderProfileTab()
           }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Center)
         }
-        .tabBar(this.TabBuilder(0, '首页', '🏠', '🏠'))
+        .layoutWeight(1)
+        .width('100%')
+        .backgroundColor('#f0fdf4')
 
-        // 干预 Tab
-        TabContent() {
-          ElderInterventionIndex()
+        // 底部导航栏
+        Row() {
+          this.TabIcon('home', '🏠', '首页')
+          this.TabIcon('health', '❤️', '健康')
+          this.TabIcon('intervention', '📋', '干预')
+          this.TabIcon('consult', '💬', '咨询')
+          this.TabIcon('profile', '👤', '我的')
         }
-        .tabBar(this.TabBuilder(1, '干预', '📅', '📅'))
-
-        // 我的 Tab (占位)
-        TabContent() {
-          Column() {
-            Text('个人中心开发中...')
-              .fontSize(20)
-              .fontColor('#999')
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Center)
-        }
-        .tabBar(this.TabBuilder(2, '我的', '👤', '👤'))
+        .width('100%')
+        .backgroundColor(Color.White)
+        .border({
+          width: { top: 1 },
+          color: '#e5e7eb'
+        })
+        .padding({
+          left: 8,
+          right: 8,
+          bottom: 16
+        })
       }
-      .scrollable(false)
-      .onChange((index) => {
-        this.currentIndex = index;
-      })
+      .width('100%')
+      .title('健康关护 · 长辈版')
+      .titleMode(NavigationTitleMode.Mini)
+      .hideBackButton(true)
+      .mode(NavigationMode.Stack)
     }
-    .mode(NavigationMode.Stack)
-    .title('健康关护 · 长辈版')
-    .titleMode(NavigationTitleMode.Mini)
-    .hideBackButton(true)
-    .navDestination(this.PageMap)
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#f0fdf4')
   }
 }

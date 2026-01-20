@@ -1,5 +1,6 @@
 export interface ElderBasicInfo {
   id?: number;
+  user_id?: number | null; // the user account ID associated with this elder
   name: string;
   gender: number;
   birth_date: string;

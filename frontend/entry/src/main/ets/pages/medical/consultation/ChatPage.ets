@@ -5,12 +5,18 @@ import { ChatView } from '../../../components/medical/ChatView';
 import { BASEURL } from '../../../common/api/httpEnum';
 import { SocketBridge } from '../../../components/SocketBridge';
 
+@Builder
+export function ChatPageBuilder() {
+  ChatPage()
+}
+
 @Component
 export struct ChatPage {
   @Consume('navPathStack') navPathStack: NavPathStack;
   @State questionId: number = 0;
   @State title: string = '';
   @State messages: ConsultationMessage[] = [];
+  @State isLoadingMessages: boolean = false;
   @State currentUserId: number = 456; // 假设当前登录医生ID为456
   @State currentUserType: string = 'STAFF';
   @State currentUserDisplayName: string = '王医生';
@@ -75,6 +81,7 @@ export struct ChatPage {
   }
 
   async loadHistoryMessages() {
+    this.isLoadingMessages = true;
     try {
       const response = await ConsultationService.getMessageList(this.questionId);
       if (response.code === 200) {
@@ -82,6 +89,8 @@ export struct ChatPage {
       }
     } catch (error) {
       console.error('[socket debug] Failed to load history messages:', error);
+    } finally {
+      this.isLoadingMessages = false;
     }
   }
 
@@ -190,12 +199,26 @@ export struct ChatPage {
           .zIndex(1)
 
           // Chat Content
-          ChatView({
-            messages: $messages,
-            currentUserId: this.currentUserId,
-            onSendMessage: this.handleSendMessage
-          })
+          if (this.isLoadingMessages && this.messages.length === 0) {
+            Column() {
+              LoadingProgress().width(32).height(32).color('#2563eb')
+              Text('加载消息中...')
+                .fontSize(13)
+                .fontColor('#64748b')
+                .margin({ top: 8 })
+            }
+            .width('100%')
             .layoutWeight(1)
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+          } else {
+            ChatView({
+              messages: $messages,
+              currentUserId: this.currentUserId,
+              onSendMessage: this.handleSendMessage
+            })
+              .layoutWeight(1)
+          }
         }
         .width('100%')
         .height('100%')

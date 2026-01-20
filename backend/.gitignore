@@ -12,6 +12,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Uploads
+uploads/
+
 # Logs
 *.log
 logs/

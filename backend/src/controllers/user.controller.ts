@@ -255,15 +255,15 @@ export class UserController {
     const { page, pageSize, username, email, phone, real_name, status } = data;
 
     const { items, total } = await UserService.getUserList(
-      page, 
-      pageSize, 
-      username, 
-      email, 
-      phone, 
-      real_name, 
+      page,
+      pageSize,
+      username,
+      email,
+      phone,
+      real_name,
       status
     );
-    
+
     ctx.paginate(items, page, pageSize, total);
   }
 
@@ -554,7 +554,7 @@ export class UserController {
   /**
    * @swagger
    * /api/v1/users/me/medical-staff:
-   *   put:
+   *   post:
    *     summary: 编辑当前医护人员详情
    *     description: 编辑当前登录医护人员的详细信息
    *     tags: [用户管理]
@@ -570,6 +570,10 @@ export class UserController {
    *               - gender
    *               - role_type
    *             properties:
+   *               real_name:
+   *                 type: string
+   *                 maxLength: 50
+   *                 description: 真实姓名
    *               gender:
    *                 type: integer
    *                 enum: [0, 1, 2]
@@ -620,7 +624,7 @@ export class UserController {
       return;
     }
 
-    const roles = userState.roles || [];
+    const roles = (userState.roles || []).map(r => r.toLowerCase());
     const hasMedicalRole = roles.includes(RoleCode.MEDICAL_STAFF);
     if (!hasMedicalRole) {
       ctx.forbidden('当前用户角色不是医护人员');
@@ -731,7 +735,7 @@ export class UserController {
       return;
     }
 
-    const roles = userState.roles || [];
+    const roles = (userState.roles || []).map(r => r.toLowerCase());
     const hasAllowedRole =
       roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
     if (!hasAllowedRole) {
@@ -749,6 +753,127 @@ export class UserController {
     });
 
     ctx.paginate(items, page, pageSize, total);
+  }
+
+  /**
+   * @swagger
+   * /api/v1/users/me/elders-with-health:
+   *   get:
+   *     summary: 获取当前用户关联的老人列表（含健康数据摘要）
+   *     description: 一次性获取老人列表及其最新健康数据摘要（血压、血糖及判断结果）
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: 页码
+   *       - in: query
+   *         name: pageSize
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 50
+   *         description: 每页大小
+   *       - in: query
+   *         name: elder_name
+   *         required: false
+   *         schema:
+   *           type: string
+   *           maxLength: 50
+   *         description: 老人姓名（模糊匹配）
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                     abnormal_count:
+   *                       type: integer
+   *                       description: 异常指标数量
+   *                     records:
+   *                       type: array
+   *                       items:
+   *                         type: object
+   *                         properties:
+   *                           relation_id:
+   *                             type: integer
+   *                           elder_id:
+   *                             type: integer
+   *                           elder:
+   *                             $ref: '#/components/schemas/ElderResponse'
+   *                           health_summary:
+   *                             type: object
+   *                             properties:
+   *                               latest_bp:
+   *                                 type: string
+   *                                 description: 最新血压（如 "120/80"）
+   *                               latest_fpg:
+   *                                 type: string
+   *                                 description: 最新空腹血糖
+   *                               bp_level:
+   *                                 type: string
+   *                                 description: 血压判断（NORMAL/MILD/MODERATE/SEVERE）
+   *                               fpg_level:
+   *                                 type: string
+   *                                 description: 血糖判断（NORMAL/MILD/MODERATE/SEVERE）
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不允许关联老人
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async getMyEldersWithHealth(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const roles = (userState.roles || []).map(r => r.toLowerCase());
+    const hasAllowedRole =
+      roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
+    if (!hasAllowedRole) {
+      ctx.forbidden('当前用户角色不允许关联老人');
+      return;
+    }
+
+    const data = (ctx.state.validatedQuery || ctx.state.validatedData || ctx.query) as QueryUserEldersRequest;
+    const page = data.page || 1;
+    const pageSize = data.pageSize || 50;
+
+    const { items, total, abnormal_count } = await UserElderRelationService.getUserEldersWithHealth(userState.userId, {
+      page,
+      pageSize,
+      elder_name: data.elder_name
+    });
+
+    ctx.success({
+      total,
+      pages: Math.ceil(total / pageSize),
+      current: page,
+      size: pageSize,
+      abnormal_count,
+      records: items
+    });
   }
 
   /**
@@ -833,7 +958,7 @@ export class UserController {
       return;
     }
 
-    const roles = userState.roles || [];
+    const roles = (userState.roles || []).map(r => r.toLowerCase());
     const hasAllowedRole =
       roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
     if (!hasAllowedRole) {
@@ -950,5 +1075,48 @@ export class UserController {
     const { id } = ctx.state.validatedData || ctx.params;
     const result = await UserService.getUserRoles(id);
     ctx.success(result);
+  }
+
+  /**
+   * @swagger
+   * /api/v1/users/online-medical-staff:
+   *   get:
+   *     summary: 获取在线医护人员列表
+   *     description: 获取开通在线服务的医护人员列表，用于咨询功能选择目标医护人员
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: 页码
+   *       - in: query
+   *         name: pageSize
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 10
+   *         description: 每页大小
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *       401:
+   *         description: 未授权
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async getOnlineMedicalStaff(ctx: Context) {
+    const data = ctx.query || {};
+    const page = parseInt(data.page as string) || 1;
+    const pageSize = parseInt(data.pageSize as string) || 10;
+    const goodAtTags = data.goodAtTags as string || undefined;
+    const phone = data.phone as string || undefined;
+
+    const { items, total } = await MedicalStaffService.getOnlineStaff(page, pageSize, { goodAtTags, phone });
+    ctx.paginate(items, page, pageSize, total);
   }
 }

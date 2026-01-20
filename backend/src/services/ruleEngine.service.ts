@@ -21,7 +21,7 @@ function calcAverage(values: (number | undefined)[]): number | null {
   return sum / filtered.length;
 }
 
-function bpLevel(sbp?: number, dbp?: number): HealthStatusLevel | null {
+export function bpLevel(sbp?: number, dbp?: number): HealthStatusLevel | null {
   if (sbp === undefined && dbp === undefined) {
     return null;
   }
@@ -46,7 +46,7 @@ function bpLevel(sbp?: number, dbp?: number): HealthStatusLevel | null {
   return 'NORMAL';
 }
 
-function glucoseFpgLevel(fpg?: number): HealthStatusLevel | null {
+export function glucoseFpgLevel(fpg?: number): HealthStatusLevel | null {
   if (fpg === undefined) {
     return null;
   }
@@ -62,7 +62,7 @@ function glucoseFpgLevel(fpg?: number): HealthStatusLevel | null {
   return 'SEVERE';
 }
 
-function glucosePpgLevel(ppg?: number): HealthStatusLevel | null {
+export function glucosePpgLevel(ppg?: number): HealthStatusLevel | null {
   if (ppg === undefined) {
     return null;
   }

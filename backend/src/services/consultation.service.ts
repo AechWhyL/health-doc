@@ -11,12 +11,15 @@ import {
   ConsultationAttachmentInput,
   ConsultationMessageResponse,
   ConsultationQuestionResponse,
+  CreatorSummary,
   QueryConsultationMessageRequest,
   QueryConsultationQuestionRequest
 } from '../dto/requests/consultation.dto';
 import { ConsultationQuestionRepository } from '../repositories/consultationQuestion.repository';
 import { ConsultationMessageRepository } from '../repositories/consultationMessage.repository';
 import { ConsultationAttachmentRepository } from '../repositories/consultationAttachment.repository';
+import { ElderRepository } from '../repositories/elder.repository';
+import { FamilyRepository } from '../repositories/family.repository';
 import { Database } from '../config/database';
 
 export class ConsultationService {
@@ -67,7 +70,7 @@ export class ConsultationService {
   static async getQuestionList(
     query: QueryConsultationQuestionRequest
   ): Promise<{ items: ConsultationQuestionResponse[]; total: number }> {
-    const { page, pageSize, status, creator_id, target_staff_id, category, orderBy } = query;
+    const { page, pageSize, status, creator_id, target_staff_id, user_id, category, orderBy } = query;
 
     let where = '1=1';
     const params: any[] = [];
@@ -77,14 +80,21 @@ export class ConsultationService {
       params.push(status);
     }
 
-    if (creator_id) {
-      where += ' AND creator_id = ?';
-      params.push(creator_id);
-    }
+    // user_id: match either creator_id OR target_staff_id (for "my consultations")
+    if (user_id) {
+      where += ' AND (creator_id = ? OR target_staff_id = ?)';
+      params.push(user_id, user_id);
+    } else {
+      // Specific filters if user_id not provided
+      if (creator_id) {
+        where += ' AND creator_id = ?';
+        params.push(creator_id);
+      }
 
-    if (target_staff_id) {
-      where += ' AND target_staff_id = ?';
-      params.push(target_staff_id);
+      if (target_staff_id) {
+        where += ' AND target_staff_id = ?';
+        params.push(target_staff_id);
+      }
     }
 
     if (category) {
@@ -102,8 +112,44 @@ export class ConsultationService {
       orderByClause
     );
 
+    // Fetch creator summary for each question
+    const itemsWithCreator: ConsultationQuestionResponse[] = [];
+    for (const item of items) {
+      let creator_summary: CreatorSummary | undefined = undefined;
+
+      try {
+        if (item.creator_type === 'ELDER') {
+          // Look up in elder_basic_info by user_id
+          const elder = await ElderRepository.findByUserId(item.creator_id);
+          if (elder) {
+            creator_summary = {
+              name: elder.name,
+              phone: elder.phone
+            };
+          }
+        } else if (item.creator_type === 'FAMILY') {
+          // Look up in family_basic_info by user_id
+          const family = await FamilyRepository.findByUserId(item.creator_id);
+          if (family) {
+            creator_summary = {
+              name: family.name,
+              phone: family.phone || undefined
+            };
+          }
+        }
+      } catch (error) {
+        // If lookup fails, just skip creator_summary
+        console.error('Failed to fetch creator info:', error);
+      }
+
+      itemsWithCreator.push({
+        ...item,
+        creator_summary
+      });
+    }
+
     return {
-      items,
+      items: itemsWithCreator,
       total
     };
   }

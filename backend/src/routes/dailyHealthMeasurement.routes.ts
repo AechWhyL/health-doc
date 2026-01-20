@@ -1,6 +1,7 @@
 import Router from '@koa/router';
 import { DailyHealthMeasurementController } from '../controllers/dailyHealthMeasurement.controller';
 import { validateBody, validateQuery, validateParams } from '../middlewares/validation.middleware';
+import { authMiddleware } from '../middlewares/auth.middleware';
 import {
   createDailyHealthMeasurementSchema,
   updateDailyHealthMeasurementSchema,
@@ -14,6 +15,7 @@ const router = new Router({
 
 router.post(
   '/',
+  authMiddleware,
   validateBody(createDailyHealthMeasurementSchema),
   DailyHealthMeasurementController.createDailyHealthMeasurement
 );

@@ -168,6 +168,17 @@ export const queryPlanItemSchema = Joi.object({
     })
 });
 
+export const updatePlanItemStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid('ACTIVE', 'PAUSED', 'STOPPED')
+    .required()
+    .messages({
+      'string.base': '计划项状态必须是字符串',
+      'any.only': '计划项状态不合法',
+      'any.required': '计划项状态为必填项'
+    })
+});
+
 export const createPlanItemScheduleSchema = Joi.object({
   scheduleType: Joi.string()
     .valid('ONCE', 'DAILY', 'WEEKLY')
@@ -181,9 +192,10 @@ export const createPlanItemScheduleSchema = Joi.object({
     'date.base': '开始日期必须是有效的日期',
     'any.required': '开始日期为必填项'
   }),
-  endDate: Joi.date().iso().greater(Joi.ref('startDate')).allow(null).optional().messages({
+  endDate: Joi.date().iso().greater(Joi.ref('startDate')).required().messages({
     'date.base': '结束日期必须是有效的日期',
-    'date.greater': '结束日期必须晚于开始日期'
+    'date.greater': '结束日期必须晚于开始日期',
+    'any.required': '结束日期为必填项'
   }),
   timesOfDay: Joi.array()
     .items(
@@ -210,27 +222,15 @@ export const createPlanItemScheduleSchema = Joi.object({
         'number.max': '星期最大为7'
       })
     )
-    .optional()
-}).when('scheduleType', {
-  is: 'WEEKLY',
-  then: Joi.object({
-    weekdays: Joi.array()
-      .items(
-        Joi.number().integer().min(1).max(7).messages({
-          'number.base': '星期必须是数字',
-          'number.integer': '星期必须是整数',
-          'number.min': '星期最小为1',
-          'number.max': '星期最大为7'
-        })
-      )
-      .min(1)
-      .required()
-      .messages({
+    .when('scheduleType', {
+      is: 'WEEKLY',
+      then: Joi.array().min(1).required().messages({
         'array.base': '星期列表必须是数组',
         'array.min': '星期列表至少包含一个元素',
         'any.required': '每周日程必须指定星期列表'
-      })
-  })
+      }),
+      otherwise: Joi.array().optional()
+    })
 });
 
 export const updatePlanItemScheduleSchema = Joi.object({
@@ -407,6 +407,19 @@ export interface UpdateTaskInstanceStatusRequest {
   status: PlanTaskStatus;
   remark?: string;
   proof_image_url?: string;
+}
+
+export interface ElderTaskStats {
+  elder_id: number;
+  total_tasks: number;
+  completed_tasks: number;
+}
+
+export interface TodayTaskStatsResponse {
+  total_elders: number;
+  total_tasks: number;
+  completed_tasks: number;
+  elder_stats: ElderTaskStats[];
 }
 
 export {

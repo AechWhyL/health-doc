@@ -10,6 +10,12 @@ import { ConsultationService } from '../services/consultation.service';
 export class ConsultationController {
   static async createQuestion(ctx: Context) {
     const data: CreateConsultationQuestionRequest = ctx.state.validatedData || ctx.request.body;
+
+    // 使用认证用户的ID作为creator_id
+    if (ctx.state.user) {
+      data.creator_id = ctx.state.user.userId;
+    }
+
     const result = await ConsultationService.createQuestion(data);
     ctx.success(result, '咨询问题创建成功');
   }
@@ -23,7 +29,16 @@ export class ConsultationController {
 
   static async getQuestionList(ctx: Context) {
     const data: QueryConsultationQuestionRequest = ctx.state.validatedData || ctx.query;
-    const { page, pageSize, status, creator_id, target_staff_id, category, orderBy } = data;
+    const { page, pageSize, status, creator_id, target_staff_id, user_id, category, orderBy } = data;
+
+    // If authenticated and no specific filter provided, use user_id to match
+    // either creator_id OR target_staff_id (for "my consultations")
+    let effectiveUserId = user_id;
+    if (!effectiveUserId && !creator_id && !target_staff_id && ctx.state.user) {
+      effectiveUserId = ctx.state.user.userId;
+    }
+    console.log('ctx.state.user:', ctx.state.user);
+    console.log('effectiveUserId:', effectiveUserId);
 
     const { items, total } = await ConsultationService.getQuestionList({
       page,
@@ -31,6 +46,7 @@ export class ConsultationController {
       status,
       creator_id,
       target_staff_id,
+      user_id: effectiveUserId,
       category,
       orderBy
     });

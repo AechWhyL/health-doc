@@ -18,6 +18,7 @@ export interface ElderUserRelationWithElderRaw {
   relation_created_at: string;
   relation_updated_at: string;
   elder_id: number;
+  elder_user_id: number | null; // Added: the elder's user account ID
   elder_name: string;
   elder_gender: number;
   elder_birth_date: string;
@@ -95,6 +96,7 @@ export class ElderUserRelationRepository {
         r.created_at AS relation_created_at,
         r.updated_at AS relation_updated_at,
         e.id AS elder_id,
+        e.user_id AS elder_user_id,
         e.name AS elder_name,
         e.gender AS elder_gender,
         e.birth_date AS elder_birth_date,

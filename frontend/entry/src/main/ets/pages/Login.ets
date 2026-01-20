@@ -125,6 +125,8 @@ struct Login {
           target = 'pages/medical/Index';
         } else if (roleCodes.indexOf('elder') >= 0 || roleCodes.indexOf('ELDER') >= 0) {
           target = 'pages/elder/Index';
+        } else if (roleCodes.indexOf('family') >= 0 || roleCodes.indexOf('FAMILY') >= 0) {
+          target = 'pages/family/Index';
         }
       }
 

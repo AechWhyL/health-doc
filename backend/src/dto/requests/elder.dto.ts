@@ -15,9 +15,9 @@ export const createElderSchema = Joi.object({
     'any.only': '性别只能是0（女）或1（男）',
     'any.required': '性别为必填项'
   }),
-  birth_date: Joi.date().iso().required().messages({
-    'date.base': '出生日期必须是有效的日期',
-    'date.format': '出生日期格式不正确',
+  birth_date: Joi.string().isoDate().required().messages({
+    'string.base': '出生日期必须是字符串',
+    'string.isoDate': '出生日期格式不正确',
     'any.required': '出生日期为必填项'
   }),
   phone: Joi.string().pattern(/^1[3-9]\d{9}$/).required().messages({
@@ -64,9 +64,9 @@ export const updateElderSchema = Joi.object({
     'number.integer': '性别必须是整数',
     'any.only': '性别只能是0（女）或1（男）'
   }),
-  birth_date: Joi.date().iso().optional().messages({
-    'date.base': '出生日期必须是有效的日期',
-    'date.format': '出生日期格式不正确'
+  birth_date: Joi.string().isoDate().optional().messages({
+    'string.base': '出生日期必须是字符串',
+    'string.isoDate': '出生日期格式不正确'
   }),
   phone: Joi.string().pattern(/^1[3-9]\d{9}$/).optional().messages({
     'string.base': '联系电话必须是字符串',

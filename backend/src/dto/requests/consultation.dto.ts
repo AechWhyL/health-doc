@@ -85,6 +85,12 @@ export const queryConsultationQuestionSchema = Joi.object({
     'number.integer': '目标医护人员ID必须是整数',
     'number.positive': '目标医护人员ID必须是正数'
   }),
+  // New: user_id matches creator_id OR target_staff_id
+  user_id: Joi.number().integer().positive().optional().messages({
+    'number.base': '用户ID必须是数字',
+    'number.integer': '用户ID必须是整数',
+    'number.positive': '用户ID必须是正数'
+  }),
   category: Joi.string().max(100).optional().allow('').messages({
     'string.base': '分类必须是字符串',
     'string.max': '分类长度不能超过100个字符'
@@ -183,12 +189,20 @@ export interface CreateConsultationQuestionRequest {
   is_anonymous?: boolean;
 }
 
-export interface ConsultationQuestionResponse extends ConsultationQuestionRecord {}
+export interface CreatorSummary {
+  name: string;
+  phone?: string;
+}
+
+export interface ConsultationQuestionResponse extends ConsultationQuestionRecord {
+  creator_summary?: CreatorSummary;
+}
 
 export interface QueryConsultationQuestionRequest extends PaginationQuery {
   status?: ConsultationStatus;
   creator_id?: number;
   target_staff_id?: number;
+  user_id?: number; // matches creator_id OR target_staff_id
   category?: string;
   orderBy?: string;
 }
@@ -213,4 +227,4 @@ export interface ConsultationMessageResponse extends ConsultationMessageRecord {
   attachments?: ConsultationAttachmentInput[];
 }
 
-export interface QueryConsultationMessageRequest extends PaginationQuery {}
+export interface QueryConsultationMessageRequest extends PaginationQuery { }

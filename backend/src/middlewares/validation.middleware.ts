@@ -29,6 +29,8 @@ export const validate = (schema: Joi.Schema, options: ValidationOptions = {}): a
       data = ctx[location];
     }
 
+    console.log("validating:", data);
+
     const { error, value } = schema.validate(data, {
       abortEarly,
       stripUnknown,

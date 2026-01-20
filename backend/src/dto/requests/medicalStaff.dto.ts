@@ -45,6 +45,14 @@ export const upsertMedicalStaffInfoSchema = Joi.object({
     .optional()
     .messages({
       'boolean.base': '在线服务开关必须是布尔值'
+    }),
+  real_name: Joi.string()
+    .max(50)
+    .optional()
+    .allow('')
+    .messages({
+      'string.base': '真实姓名必须是字符串',
+      'string.max': '真实姓名长度不能超过50个字符'
     })
 });
 
@@ -55,5 +63,6 @@ export interface UpsertMedicalStaffInfoRequest {
   job_title?: string;
   good_at_tags?: string;
   enable_online_service?: boolean;
+  real_name?: string;
 }
 

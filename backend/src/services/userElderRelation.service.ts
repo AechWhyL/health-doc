@@ -1,12 +1,16 @@
 import { ElderUserRelationRepository } from '../repositories/elderUserRelation.repository';
 import { ElderRepository } from '../repositories/elder.repository';
+import { DailyHealthMeasurementRepository } from '../repositories/dailyHealthMeasurement.repository';
 import { ElderBasicInfo } from '../types/healthRecord';
 import {
   CreateUserElderRelationRequest,
   QueryUserEldersRequest,
-  UserElderRelationItemResponse
+  UserElderRelationItemResponse,
+  UserElderWithHealthResponse,
+  HealthSummary
 } from '../dto/requests/user.dto';
 import { ElderResponse } from '../dto/requests/elder.dto';
+import { bpLevel, glucoseFpgLevel } from './ruleEngine.service';
 
 export class UserElderRelationService {
   static async getUserElders(
@@ -27,6 +31,7 @@ export class UserElderRelationService {
     const resultItems = items.map((item) => {
       const elderBasic: ElderBasicInfo = {
         id: item.elder_id,
+        user_id: item.elder_user_id,
         name: item.elder_name,
         gender: item.elder_gender,
         birth_date: item.elder_birth_date,
@@ -45,6 +50,7 @@ export class UserElderRelationService {
       return {
         relation_id: item.relation_id,
         elder_id: elder.id,
+        elder_user_id: item.elder_user_id,
         relation_name: item.relation_name,
         remark: item.remark,
         elder,
@@ -55,6 +61,66 @@ export class UserElderRelationService {
     return {
       items: resultItems,
       total
+    };
+  }
+
+  static async getUserEldersWithHealth(
+    userId: number,
+    query: QueryUserEldersRequest
+  ): Promise<{ items: UserElderWithHealthResponse[]; total: number; abnormal_count: number }> {
+    // First get the elder list
+    const { items: elderRelations, total } = await this.getUserElders(userId, query);
+
+    let abnormalCount = 0;
+    const itemsWithHealth: UserElderWithHealthResponse[] = [];
+
+    // For each elder, fetch their latest health data
+    for (const relation of elderRelations) {
+      let healthSummary: HealthSummary | undefined = undefined;
+
+      try {
+        // Get the latest health measurement (page 1, pageSize 1)
+        const { items: healthRecords } = await DailyHealthMeasurementRepository.findAll(
+          1, 1, relation.elder_id
+        );
+
+        if (healthRecords.length > 0) {
+          const latest = healthRecords[0];
+          healthSummary = {};
+
+          // Blood pressure
+          if (latest.sbp !== undefined && latest.sbp !== null &&
+            latest.dbp !== undefined && latest.dbp !== null) {
+            healthSummary.latest_bp = `${latest.sbp}/${latest.dbp}`;
+            healthSummary.bp_level = bpLevel(latest.sbp, latest.dbp) || undefined;
+            if (healthSummary.bp_level && healthSummary.bp_level !== 'NORMAL') {
+              abnormalCount++;
+            }
+          }
+
+          // Fasting blood glucose
+          if (latest.fpg !== undefined && latest.fpg !== null) {
+            healthSummary.latest_fpg = Number(latest.fpg).toFixed(1);
+            healthSummary.fpg_level = glucoseFpgLevel(latest.fpg) || undefined;
+            if (healthSummary.fpg_level && healthSummary.fpg_level !== 'NORMAL') {
+              abnormalCount++;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to load health data for elder ${relation.elder_id}:`, error);
+      }
+
+      itemsWithHealth.push({
+        ...relation,
+        health_summary: healthSummary
+      });
+    }
+
+    return {
+      items: itemsWithHealth,
+      total,
+      abnormal_count: abnormalCount
     };
   }
 
@@ -88,6 +154,7 @@ export class UserElderRelationService {
     return {
       relation_id: insertId,
       elder_id: elderResponse.id,
+      elder_user_id: elder.user_id ?? null,
       relation_name: data.relation_name ?? null,
       remark: data.remark ?? null,
       elder: elderResponse,
@@ -130,4 +197,5 @@ export class UserElderRelationService {
     };
   }
 }
+
 

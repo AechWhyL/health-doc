@@ -316,12 +316,12 @@ export class InterventionPlanItemRepository {
       return null;
     }
     if (row.times_of_day) {
-      row.times_of_day = JSON.parse(row.times_of_day);
+      row.times_of_day = row.times_of_day;
     } else {
       row.times_of_day = [];
     }
     if (row.weekdays) {
-      row.weekdays = JSON.parse(row.weekdays);
+      row.weekdays = row.weekdays;
     } else {
       row.weekdays = null;
     }
@@ -333,12 +333,12 @@ export class InterventionPlanItemRepository {
     const rows = await Database.query<any>(sql, [itemId]);
     return rows.map(row => {
       if (row.times_of_day) {
-        row.times_of_day = JSON.parse(row.times_of_day);
+        row.times_of_day = row.times_of_day;
       } else {
         row.times_of_day = [];
       }
       if (row.weekdays) {
-        row.weekdays = JSON.parse(row.weekdays);
+        row.weekdays = row.weekdays;
       } else {
         row.weekdays = null;
       }
@@ -419,20 +419,31 @@ export class InterventionPlanItemRepository {
 
   static async findTaskInstancesByItemId(
     itemId: number,
-    startDate?: string,
-    endDate?: string,
+    startDate?: string | Date,
+    endDate?: string | Date,
     status?: string
   ): Promise<PlanTaskInstance[]> {
     const whereParts: string[] = ['item_id = ?'];
     const params: (number | string)[] = [itemId];
 
+    // 将 Date 对象转换为 YYYY-MM-DD 字符串
+    const formatDate = (date: string | Date): string => {
+      if (date instanceof Date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      return date;
+    };
+
     if (startDate) {
       whereParts.push('task_date >= ?');
-      params.push(startDate);
+      params.push(formatDate(startDate));
     }
     if (endDate) {
       whereParts.push('task_date <= ?');
-      params.push(endDate);
+      params.push(formatDate(endDate));
     }
     if (status) {
       whereParts.push('status = ?');
@@ -441,7 +452,10 @@ export class InterventionPlanItemRepository {
 
     const where = whereParts.join(' AND ');
     const sql = `SELECT * FROM plan_task_instance WHERE ${where} ORDER BY task_date ASC, task_time ASC, id ASC`;
-    return await Database.query<PlanTaskInstance>(sql, params);
+    console.log('findTaskInstancesByItemId SQL:', sql, 'params:', params);
+    const result = await Database.query<PlanTaskInstance>(sql, params);
+    console.log('findTaskInstancesByItemId result count:', result.length);
+    return result;
   }
 
   static async deleteTaskInstancesByScheduleAndDateRange(
@@ -492,5 +506,103 @@ export class InterventionPlanItemRepository {
     params.push(id);
 
     return await Database.update(sql, params);
+  }
+
+  /**
+   * 将计划项下所有未完成(PENDING)的任务实例状态更新为已跳过(SKIPPED)
+   */
+  static async skipPendingTasksByItemId(itemId: number): Promise<number> {
+    const sql = `
+      UPDATE plan_task_instance
+      SET status = 'SKIPPED'
+      WHERE item_id = ? AND status = 'PENDING'
+    `;
+    return await Database.update(sql, [itemId]);
+  }
+
+  static async getTaskStatsByElderIds(
+    elderIds: number[],
+    date: string
+  ): Promise<{ elder_id: number; total_tasks: number; completed_tasks: number }[]> {
+    if (elderIds.length === 0) {
+      return [];
+    }
+
+    const placeholders = elderIds.map(() => '?').join(', ');
+    const sql = `
+      SELECT 
+        ip.elder_user_id as elder_id,
+        COUNT(pti.id) as total_tasks,
+        SUM(CASE WHEN pti.status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_tasks
+      FROM plan_task_instance pti
+      JOIN plan_item pi ON pti.item_id = pi.id
+      JOIN intervention_plan ip ON pi.plan_id = ip.id
+      WHERE ip.elder_user_id IN (${placeholders})
+        AND pti.task_date = ?
+      GROUP BY ip.elder_user_id
+    `;
+
+    const params = [...elderIds, date];
+    // Note: The return type of query generic T implies we get array of T.
+    // The raw result from driver for COUNT/SUM might be string or number depending on driver config.
+    // We cast it to expected type.
+    return await Database.query<any>(sql, params);
+  }
+
+  /**
+   * 获取指定老人在指定日期的所有任务实例，并关联计划项和计划信息
+   */
+  static async findTodayTasksByElderUserId(
+    elderUserId: number,
+    date: string
+  ): Promise<any[]> {
+    const sql = `
+      SELECT 
+        pti.id as task_id,
+        pti.item_id as task_item_id,
+        pti.schedule_id as task_schedule_id,
+        pti.task_date,
+        pti.task_time,
+        pti.status as task_status,
+        pti.complete_time as task_complete_time,
+        pti.remark as task_remark,
+        pti.proof_image_url as task_proof_image_url,
+        
+        pi.id as item_id,
+        pi.plan_id as item_plan_id,
+        pi.item_type,
+        pi.name as item_name,
+        pi.description as item_description,
+        pi.status as item_status,
+        pi.start_date as item_start_date,
+        pi.end_date as item_end_date,
+        
+        mpi.drug_name as med_drug_name,
+        mpi.dosage as med_dosage,
+        mpi.frequency_type as med_frequency_type,
+        mpi.instructions as med_instructions,
+        
+        rpi.exercise_name as rehab_exercise_name,
+        rpi.exercise_type as rehab_exercise_type,
+        rpi.guide_resource_url as rehab_guide_resource_url,
+        
+        ip.id as plan_id,
+        ip.elder_user_id as plan_elder_user_id,
+        ip.title as plan_title,
+        ip.description as plan_description,
+        ip.status as plan_status,
+        ip.start_date as plan_start_date,
+        ip.end_date as plan_end_date
+      FROM plan_task_instance pti
+      JOIN plan_item pi ON pti.item_id = pi.id
+      JOIN intervention_plan ip ON pi.plan_id = ip.id
+      LEFT JOIN medication_plan_item mpi ON pi.id = mpi.item_id AND pi.item_type = 'MEDICATION'
+      LEFT JOIN rehab_plan_item rpi ON pi.id = rpi.item_id AND pi.item_type = 'REHAB'
+      WHERE ip.elder_user_id = ?
+        AND pti.task_date = ?
+      ORDER BY ip.id ASC, pi.id ASC, pti.task_time ASC, pti.id ASC
+    `;
+
+    return await Database.query<any>(sql, [elderUserId, date]);
   }
 }

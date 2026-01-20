@@ -8,6 +8,7 @@ import {
   queryConsultationMessageSchema
 } from '../dto/requests/consultation.dto';
 import { validateBody, validateParams, validateQuery } from '../middlewares/validation.middleware';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = new Router({
   prefix: '/api/v1/consultation'
@@ -76,6 +77,7 @@ const router = new Router({
  */
 router.post(
   '/questions',
+  authMiddleware,
   validateBody(createConsultationQuestionSchema),
   ConsultationController.createQuestion
 );
@@ -119,6 +121,11 @@ router.post(
   *           type: integer
   *         description: 目标医护人员ID
  *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: integer
+ *         description: 用户ID（匹配创建人或目标医护，用于查看"我的咨询"）
+ *       - in: query
  *         name: category
  *         schema:
  *           type: string
@@ -148,6 +155,7 @@ router.post(
  */
 router.get(
   '/questions',
+  authMiddleware,
   validateQuery(queryConsultationQuestionSchema),
   ConsultationController.getQuestionList
 );
@@ -183,6 +191,7 @@ router.get(
  */
 router.get(
   '/questions/:id',
+  authMiddleware,
   validateParams(idParamSchema),
   ConsultationController.getQuestionById
 );
@@ -264,6 +273,7 @@ router.get(
  */
 router.post(
   '/questions/:id/messages',
+  authMiddleware,
   validateParams(idParamSchema),
   validateBody(createConsultationMessageSchema),
   ConsultationController.createMessage
@@ -317,6 +327,7 @@ router.post(
  */
 router.get(
   '/questions/:id/messages',
+  authMiddleware,
   validateParams(idParamSchema),
   validateQuery(queryConsultationMessageSchema),
   ConsultationController.getMessageList

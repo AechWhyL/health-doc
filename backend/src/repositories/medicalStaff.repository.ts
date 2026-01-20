@@ -101,4 +101,50 @@ export class MedicalStaffRepository {
     const result = await Database.queryOne<MedicalStaffBasicInfo>(sql, [userId]);
     return result;
   }
+
+  static async findOnlineStaff(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: { goodAtTags?: string; phone?: string }
+  ): Promise<{
+    items: Array<MedicalStaffBasicInfo & { real_name: string | null; username: string; phone: string | null }>;
+    total: number;
+  }> {
+    const pageNum = Math.max(1, Math.floor(Number(page) || 1));
+    const pageSizeNum = Math.max(1, Math.min(100, Math.floor(Number(pageSize) || 10)));
+    const offset = (pageNum - 1) * pageSizeNum;
+
+    let whereClause = "ms.enable_online_service = 1 AND u.status = 'active'";
+    const params: any[] = [];
+
+    if (filters?.goodAtTags && filters.goodAtTags.trim()) {
+      whereClause += " AND ms.good_at_tags LIKE ?";
+      params.push(`%${filters.goodAtTags.trim()}%`);
+    }
+
+    if (filters?.phone && filters.phone.trim()) {
+      whereClause += " AND u.phone LIKE ?";
+      params.push(`%${filters.phone.trim()}%`);
+    }
+
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM medical_staff_basic_info ms
+      JOIN users u ON ms.user_id = u.id
+      WHERE ${whereClause}
+    `;
+    const countResult = await Database.queryOne<{ total: number }>(countSql, params);
+    const total = countResult?.total || 0;
+
+    const sql = `
+      SELECT ms.*, u.real_name, u.username, u.phone
+      FROM medical_staff_basic_info ms
+      JOIN users u ON ms.user_id = u.id
+      WHERE ${whereClause}
+      ORDER BY ms.created_at DESC
+      LIMIT ${pageSizeNum} OFFSET ${offset}
+    `;
+    const items = await Database.query<MedicalStaffBasicInfo & { real_name: string | null; username: string; phone: string | null }>(sql, params);
+    return { items, total };
+  }
 }

@@ -7,6 +7,7 @@ import {
   QueryDailyHealthMeasurementRequest
 } from '../dto/requests/dailyHealthMeasurement.dto';
 import { NotFoundError } from '../utils/errors';
+import { bpLevel, glucoseFpgLevel, glucosePpgLevel } from './ruleEngine.service';
 
 export class DailyHealthMeasurementService {
   static async createDailyHealthMeasurement(
@@ -49,10 +50,11 @@ export class DailyHealthMeasurementService {
     const page = query.page || 1;
     const pageSize = query.pageSize || 10;
     const elderId = query.elder_id;
+    const includeJudgment = query.include_judgment === true;
 
     const { items, total } = await DailyHealthMeasurementRepository.findAll(page, pageSize, elderId);
     return {
-      items: items.map(item => this.toResponse(item)),
+      items: items.map(item => this.toResponse(item, includeJudgment)),
       total
     };
   }
@@ -107,8 +109,8 @@ export class DailyHealthMeasurementService {
     return true;
   }
 
-  private static toResponse(record: DailyHealthMeasurement): DailyHealthMeasurementResponse {
-    return {
+  private static toResponse(record: DailyHealthMeasurement, includeJudgment: boolean = false): DailyHealthMeasurementResponse {
+    const response: DailyHealthMeasurementResponse = {
       id: record.id!,
       elder_id: record.elder_id,
       measured_at: record.measured_at,
@@ -123,6 +125,20 @@ export class DailyHealthMeasurementService {
       created_at: record.created_at || '',
       updated_at: record.updated_at || ''
     };
+
+    if (includeJudgment) {
+      const bp = bpLevel(record.sbp, record.dbp);
+      const fpg = glucoseFpgLevel(record.fpg);
+      const ppg = glucosePpgLevel(record.ppg_2h);
+
+      response.judgment = {
+        bp_level: bp || undefined,
+        fpg_level: fpg || undefined,
+        ppg_level: ppg || undefined
+      };
+    }
+
+    return response;
   }
 }
 

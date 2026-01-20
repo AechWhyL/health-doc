@@ -2,11 +2,13 @@ import { UserRepository, User, UserWithRoles } from '../repositories/user.reposi
 import { RoleRepository, Role } from '../repositories/role.repository';
 import { MedicalStaffRepository, MedicalStaffBasicInfo } from '../repositories/medicalStaff.repository';
 import { CreateUserRequest, UpdateUserRequest, UserResponse, UserWithRoleResponse, ChangePasswordRequest, LoginRequest, LoginResponse } from '../dto/requests/user.dto';
+import { RoleCode } from '../config/rbac.config';
+import { ElderRepository } from '../repositories/elder.repository';
+import { ElderBasicInfo } from '../types/healthRecord';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { Database } from '../config/database';
-import { RoleCode } from '../config/rbac.config';
 
 export class UserService {
   private static readonly SALT_ROUNDS = 10;
@@ -92,8 +94,8 @@ export class UserService {
         const elderPhone = data.phone && data.phone.trim() !== '' ? data.phone : data.username;
 
         const insertElderSql = `
-          INSERT INTO elder_basic_info (name, gender, birth_date, phone, address, emergency_contact, height, weight, blood_type)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO elder_basic_info (name, gender, birth_date, phone, address, emergency_contact, height, weight, blood_type, user_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const elderParams = [
           elderName,
@@ -104,7 +106,8 @@ export class UserService {
           '',
           null,
           null,
-          null
+          null,
+          insertId
         ];
 
         await connection.execute(insertElderSql, elderParams);
@@ -143,8 +146,9 @@ export class UserService {
       }
 
       const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(user);
+      const elderInfo = await this.getElderInfoIfNeeded(user);
 
-      return this.toResponseWithRoles(user, medicalStaffInfo);
+      return this.toResponseWithRoles(user, medicalStaffInfo, elderInfo);
     } catch (error) {
       await Database.rollbackTransaction(connection);
       throw error;
@@ -157,7 +161,8 @@ export class UserService {
       throw new NotFoundError('用户不存在');
     }
     const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(user);
-    return this.toResponseWithRoles(user, medicalStaffInfo);
+    const elderInfo = await this.getElderInfoIfNeeded(user);
+    return this.toResponseWithRoles(user, medicalStaffInfo, elderInfo);
   }
 
   static async getUserList(
@@ -283,10 +288,11 @@ export class UserService {
     const token = this.generateToken(userWithRoles);
 
     const medicalStaffInfo = await this.getMedicalStaffInfoIfNeeded(userWithRoles);
+    const elderInfo = await this.getElderInfoIfNeeded(userWithRoles);
 
     return {
       token,
-      user: this.toResponseWithRoles(userWithRoles, medicalStaffInfo)
+      user: this.toResponseWithRoles(userWithRoles, medicalStaffInfo, elderInfo)
     };
   }
 
@@ -346,7 +352,8 @@ export class UserService {
 
   private static toResponseWithRoles(
     user: UserWithRoles,
-    medicalStaffInfo?: MedicalStaffBasicInfo | null
+    medicalStaffInfo?: MedicalStaffBasicInfo | null,
+    elderInfo?: ElderBasicInfo | null
   ): UserWithRoleResponse {
     const base = this.toResponse(user);
     const roles = user.roles.map(role => ({
@@ -369,8 +376,40 @@ export class UserService {
         role_type: medicalStaffInfo.role_type,
         job_title: medicalStaffInfo.job_title,
         good_at_tags: medicalStaffInfo.good_at_tags,
-        enable_online_service: medicalStaffInfo.enable_online_service
+        enable_online_service: Boolean(medicalStaffInfo.enable_online_service)
       };
+    }
+
+    if (elderInfo) {
+      result.elder_info = {
+        id: elderInfo.id ?? 0,
+        name: elderInfo.name,
+        gender: elderInfo.gender ?? 1,
+        birth_date: elderInfo.birth_date,
+        phone: elderInfo.phone,
+        address: elderInfo.address || null,
+        emergency_contact: elderInfo.emergency_contact,
+        height: elderInfo.height || null,
+        weight: elderInfo.weight || null,
+        blood_type: elderInfo.blood_type || null,
+        age: 0, // Will be calculated if needed, or update DB schema
+        created_at: elderInfo.created_at || '',
+        updated_at: elderInfo.updated_at || ''
+      };
+
+      // Calculate age simply
+      if (elderInfo.birth_date) {
+        const birth = new Date(elderInfo.birth_date);
+        const now = new Date();
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+          age--;
+        }
+        if (result.elder_info) {
+          result.elder_info.age = age;
+        }
+      }
     }
 
     return result;
@@ -384,5 +423,15 @@ export class UserService {
       return null;
     }
     return await MedicalStaffRepository.findByUserId(user.id);
+  }
+
+  private static async getElderInfoIfNeeded(
+    user: UserWithRoles
+  ): Promise<ElderBasicInfo | null> {
+    const hasElderRole = user.roles.some(role => role.role_code === RoleCode.ELDER);
+    if (!hasElderRole) {
+      return null;
+    }
+    return await ElderRepository.findByUserId(user.id);
   }
 }

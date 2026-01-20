@@ -1,12 +1,13 @@
 import { promptAction } from '@kit.ArkUI';
+import dayjs from 'dayjs';
 import { httpRequest } from '../../../common/api/HttpUtil';
 import { RequestEnum } from '../../../common/api/httpEnum';
-import { CareCard } from '../../../components/medical/CareCard';
 import { HealthRecordDialog } from '../../../components/medical/HealthRecordDialog';
-import { 
-  HealthRecordType, 
-  HealthRecordItem, 
-  CreateHealthRecordPayload, 
+import { HealthRecordDetailDialog } from '../../../components/medical/HealthRecordDetailDialog';
+import {
+  HealthRecordType,
+  HealthRecordItem,
+  CreateHealthRecordPayload,
   UpdateHealthRecordPayload,
   HealthRecordFormSubmitPayload
 } from '../../../models/HealthRecordModels';
@@ -61,20 +62,21 @@ export struct ElderArchive {
   @Local private isLoading: boolean = false
   @Local private errorMessage: string = ''
   @Local private selectedRecordType: HealthRecordType = 'MEDICAL_HISTORY'
-  @Local private formMode: 'create' | 'edit' = 'create'
   @Local private editingRecord: HealthRecordItem | null = null
-  
+  @Local private viewingRecord: HealthRecordItem | null = null
+
   // Dialog state
   @Local private dialogRecordType: HealthRecordType = 'MEDICAL_HISTORY'
   @Local private dialogMode: 'create' | 'edit' = 'create'
   @Local private dialogInitialTitle: string = ''
   @Local private dialogInitialDate: string = ''
   @Local private dialogInitialContent: Record<string, Object> | null = null
-  
+
   navPathStack: NavPathStack = new NavPathStack()
   types: HealthRecordType[] = ['MEDICAL_HISTORY', 'CHECK_REPORT', 'MEDICATION', 'ALLERGY']
 
-  private dialogController: CustomDialogController | null = null
+  private formDialogController: CustomDialogController | null = null
+  private detailDialogController: CustomDialogController | null = null
 
   aboutToAppear(): void {
     this.loadRecords()
@@ -123,7 +125,7 @@ export struct ElderArchive {
     this.dialogInitialTitle = ''
     this.dialogInitialDate = ''
     this.dialogInitialContent = null
-    this.openDialog()
+    this.openFormDialog()
   }
 
   private openEditDialog(record: HealthRecordItem): void {
@@ -133,11 +135,11 @@ export struct ElderArchive {
     this.dialogInitialTitle = record.record_title
     this.dialogInitialDate = record.record_date
     this.dialogInitialContent = record.content_structured
-    this.openDialog()
+    this.openFormDialog()
   }
 
-  private openDialog() {
-    this.dialogController = new CustomDialogController({
+  private openFormDialog(): void {
+    this.formDialogController = new CustomDialogController({
       builder: HealthRecordDialog({
         elderName: this.elder?.name || '',
         recordType: this.dialogRecordType,
@@ -149,14 +151,33 @@ export struct ElderArchive {
           this.handleSubmit(payload)
         },
         onCancel: () => {
-          this.dialogController = null
+          this.formDialogController = null
         }
       }),
       alignment: DialogAlignment.Center,
       customStyle: true,
-      width: '90%'
+      width: '92%'
     })
-    this.dialogController.open()
+    this.formDialogController.open()
+  }
+
+  private openDetailDialog(record: HealthRecordItem): void {
+    this.viewingRecord = record
+    this.detailDialogController = new CustomDialogController({
+      builder: HealthRecordDetailDialog({
+        record: record,
+        onEdit: () => {
+          this.openEditDialog(record)
+        },
+        onDelete: () => {
+          this.handleDeleteRecord(record)
+        }
+      }),
+      alignment: DialogAlignment.Center,
+      customStyle: true,
+      width: '92%'
+    })
+    this.detailDialogController.open()
   }
 
   private async handleSubmit(payload: HealthRecordFormSubmitPayload): Promise<void> {
@@ -228,7 +249,7 @@ export struct ElderArchive {
       })
       await this.loadRecords()
     } catch (_error) {
-       this.getUIContext().getPromptAction().showToast({
+      this.getUIContext().getPromptAction().showToast({
         message: '网络异常，更新健康记录失败'
       })
     }
@@ -269,300 +290,352 @@ export struct ElderArchive {
     return '过敏记录'
   }
 
-  private getRecordTypeCode(type: HealthRecordType): string {
-    return type
-  }
-
   private formatDateHumanReadable(dateStr: string): string {
     if (!dateStr) return ''
-    const date = new Date(dateStr)
-    const now = new Date()
-    
-    // Reset hours for accurate date comparison
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    const n = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    
-    const diffTime = n.getTime() - d.getTime()
-    const oneDay = 24 * 60 * 60 * 1000
-    
-    if (diffTime === 0) {
+    const date = dayjs(dateStr)
+    const now = dayjs()
+
+    if (date.isSame(now, 'day')) {
       return '今天'
     }
-    if (diffTime === oneDay) {
+    if (date.isSame(now.subtract(1, 'day'), 'day')) {
       return '昨天'
     }
-    
-    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+    return date.format('YYYY年M月D日')
+  }
+
+  private formatBirthDate(dateStr: string): string {
+    if (!dateStr) return '未填写'
+    return dayjs(dateStr).format('YYYY年M月D日')
+  }
+
+  private getGenderEmoji(gender: number): string {
+    return gender === 1 ? '👴' : '👵'
+  }
+
+  private getGenderText(gender: number): string {
+    return gender === 1 ? '男' : '女'
   }
 
   private getTypeAbbr(type: HealthRecordType): string {
-     switch(type) {
-       case 'MEDICAL_HISTORY': return '病史'
-       case 'CHECK_REPORT': return '检查'
-       case 'MEDICATION': return '用药'
-       case 'ALLERGY': return '过敏'
-     }
+    switch (type) {
+      case 'MEDICAL_HISTORY': return '病史'
+      case 'CHECK_REPORT': return '检查'
+      case 'MEDICATION': return '用药'
+      case 'ALLERGY': return '过敏'
+    }
   }
 
   private getTypeColor(type: HealthRecordType): string {
-     switch(type) {
-       case 'MEDICAL_HISTORY': return '#eff6ff'
-       case 'CHECK_REPORT': return '#f0fdf4'
-       case 'MEDICATION': return '#fef2f2'
-       case 'ALLERGY': return '#fff7ed'
-     }
+    switch (type) {
+      case 'MEDICAL_HISTORY': return '#eff6ff'
+      case 'CHECK_REPORT': return '#f0fdf4'
+      case 'MEDICATION': return '#fef2f2'
+      case 'ALLERGY': return '#fff7ed'
+    }
   }
-  
+
   private getTypeTextColor(type: HealthRecordType): string {
-      switch(type) {
-       case 'MEDICAL_HISTORY': return '#1d4ed8'
-       case 'CHECK_REPORT': return '#15803d'
-       case 'MEDICATION': return '#b91c1c'
-       case 'ALLERGY': return '#c2410c'
-     }
+    switch (type) {
+      case 'MEDICAL_HISTORY': return '#1d4ed8'
+      case 'CHECK_REPORT': return '#15803d'
+      case 'MEDICATION': return '#b91c1c'
+      case 'ALLERGY': return '#c2410c'
+    }
   }
 
   @Builder
-  buildBasicInfoContent() {
-    Column() {
-      Row() {
-        Text('基本信息')
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
+  private InfoRow(icon: string, label: string, value: string) {
+    Row() {
+      Text(icon + ' ' + label)
+        .fontSize(13)
+        .fontColor('#64748b')
+        .width(120)
+      Text(value)
+        .fontSize(14)
+        .fontColor('#1e293b')
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .padding({ top: 10, bottom: 10 })
+  }
+
+  @Builder
+  buildElderInfoCard() {
+    if (this.elder) {
+      Column() {
+        // Header with avatar and basic info
+        Row() {
+          Column() {
+            Text(this.getGenderEmoji(this.elder.gender))
+              .fontSize(40)
+          }
+          .width(72)
+          .height(72)
+          .borderRadius(36)
+          .backgroundColor('#f1f5f9')
+          .justifyContent(FlexAlign.Center)
+
+          Column() {
+            Text(this.elder.name)
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1e293b')
+            Text(this.getGenderText(this.elder.gender) + ' · ' + this.elder.age + '岁')
+              .fontSize(14)
+              .fontColor('#64748b')
+              .margin({ top: 4 })
+          }
+          .alignItems(HorizontalAlign.Start)
+          .margin({ left: 16 })
+        }
+        .width('100%')
+
+        // Detailed info
+        Column() {
+          this.InfoRow('📱', '电话', this.elder.phone)
+          this.InfoRow('🎂', '出生日期', this.formatBirthDate(this.elder.birth_date))
+          this.InfoRow('📍', '地址', this.elder.address || '未填写')
+          this.InfoRow('🆘', '紧急联系人', this.elder.emergency_contact || '未填写')
+          if (this.elder.blood_type) {
+            this.InfoRow('🩸', '血型', this.elder.blood_type)
+          }
+          if (this.elder.height) {
+            this.InfoRow('📏', '身高', this.elder.height + ' cm')
+          }
+          if (this.elder.weight) {
+            this.InfoRow('⚖️', '体重', this.elder.weight + ' kg')
+          }
+        }
+        .margin({ top: 20 })
+        .padding(16)
+        .backgroundColor('#f8fafc')
+        .borderRadius(12)
+        .width('100%')
       }
       .width('100%')
-      .margin({ bottom: 8 })
-
-      Column({ space: 8 }) {
-        Row() {
-          Text('姓名')
-            .fontSize(13)
-            .fontColor('#6b7280')
-            .width(80)
-          Text(this.elder?.name)
-            .fontSize(13)
-            .fontColor('#111827')
-        }
-        .width('100%')
-
-        Row() {
-          Text('性别')
-            .fontSize(13)
-            .fontColor('#6b7280')
-            .width(80)
-          Text(this.elder?.gender === 0 ? '女' : '男')
-            .fontSize(13)
-            .fontColor('#111827')
-        }
-        .width('100%')
-
-        Row() {
-          Text('出生日期')
-            .fontSize(13)
-            .fontColor('#6b7280')
-            .width(80)
-          Text(this.elder?.birth_date)
-            .fontSize(13)
-            .fontColor('#111827')
-        }
-        .width('100%')
-
-        Row() {
-          Text('联系电话')
-            .fontSize(13)
-            .fontColor('#6b7280')
-            .width(80)
-          Text(this.elder?.phone)
-            .fontSize(13)
-            .fontColor('#111827')
-        }
-        .width('100%')
-      }
-      .margin({ bottom: 12 })
+      .padding(20)
+      .backgroundColor(Color.White)
+      .borderRadius(16)
+      .shadow({ radius: 8, color: '#0f172a10', offsetY: 2 })
     }
   }
 
   @Builder
-  buildHealthRecordListContent() {
+  buildHealthRecordListSection() {
     Column() {
+      // Section header
       Row() {
-        Column() {
-          Text('健康档案列表')
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-        }
-        .layoutWeight(1)
-      }
-      .margin({ bottom: 6 })
+        Text('健康档案')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1e293b')
 
+        Blank()
+
+        Text(`共 ${this.records.length} 条`)
+          .fontSize(13)
+          .fontColor('#64748b')
+      }
+      .width('100%')
+      .margin({ bottom: 14 })
+
+      // Loading / Empty / Error states
       if (this.isLoading && this.records.length === 0) {
-        Text('正在同步健康档案...')
-          .fontSize(12)
-          .fontColor('#6b7280')
-          .margin({ top: 4 })
-      } else if (!this.isLoading && this.records.length === 0) {
-        Text('暂无健康记录，请添加')
-          .fontSize(12)
-          .fontColor('#6b7280')
-          .margin({ top: 4 })
-      }
-
-      if (this.errorMessage !== '') {
-        Text(this.errorMessage)
-          .fontSize(11)
-          .fontColor('#b91c1c')
-          .margin({ top: 4 })
-      }
-
-      if (this.records.length > 0) {
+        Row() {
+          LoadingProgress().width(24).height(24).color('#2563eb')
+          Text('正在加载...')
+            .fontSize(13)
+            .fontColor('#64748b')
+            .margin({ left: 8 })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .padding(32)
+      } else if (this.errorMessage !== '') {
         Column() {
-          ForEach(this.records, (item: HealthRecordItem) => {
-            Row() {
-              // Left: Type box
-              Column() {
-                Text(this.getTypeAbbr(item.record_type))
-                  .fontSize(12)
-                  .fontWeight(FontWeight.Bold)
+          Text('❌')
+            .fontSize(32)
+          Text(this.errorMessage)
+            .fontSize(13)
+            .fontColor('#dc2626')
+            .margin({ top: 8 })
+          Button('重试')
+            .type(ButtonType.Capsule)
+            .backgroundColor('#2563eb')
+            .fontSize(13)
+            .height(36)
+            .margin({ top: 12 })
+            .onClick(() => {
+              this.loadRecords()
+            })
+        }
+        .width('100%')
+        .padding(32)
+        .justifyContent(FlexAlign.Center)
+      } else if (!this.isLoading && this.records.length === 0) {
+        Column() {
+          Text('📋')
+            .fontSize(40)
+          Text('暂无健康档案')
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#374151')
+            .margin({ top: 12 })
+          Text('点击下方按钮添加第一条记录')
+            .fontSize(13)
+            .fontColor('#9ca3af')
+            .margin({ top: 6 })
+        }
+        .width('100%')
+        .padding(40)
+        .justifyContent(FlexAlign.Center)
+      } else {
+        // Record list
+        ForEach(this.records, (item: HealthRecordItem) => {
+          Row() {
+            // Left: Type icon box
+            Column() {
+              Text(this.getTypeAbbr(item.record_type))
+                .fontSize(12)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.getTypeTextColor(item.record_type))
+            }
+            .width(44)
+            .height(44)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor(this.getTypeColor(item.record_type))
+            .borderRadius(12)
+
+            // Middle: Title and date
+            Column() {
+              Text(item.record_title)
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#1e293b')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+              Row({ space: 8 }) {
+                Text(this.getRecordTypeLabel(item.record_type))
+                  .fontSize(11)
                   .fontColor(this.getTypeTextColor(item.record_type))
-              }
-              .width(40)
-              .height(40)
-              .justifyContent(FlexAlign.Center)
-              .backgroundColor(this.getTypeColor(item.record_type))
-              .borderRadius(8)
-              .margin({ right: 12 })
-              
-              // Middle: Content
-              Column() {
-                Text(item.record_title)
-                  .fontSize(13)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor('#111827')
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                
+
+                Text('·')
+                  .fontSize(11)
+                  .fontColor('#cbd5e1')
+
                 Text(this.formatDateHumanReadable(item.record_date))
                   .fontSize(11)
-                  .fontColor('#6b7280')
-                  .margin({ top: 4 })
+                  .fontColor('#64748b')
               }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-
-              // Right: Actions
-              Column() {
-                Text('编辑')
-                  .fontSize(11)
-                  .fontColor('#2563eb')
-                  .margin({ bottom: 6 })
-                  .onClick(() => {
-                    this.openEditDialog(item)
-                  })
-                Text('删除')
-                  .fontSize(11)
-                  .fontColor('#b91c1c')
-                  .onClick(() => {
-                    this.handleDeleteRecord(item)
-                  })
-              }
-              .margin({ left: 8 })
+              .margin({ top: 6 })
             }
-            .width('100%')
-            .padding(12)
-            .borderRadius(12)
-            .backgroundColor('#ffffff')
-            .margin({ bottom: 8 })
-          }, (item: HealthRecordItem) => item.id.toString())
-        }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+            .margin({ left: 14 })
+
+            // Right: Arrow icon
+            Text('›')
+              .fontSize(24)
+              .fontColor('#cbd5e1')
+          }
+          .width('100%')
+          .padding(16)
+          .backgroundColor(Color.White)
+          .borderRadius(14)
+          .shadow({ radius: 4, color: '#0f172a08', offsetY: 1 })
+          .margin({ bottom: 10 })
+          .onClick(() => {
+            this.openDetailDialog(item)
+          })
+        }, (item: HealthRecordItem) => item.id.toString())
       }
     }
+    .width('100%')
+    .padding(20)
+    .backgroundColor(Color.White)
+    .borderRadius(16)
+    .shadow({ radius: 8, color: '#0f172a10', offsetY: 2 })
+    .margin({ top: 16 })
   }
 
   @Builder
-  buildAddHealthRecordContent() {
+  buildFAB() {
     Column() {
-      Row() {
-        Column() {
-          Text('新增健康档案记录')
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-        }
-        .layoutWeight(1)
-      }
-      .margin({ bottom: 6 })
-
-      Row() {
-        ForEach(this.types, (item: HealthRecordType) => {
-          Text(this.getRecordTypeLabel(item))
+      // Record type selector
+      Row({ space: 6 }) {
+        ForEach(this.types, (type: HealthRecordType) => {
+          Text(this.getTypeAbbr(type))
             .fontSize(11)
-            .fontColor(item === this.selectedRecordType ? '#f9fafb' : '#4b5563')
-            .padding({
-              left: 12,
-              right: 12,
-              top: 6,
-              bottom: 6
-            })
-            .borderRadius(999)
-            .backgroundColor(item === this.selectedRecordType ? '#111827' : '#f3f4f6')
-            .margin({ right: 8 })
+            .fontColor(type === this.selectedRecordType ? Color.White : '#4b5563')
+            .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+            .borderRadius(16)
+            .backgroundColor(type === this.selectedRecordType ? '#1e293b' : '#f1f5f9')
             .onClick(() => {
-              this.selectedRecordType = item
+              this.selectedRecordType = type
             })
-        }, (item: HealthRecordType) => this.getRecordTypeCode(item))
+        }, (type: HealthRecordType) => type)
       }
       .margin({ bottom: 12 })
 
-      Button('新增健康档案记录')
+      // Add button
+      Button('+ 新增档案记录')
         .type(ButtonType.Capsule)
+        .backgroundColor('#1e293b')
+        .fontColor(Color.White)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .height(48)
         .width('100%')
-        .height(40)
-        .backgroundColor('#111827')
-        .fontColor('#f9fafb')
+        .shadow({ radius: 12, color: '#1e293b40', offsetY: 4 })
         .onClick(() => {
           this.openCreateDialog()
         })
     }
+    .width('100%')
+    .padding({ left: 20, right: 20, top: 12, bottom: 24 })
+    .backgroundColor('#ffffffee')
+    .backdropBlur(20)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
   }
 
   build() {
     Column() {
       NavDestination() {
-        Column() {
-          if (this.elder !== null) {
-            CareCard({
-              content: () => {
-                this.buildBasicInfoContent()
-              }
-            })
+        Stack({ alignContent: Alignment.Bottom }) {
+          Scroll() {
+            Column() {
+              // Elder info card
+              this.buildElderInfoCard()
+
+              // Health records list
+              this.buildHealthRecordListSection()
+
+              // Bottom padding for FAB
+              Column().height(120)
+            }
+            .padding({ left: 16, right: 16, top: 16, bottom: 16 })
           }
+          .width('100%')
+          .height('100%')
+          .scrollBar(BarState.Off)
+          .backgroundColor('#f1f5f9')
 
-          CareCard({
-            content: () => {
-              this.buildHealthRecordListContent()
-            }
-          })
-
-          CareCard({
-            content: () => {
-              this.buildAddHealthRecordContent()
-            }
-          })
+          // FAB area at bottom
+          this.buildFAB()
         }
-        .padding({
-          left: 16,
-          right: 16,
-          top: 10,
-          bottom: 10
-        })
+        .width('100%')
+        .height('100%')
       }
-      .title({ main: '老人详情与健康档案', sub: '查看与管理健康记录' })
+      .title('老人详情与健康档案')
       .onReady((ctx: NavDestinationContext) => {
         this.navPathStack = ctx.pathStack;
         this.elder = ctx.pathInfo.param as ElderResponse
       })
       .width('100%')
       .height('100%')
-      .backgroundColor('#f3f4f6')
+      .backgroundColor('#f1f5f9')
     }
   }
 }

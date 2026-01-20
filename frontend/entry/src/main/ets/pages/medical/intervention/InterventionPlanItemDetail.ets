@@ -5,6 +5,7 @@ import {
   PlanTaskInstanceResponse,
   RehabPlanItemResponse
 } from '../../../models/DTO/intervention';
+import { CardContainer } from '../../../components/common/CardContainer';
 
 @Builder
 export function InterventionPlanItemDetailBuilder() {
@@ -44,137 +45,141 @@ export struct InterventionPlanItemDetail {
     Row() {
       Text(label)
         .fontSize(14)
-        .fontColor('#6b7280')
-        .width(100)
+        .fontColor('#64748b')
+        .width(80)
       Text(value)
         .fontSize(14)
-        .fontColor('#111827')
+        .fontColor('#1e293b')
         .layoutWeight(1)
+        .fontWeight(FontWeight.Medium)
     }
-    .padding({ top: 8, bottom: 8 })
+    .padding({ top: 6, bottom: 6 })
     .alignItems(VerticalAlign.Top)
+    .width('100%')
   }
 
   build() {
     NavDestination() {
       Column() {
-        // Header
-        Row() {
-          Text('计划项详情')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-        }
-        .width('100%')
-        .padding(16)
-        .backgroundColor('#ffffff')
-        .border({ width: { bottom: 1 }, color: '#e5e7eb' })
-
         if (this.item) {
           Scroll() {
             Column() {
               // Basic Info
-              Column() {
-                Text('基本信息')
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .margin({ bottom: 12 })
-
-                this.buildDetailRow('名称', this.item.name)
-                this.buildDetailRow('类型', this.item.item_type === 'MEDICATION' ? '用药' : '康复')
-                this.buildDetailRow('状态', this.item.status)
-                this.buildDetailRow('开始日期', this.item.start_date)
-                if (this.item.end_date) {
-                  this.buildDetailRow('结束日期', this.item.end_date)
-                }
-                if (this.item.description) {
-                  this.buildDetailRow('说明', this.item.description)
+              CardContainer({ title: '基本信息' }) {
+                Column() {
+                  this.buildDetailRow('名称', this.item.name)
+                  this.buildDetailRow('类型', this.item.item_type === 'MEDICATION' ? '用药' : '康复')
+                  this.buildDetailRow('状态', this.item.status)
+                  this.buildDetailRow('开始日期', this.item.start_date)
+                  if (this.item.end_date) {
+                    this.buildDetailRow('结束日期', this.item.end_date)
+                  }
+                  if (this.item.description) {
+                    this.buildDetailRow('说明', this.item.description)
+                  }
                 }
               }
-              .width('100%')
-              .padding(16)
-              .backgroundColor('#ffffff')
-              .margin({ bottom: 12 })
 
               // Specific Info
-              Column() {
-                Text(this.item.item_type === 'MEDICATION' ? '用药详情' : '训练详情')
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .margin({ bottom: 12 })
-
-                if (this.item.item_type === 'MEDICATION') {
-                  this.buildDetailRow('药品名称', (this.item as MedicationPlanItemResponse).drug_name)
-                  this.buildDetailRow('剂量', (this.item as MedicationPlanItemResponse).dosage)
-                  this.buildDetailRow('频次', (this.item as MedicationPlanItemResponse).frequency_type)
-                  if ((this.item as MedicationPlanItemResponse).instructions) {
-                    this.buildDetailRow('用药指示', (this.item as MedicationPlanItemResponse).instructions || '-')
-                  }
-                } else {
-                  this.buildDetailRow('训练名称', (this.item as RehabPlanItemResponse).exercise_name)
-                  if ((this.item as RehabPlanItemResponse).exercise_type) {
-                    this.buildDetailRow('训练类型', (this.item as RehabPlanItemResponse).exercise_type || '-')
-                  }
-                  if ((this.item as RehabPlanItemResponse).guide_resource_url) {
-                    this.buildDetailRow('资源链接', (this.item as RehabPlanItemResponse).guide_resource_url || '-')
+              CardContainer({ title: this.item.item_type === 'MEDICATION' ? '用药详情' : '训练详情' }) {
+                Column() {
+                  if (this.item.item_type === 'MEDICATION') {
+                    this.buildDetailRow('药品名称', (this.item as MedicationPlanItemResponse).drug_name)
+                    this.buildDetailRow('剂量', (this.item as MedicationPlanItemResponse).dosage)
+                    this.buildDetailRow('频次', (this.item as MedicationPlanItemResponse).frequency_type)
+                    if ((this.item as MedicationPlanItemResponse).instructions) {
+                      this.buildDetailRow('用药指示', (this.item as MedicationPlanItemResponse).instructions || '-')
+                    }
+                  } else {
+                    this.buildDetailRow('训练名称', (this.item as RehabPlanItemResponse).exercise_name)
+                    if ((this.item as RehabPlanItemResponse).exercise_type) {
+                      this.buildDetailRow('训练类型', (this.item as RehabPlanItemResponse).exercise_type || '-')
+                    }
+                    if ((this.item as RehabPlanItemResponse).guide_resource_url) {
+                      this.buildDetailRow('资源链接', (this.item as RehabPlanItemResponse).guide_resource_url || '-')
+                    }
                   }
                 }
               }
-              .width('100%')
-              .padding(16)
-              .backgroundColor('#ffffff')
-              .margin({ bottom: 12 })
 
               // Today's Tasks
-              Column() {
-                Text('今日任务实例')
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .margin({ bottom: 12 })
-
-                if (this.isLoadingTasks) {
-                  LoadingProgress().width(20).height(20)
-                } else if (this.tasks.length === 0) {
-                  Text('今日无任务')
-                    .fontSize(14)
-                    .fontColor('#9ca3af')
-                } else {
-                  ForEach(this.tasks, (task: PlanTaskInstanceResponse) => {
-                    Row() {
-                      Column() {
-                        Text(task.task_time ? task.task_time.substring(0, 5) : '全天')
-                          .fontSize(16)
-                          .fontWeight(FontWeight.Bold)
-                          .fontColor('#1f2937')
-                        Text(task.status)
-                          .fontSize(12)
-                          .fontColor(task.status === 'COMPLETED' ? '#16a34a' : '#ca8a04')
-                          .margin({ top: 4 })
+              CardContainer({ title: '今日任务' }) {
+                Column() {
+                  if (this.isLoadingTasks) {
+                    LoadingProgress().width(20).height(20).color('#2563eb')
+                  } else if (this.tasks.length === 0) {
+                    Text('今日无任务')
+                      .fontSize(14)
+                      .fontColor('#9ca3af')
+                  } else {
+                    ForEach(this.tasks, (task: PlanTaskInstanceResponse, index: number) => {
+                      Row() {
+                        Column() {
+                          Text(task.task_time ? task.task_time.substring(0, 5) : '全天')
+                            .fontSize(16)
+                            .fontWeight(FontWeight.Bold)
+                            .fontColor('#1f2937')
+                          Text(this.getStatusText(task.status))
+                            .fontSize(12)
+                            .fontColor(this.getStatusColor(task.status))
+                            .margin({ top: 4 })
+                        }
+                        .layoutWeight(1)
+                        .alignItems(HorizontalAlign.Start)
+                        
+                        // Check icon for completed
+                        if (task.status === 'COMPLETED') {
+                            Text('✅')
+                                .fontSize(20)
+                        } else if (task.status === 'SKIPPED') {
+                             Text('⏭️')
+                                .fontSize(20)
+                        } else {
+                            Text('⚪')
+                                .fontSize(20)
+                                .opacity(0.3)
+                        }
                       }
-                      .layoutWeight(1)
-                      .alignItems(HorizontalAlign.Start)
-                    }
-                    .padding({ top: 8, bottom: 8 })
-                    .border({ width: { bottom: 1 }, color: '#f3f4f6' })
-                    .width('100%')
-                  })
+                      .padding({ top: 12, bottom: 12 })
+                      .border(index < this.tasks.length - 1 ? { width: { bottom: 1 }, color: '#f1f5f9' } : undefined)
+                      .width('100%')
+                    })
+                  }
                 }
               }
-              .width('100%')
-              .padding(16)
-              .backgroundColor('#ffffff')
             }
+            .padding(16)
           }
           .layoutWeight(1)
         }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#f9fafb')
+      .backgroundColor('#f8fafc')
     }
+    .title('计划项详情')
     .onReady((ctx: NavDestinationContext) => {
-      console.log("PlanItem onReady")
-      // this.item = ctx.pathInfo.param as PlanItemResponse
-      // this.loadTodayTasks()
+      this.item = ctx.pathInfo.param as PlanItemResponse
+      this.loadTodayTasks()
     })
+  }
+
+  private getStatusText(status: string): string {
+    switch (status) {
+        case 'PENDING': return '待执行';
+        case 'COMPLETED': return '已完成';
+        case 'SKIPPED': return '已跳过';
+        case 'MISSED': return '未完成';
+        default: return status;
+    }
+  }
+
+  private getStatusColor(status: string): string {
+     switch (status) {
+        case 'COMPLETED': return '#16a34a';
+        case 'SKIPPED': return '#9ca3af';
+        case 'MISSED': return '#dc2626';
+        default: return '#ca8a04';
+    }
   }
 }

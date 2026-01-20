@@ -7,7 +7,7 @@ export class ElderService {
     const elderData: Omit<ElderBasicInfo, 'id' | 'created_at' | 'updated_at'> = {
       name: data.name,
       gender: data.gender,
-      birth_date: data.birth_date,
+      birth_date: data.birth_date.split('T')[0],
       phone: data.phone,
       emergency_contact: data.emergency_contact,
       address: data.address,
@@ -64,7 +64,7 @@ export class ElderService {
     const updateData: Partial<Omit<ElderBasicInfo, 'id' | 'created_at' | 'updated_at'>> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.gender !== undefined) updateData.gender = data.gender;
-    if (data.birth_date !== undefined) updateData.birth_date = data.birth_date;
+    if (data.birth_date !== undefined) updateData.birth_date = data.birth_date.split('T')[0];
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.address !== undefined) updateData.address = data.address;
     if (data.emergency_contact !== undefined) updateData.emergency_contact = data.emergency_contact;

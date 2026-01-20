@@ -12,8 +12,19 @@ import {
   PlanTaskInstanceResponse,
   QueryPlanTaskInstanceRequest,
   CreateTaskInstancesRequest,
-  UpdateTaskInstanceStatusRequest
+  UpdateTaskInstanceStatusRequest,
+  TodayTaskStatsResponse,
+  ElderTaskStats
 } from '../dto/requests/interventionPlanItem.dto';
+import {
+  ElderTodayTasksResponse,
+  ElderTasksByPlan,
+  ElderTasksByPlanItem,
+  ElderPlanInfo,
+  ElderPlanItemInfo,
+  ElderTaskInstanceInfo,
+  ElderTodayTaskRawRow
+} from '../dto/requests/elderTasks.dto';
 import {
   PlanItem,
   PlanItemSchedule,
@@ -101,18 +112,18 @@ export class InterventionPlanItemService {
       planItemData,
       data.itemType === 'MEDICATION' && data.medicationDetail
         ? {
-            drug_name: data.medicationDetail.drug_name,
-            dosage: data.medicationDetail.dosage,
-            frequency_type: data.medicationDetail.frequency_type,
-            instructions: data.medicationDetail.instructions ?? null
-          }
+          drug_name: data.medicationDetail.drug_name,
+          dosage: data.medicationDetail.dosage,
+          frequency_type: data.medicationDetail.frequency_type,
+          instructions: data.medicationDetail.instructions ?? null
+        }
         : undefined,
       data.itemType === 'REHAB' && data.rehabDetail
         ? {
-            exercise_name: data.rehabDetail.exercise_name,
-            exercise_type: data.rehabDetail.exercise_type ?? null,
-            guide_resource_url: data.rehabDetail.guide_resource_url ?? null
-          }
+          exercise_name: data.rehabDetail.exercise_name,
+          exercise_type: data.rehabDetail.exercise_type ?? null,
+          guide_resource_url: data.rehabDetail.guide_resource_url ?? null
+        }
         : undefined
     );
 
@@ -292,6 +303,12 @@ export class InterventionPlanItemService {
     await InterventionPlanItemRepository.updatePlanItem(itemId, {
       status
     });
+
+    // 如果状态变为 STOPPED，将所有未完成的任务实例标记为已跳过
+    if (status === 'STOPPED') {
+      const skippedCount = await InterventionPlanItemRepository.skipPendingTasksByItemId(itemId);
+      console.log(`Skipped ${skippedCount} pending tasks for item ${itemId}`);
+    }
 
     const updated = await this.getPlanItemById(itemId);
     return updated;
@@ -523,6 +540,27 @@ export class InterventionPlanItemService {
     }));
   }
 
+  static async getTaskInstanceById(taskId: number): Promise<PlanTaskInstanceResponse> {
+    const task = await InterventionPlanItemRepository.findTaskInstanceById(taskId);
+    if (!task) {
+      throw new NotFoundError('任务实例不存在');
+    }
+
+    return {
+      id: task.id!,
+      item_id: task.item_id,
+      schedule_id: task.schedule_id ?? null,
+      task_date: task.task_date,
+      task_time: task.task_time ?? null,
+      status: task.status,
+      complete_time: task.complete_time ?? null,
+      remark: task.remark ?? null,
+      proof_image_url: task.proof_image_url ?? null,
+      created_at: task.created_at!,
+      updated_at: task.updated_at!,
+    };
+  }
+
   static async updateTaskInstanceStatus(
     taskId: number,
     data: UpdateTaskInstanceStatusRequest
@@ -556,6 +594,158 @@ export class InterventionPlanItemService {
       proof_image_url: updated.proof_image_url ?? null,
       created_at: updated.created_at!,
       updated_at: updated.updated_at!
+    };
+  }
+
+  static async getTodayTaskStats(userId: number): Promise<TodayTaskStatsResponse> {
+    // 1. Get all elders associated with the user
+    // We need to import UserElderRelationService or Repository. 
+    // To avoid circular dependency issues if any, we use Repository directly or dynamic import.
+    // However, UserElderRelationService is safe to import here usually.
+    // Let's us the Repository directly to be safe and efficient as we only need IDs.
+
+    // Actually, let's use the Service method we saw earlier or Repository.
+    // I need to import ElderUserRelationRepository. 
+    // But wait, I recall seeing `UserElderRelationService.getUserElders` in `userElderRelation.service.ts`.
+    // Let's import the Repository to avoid circular dependency hell if UserElderRelationService imports Intervention stuff.
+    // Checking `UserElderRelationService`... it imports `ruleEngine.service` but not InterventionService.
+    // But `InterventionPlanItemService` is deep. 
+    // Let's just use `ElderUserRelationRepository`.
+    const { ElderUserRelationRepository } = require('../repositories/elderUserRelation.repository');
+
+    // We need all elders, so page=1, pageSize=1000 (enough for one staff)
+    const { items } = await ElderUserRelationRepository.findByUserIdWithElder(
+      userId,
+      1,
+      1000
+    );
+
+    const elderIds = items.map((item: any) => item.elder_id);
+
+    if (elderIds.length === 0) {
+      return {
+        total_elders: 0,
+        total_tasks: 0,
+        completed_tasks: 0,
+        elder_stats: []
+      };
+    }
+
+    const today = dayjs().format('YYYY-MM-DD');
+    const stats = await InterventionPlanItemRepository.getTaskStatsByElderIds(elderIds, today);
+
+    // Creates a map for easy lookup
+    const statsMap = new Map(stats.map(s => [s.elder_id, s]));
+
+    const elderStats: ElderTaskStats[] = elderIds.map((id: number) => {
+      const stat = statsMap.get(id);
+      return {
+        elder_id: id,
+        total_tasks: stat ? Number(stat.total_tasks) : 0,
+        completed_tasks: stat ? Number(stat.completed_tasks) : 0
+      };
+    });
+
+    const totalTasks = elderStats.reduce((sum, item) => sum + item.total_tasks, 0);
+    const completedTasks = elderStats.reduce((sum, item) => sum + item.completed_tasks, 0);
+
+    return {
+      total_elders: elderIds.length,
+      total_tasks: totalTasks,
+      completed_tasks: completedTasks,
+      elder_stats: elderStats
+    };
+  }
+
+  /**
+   * 获取老人今日任务列表，按计划和计划项分组聚合
+   */
+  static async getElderTodayTasks(elderUserId: number): Promise<ElderTodayTasksResponse> {
+    const today = dayjs().format('YYYY-MM-DD');
+    const rows: ElderTodayTaskRawRow[] = await InterventionPlanItemRepository.findTodayTasksByElderUserId(
+      elderUserId,
+      today
+    );
+
+    // 统计总数和已完成数
+    const totalTasks = rows.length;
+    const completedTasks = rows.filter(r => r.task_status === 'COMPLETED').length;
+
+    // 按计划分组
+    const planMap = new Map<number, ElderTasksByPlan>();
+    const itemMap = new Map<number, ElderTasksByPlanItem>();
+
+    for (const row of rows) {
+      // 获取或创建计划分组
+      if (!planMap.has(row.plan_id)) {
+        const planInfo: ElderPlanInfo = {
+          id: row.plan_id,
+          elder_user_id: row.plan_elder_user_id,
+          title: row.plan_title,
+          description: row.plan_description,
+          status: row.plan_status,
+          start_date: row.plan_start_date,
+          end_date: row.plan_end_date
+        };
+        planMap.set(row.plan_id, {
+          plan: planInfo,
+          items: []
+        });
+      }
+
+      // 获取或创建计划项分组
+      if (!itemMap.has(row.item_id)) {
+        const itemInfo: ElderPlanItemInfo = {
+          id: row.item_id,
+          plan_id: row.item_plan_id,
+          item_type: row.item_type,
+          name: row.item_name,
+          description: row.item_description,
+          status: row.item_status,
+          start_date: row.item_start_date,
+          end_date: row.item_end_date
+        };
+
+        // 添加用药或康复详情
+        if (row.item_type === 'MEDICATION' && row.med_drug_name) {
+          itemInfo.drug_name = row.med_drug_name;
+          itemInfo.dosage = row.med_dosage ?? undefined;
+          itemInfo.frequency_type = row.med_frequency_type ?? undefined;
+          itemInfo.instructions = row.med_instructions;
+        } else if (row.item_type === 'REHAB' && row.rehab_exercise_name) {
+          itemInfo.exercise_name = row.rehab_exercise_name;
+          itemInfo.exercise_type = row.rehab_exercise_type;
+          itemInfo.guide_resource_url = row.rehab_guide_resource_url;
+        }
+
+        const itemGroup: ElderTasksByPlanItem = {
+          plan_item: itemInfo,
+          tasks: []
+        };
+        itemMap.set(row.item_id, itemGroup);
+        planMap.get(row.plan_id)!.items.push(itemGroup);
+      }
+
+      // 添加任务实例
+      const taskInfo: ElderTaskInstanceInfo = {
+        id: row.task_id,
+        item_id: row.task_item_id,
+        schedule_id: row.task_schedule_id,
+        task_date: row.task_date,
+        task_time: row.task_time,
+        status: row.task_status,
+        complete_time: row.task_complete_time,
+        remark: row.task_remark,
+        proof_image_url: row.task_proof_image_url
+      };
+      itemMap.get(row.item_id)!.tasks.push(taskInfo);
+    }
+
+    return {
+      date: today,
+      total_tasks: totalTasks,
+      completed_tasks: completedTasks,
+      plans: Array.from(planMap.values())
     };
   }
 }

@@ -45,7 +45,7 @@ export const createUserSchema = Joi.object({
     .messages({
       'string.base': '角色编码必须是字符串',
       'any.only': '角色编码只能是admin、medical_staff、family或elder'
-  })
+    })
 });
 
 export const updateUserSchema = Joi.object({
@@ -260,6 +260,7 @@ export interface MedicalStaffInfoResponse {
 export interface UserWithRoleResponse extends UserResponse {
   roles: RoleResponse[];
   medical_staff_info?: MedicalStaffInfoResponse | null;
+  elder_info?: ElderResponse | null;
 }
 
 export interface RoleResponse {
@@ -300,9 +301,22 @@ export interface CreateUserElderRelationRequest {
 
 export interface UserElderRelationItemResponse {
   relation_id: number;
-  elder_id: number;
+  elder_id: number; // elder_basic_info.id (for backward compatibility)
+  elder_user_id: number | null; // the elder's user account ID (CORRECT ID to use for plans)
   relation_name: string | null;
   remark: string | null;
   elder: ElderResponse;
   elder_info: ElderResponse;
 }
+
+export interface HealthSummary {
+  latest_bp?: string;      // 格式: "120/80"
+  latest_fpg?: string;     // 格式: "5.6"
+  bp_level?: string;       // NORMAL | MILD | MODERATE | SEVERE
+  fpg_level?: string;      // NORMAL | MILD | MODERATE | SEVERE
+}
+
+export interface UserElderWithHealthResponse extends UserElderRelationItemResponse {
+  health_summary?: HealthSummary;
+}
+

@@ -195,7 +195,8 @@ export interface ElderResponse {
 
 export interface UserElderRelationItem {
   relation_id: number;
-  elder_id: number;
+  elder_id: number; // elder_basic_info.id (for backward compatibility)
+  elder_user_id: number | null; // the elder's user account ID  - USE THIS for creating plans!
   relation_name: string | null;
   remark: string | null;
   elder: ElderResponse;
@@ -212,4 +213,17 @@ export interface TodayTaskItem {
   task: PlanTaskInstanceResponse;
   item: PlanItemResponse;
   plan: InterventionPlanResponse;
+}
+
+export interface ElderTaskStats {
+  elder_id: number;
+  total_tasks: number;
+  completed_tasks: number;
+}
+
+export interface TodayTaskStatsResponse {
+  total_elders: number;
+  total_tasks: number;
+  completed_tasks: number;
+  elder_stats: ElderTaskStats[];
 }

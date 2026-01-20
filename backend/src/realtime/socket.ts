@@ -98,50 +98,25 @@ const handleSendMessage = async (io: Server, socket: Socket, payload: SendMessag
 
   const questionId = payload.question_id;
 
-  const data: CreateConsultationMessageRequest = {
-    sender_type: payload.sender_type,
-    sender_id: payload.sender_id,
-    role_display_name: payload.role_display_name,
-    content_type: payload.content_type,
-    content_text: payload.content_text,
-    attachments: payload.attachments
-  };
-
+  // 注意：消息持久化已由前端通过HTTP API完成
+  // Socket仅负责将消息广播给房间内的其他客户端
   try {
-    const message = await ConsultationService.createMessage(questionId, data);
-
     socket.emit('send_message:ack', {
       success: true,
-      message: '发送成功',
-      data: message
+      message: '广播成功'
     });
 
+    // 广播消息到房间（包括发送者，前端会通过ID去重）
     const room = getQuestionRoomName(questionId);
-    io.to(room).emit('new_message', message);
+    io.to(room).emit('new_message', payload);
   } catch (error: unknown) {
     const err = error as { message?: unknown } | null;
     const errorMessage =
-      typeof err?.message === 'string' ? err.message : '发送失败：服务器内部错误';
-
-    if (errorMessage.includes('咨询问题不存在')) {
-      socket.emit('send_message:ack', {
-        success: false,
-        message: `发送失败：${errorMessage}`
-      });
-      socket.emit('error', {
-        code: 'QUESTION_NOT_FOUND',
-        message: errorMessage
-      });
-      return;
-    }
+      typeof err?.message === 'string' ? err.message : '广播失败：服务器内部错误';
 
     socket.emit('send_message:ack', {
       success: false,
-      message: `发送失败：${errorMessage}`
-    });
-    socket.emit('error', {
-      code: 'INTERNAL_ERROR',
-      message: errorMessage
+      message: `广播失败：${errorMessage}`
     });
   }
 };

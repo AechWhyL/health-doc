@@ -9,6 +9,7 @@ import dailyHealthMeasurementRoutes from './dailyHealthMeasurement.routes';
 import ruleEngineRoutes from './ruleEngine.routes';
 import fileRoutes from './file.routes';
 import personalRuleRoutes from './personalRule.routes';
+import familyRoutes from './family.routes';
 
 export default [
   elderRoutes,
@@ -21,5 +22,7 @@ export default [
   dailyHealthMeasurementRoutes,
   ruleEngineRoutes,
   fileRoutes,
-  personalRuleRoutes
+  personalRuleRoutes,
+  familyRoutes
 ];
+

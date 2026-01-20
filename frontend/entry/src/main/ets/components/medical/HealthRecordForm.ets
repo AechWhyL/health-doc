@@ -6,6 +6,10 @@ interface IFormInputItem {
   value: string
 }
 
+interface SelectOption {
+  value: string
+}
+
 @Component
 export struct HealthRecordForm {
   @Prop elderName: string = ''
@@ -47,6 +51,10 @@ export struct HealthRecordForm {
   @State private allergyNotes: string = ''
   @State private initialized: boolean = false
 
+  // Select indexes for Select component
+  @State private medicalStatusIndex: number = 0
+  @State private checkResultIndex: number = 0
+
   aboutToAppear(): void {
     if (this.initialized) {
       return
@@ -79,12 +87,14 @@ export struct HealthRecordForm {
       this.diseaseName = ''
       this.diagnosedAtState = today
       this.medicalStatus = 'ONGOING'
+      this.medicalStatusIndex = 0
       this.medicalNotes = ''
     } else if (this.recordType === 'CHECK_REPORT') {
       this.checkDateState = today
       this.checkHospitalName = ''
       this.checkItem = ''
       this.checkResultSummary = 'NORMAL'
+      this.checkResultIndex = 0
       this.checkNotes = ''
     } else if (this.recordType === 'MEDICATION') {
       this.drugNameInput = ''
@@ -121,6 +131,7 @@ export struct HealthRecordForm {
       const status = this.getStringField(content, 'status')
       if (status !== null) {
         this.medicalStatus = status
+        this.medicalStatusIndex = this.getStatusIndex(status)
       }
       const notes = this.getStringField(content, 'notes')
       if (notes !== null) {
@@ -145,6 +156,7 @@ export struct HealthRecordForm {
       const resultSummary = this.getStringField(content, 'result_summary')
       if (resultSummary !== null) {
         this.checkResultSummary = resultSummary
+        this.checkResultIndex = this.getResultIndex(resultSummary)
       }
       const notes = this.getStringField(content, 'notes')
       if (notes !== null) {
@@ -246,12 +258,8 @@ export struct HealthRecordForm {
   }
 
   private formatDate(date: Date): string {
-    const year = date.getFullYear()
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    const monthText = month < 10 ? '0' + month.toString() : month.toString()
-    const dayText = day < 10 ? '0' + day.toString() : day.toString()
-    return year.toString() + '-' + monthText + '-' + dayText
+    // Return ISO date format for backend validation
+    return date.toISOString().split('T')[0]
   }
 
   private parseDateFromString(value: string): Date | null {
@@ -269,6 +277,24 @@ export struct HealthRecordForm {
       return null
     }
     return new Date(year, month - 1, day)
+  }
+
+  private getStatusIndex(status: string): number {
+    switch (status) {
+      case 'ONGOING': return 0
+      case 'REMISSION': return 1
+      case 'CURED': return 2
+      default: return 0
+    }
+  }
+
+  private getResultIndex(result: string): number {
+    switch (result) {
+      case 'NORMAL': return 0
+      case 'MILD_ABNORMAL': return 1
+      case 'SIGNIFICANT_ABNORMAL': return 2
+      default: return 0
+    }
   }
 
   private pickDate(current: Date, onAccept: (value: Date) => void): void {
@@ -318,7 +344,9 @@ export struct HealthRecordForm {
       content['disease_name'] = disease
       content['diagnosed_at'] = diagnosedAt
       content['status'] = this.medicalStatus
-      content['notes'] = this.medicalNotes.trim()
+      if (this.medicalNotes.trim()) {
+        content['notes'] = this.medicalNotes.trim()
+      }
     } else if (this.recordType === 'CHECK_REPORT') {
       const checkDate = this.formatDate(this.checkDateState)
       const hospital = this.checkHospitalName.trim()
@@ -339,7 +367,9 @@ export struct HealthRecordForm {
       content['hospital_name'] = hospital
       content['check_item'] = item
       content['result_summary'] = this.checkResultSummary
-      content['notes'] = this.checkNotes.trim()
+      if (this.checkNotes.trim()) {
+        content['notes'] = this.checkNotes.trim()
+      }
     } else if (this.recordType === 'MEDICATION') {
       const drugNamesRaw = this.drugNameInput.trim()
       if (drugNamesRaw === '') {
@@ -368,10 +398,19 @@ export struct HealthRecordForm {
       content['frequency'] = frequencyText
       content['route'] = routeText
       content['start_date'] = startDate
-      content['end_date'] = endDate
-      content['notes'] = this.medicationNotes.trim()
-      content['prescribing_doctor'] = this.prescribingDoctor.trim()
-      content['hospital_name'] = this.medicationHospitalName.trim()
+      // Only add end_date if enabled, otherwise don't include it (undefined is ok for optional)
+      if (this.medicationEndDateEnabled) {
+        content['end_date'] = this.formatDate(this.medicationEndDateState)
+      }
+      if (this.medicationNotes.trim()) {
+        content['notes'] = this.medicationNotes.trim()
+      }
+      if (this.prescribingDoctor.trim()) {
+        content['prescribing_doctor'] = this.prescribingDoctor.trim()
+      }
+      if (this.medicationHospitalName.trim()) {
+        content['hospital_name'] = this.medicationHospitalName.trim()
+      }
     } else if (this.recordType === 'ALLERGY') {
       const allergyItemText = this.allergyItem.trim()
       if (allergyItemText === '') {
@@ -385,11 +424,24 @@ export struct HealthRecordForm {
       if (this.allergyLastDateEnabled) {
         lastDate = this.formatDate(this.allergyLastDateState)
       }
+      // reaction_symptoms must be an array with at least 1 item per backend validation
+      const symptomsText = this.allergyReactionSymptoms.trim()
+      if (!symptomsText) {
+        this.getUIContext().getPromptAction().showToast({
+          message: '请填写过敏反应症状'
+        })
+        return
+      }
       content['allergy_item'] = allergyItemText
       content['first_occurrence_date'] = firstDate
-      content['last_occurrence_date'] = lastDate
-      content['reaction_symptoms'] = this.allergyReactionSymptoms.trim()
-      content['notes'] = this.allergyNotes.trim()
+      // Only add last_occurrence_date if enabled
+      if (this.allergyLastDateEnabled) {
+        content['last_occurrence_date'] = this.formatDate(this.allergyLastDateState)
+      }
+      content['reaction_symptoms'] = this.splitDrugNames(symptomsText)
+      if (this.allergyNotes.trim()) {
+        content['notes'] = this.allergyNotes.trim()
+      }
     }
     const payload: HealthRecordFormSubmitPayload = {
       recordType: this.recordType,
@@ -431,272 +483,400 @@ export struct HealthRecordForm {
   }
 
   @Builder
-  private buildInputField(label: string, placeholder: string, value: string, onChange: (v: string) => void) {
-    Column() {
+  private FormField(label: string, required: boolean = false) {
+    Row() {
       Text(label)
-        .fontSize(11)
-        .fontColor('#6b7280')
+        .fontSize(13)
+        .fontColor('#374151')
+        .fontWeight(FontWeight.Medium)
+      if (required) {
+        Text(' *')
+          .fontSize(13)
+          .fontColor('#dc2626')
+      }
+    }
+    .width('100%')
+    .margin({ bottom: 6 })
+  }
+
+  @Builder
+  private buildInputField(label: string, placeholder: string, value: string, onChange: (v: string) => void, required: boolean = false) {
+    Column() {
+      this.FormField(label, required)
       TextInput({ text: value, placeholder: placeholder })
-        .height(32)
-        .fontSize(12)
-        .padding({ left: 12, right: 12 })
-        .borderRadius(16)
-        .backgroundColor('#f9fafb')
+        .height(44)
+        .fontSize(14)
+        .padding({ left: 14, right: 14 })
+        .borderRadius(12)
+        .backgroundColor('#f8fafc')
+        .border({ width: 1, color: '#e2e8f0' })
         .onChange((text: string) => {
           onChange(text)
         })
     }
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
+    .margin({ bottom: 16 })
   }
 
   @Builder
-  private buildDateField(label: string, current: Date, onChangeDate: (value: Date) => void) {
+  private buildTextAreaField(label: string, placeholder: string, value: string, onChange: (v: string) => void) {
     Column() {
-      Text(label)
-        .fontSize(11)
-        .fontColor('#6b7280')
-        .width("100%")
+      this.FormField(label, false)
+      TextArea({ text: value, placeholder: placeholder })
+        .height(80)
+        .fontSize(14)
+        .padding(14)
+        .borderRadius(12)
+        .backgroundColor('#f8fafc')
+        .border({ width: 1, color: '#e2e8f0' })
+        .onChange((text: string) => {
+          onChange(text)
+        })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    .margin({ bottom: 16 })
+  }
+
+  @Builder
+  private buildDateField(label: string, current: Date, onChangeDate: (value: Date) => void, required: boolean = false) {
+    Column() {
+      this.FormField(label, required)
       Row() {
+        Text('📅')
+          .fontSize(16)
+          .margin({ right: 10 })
         Text(this.formatDate(current))
-          .fontSize(12)
-          .fontColor('#111827')
-          .margin({ right: 8 })
-          .width("100%")
+          .fontSize(14)
+          .fontColor('#1e293b')
+          .layoutWeight(1)
+        Text('›')
+          .fontSize(18)
+          .fontColor('#94a3b8')
       }
-      .padding({
-        left: 12,
-        right: 12,
-        top: 6,
-        bottom: 6
-      })
-      .borderRadius(16)
-      .backgroundColor('#f9fafb')
+      .width('100%')
+      .height(44)
+      .padding({ left: 14, right: 14 })
+      .borderRadius(12)
+      .backgroundColor('#f8fafc')
+      .border({ width: 1, color: '#e2e8f0' })
       .onClick(() => {
         this.pickDate(current, (value: Date) => {
           onChangeDate(value)
         })
       })
     }
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
+    .margin({ bottom: 16 })
   }
 
-  @Builder
-  private buildSelectField(label: string, value: string, options: IFormInputItem[],
-    onChangeValue: (v: string) => void) {
-    Column() {
-      Text(label)
-        .fontSize(11)
-        .fontColor('#6b7280')
-      Row() {
-        ForEach(options, (item: IFormInputItem) => {
-          Text(item.label)
-            .fontSize(11)
-            .fontColor(item.value === value ? '#f9fafb' : '#4b5563')
-            .padding({
-              left: 8,
-              right: 8,
-              top: 4,
-              bottom: 4
-            })
-            .borderRadius(999)
-            .backgroundColor(item.value === value ? '#111827' : '#f3f4f6')
-            .margin({ right: 6, top: 2 })
-            .onClick(() => {
-              onChangeValue(item.value)
-            })
-        }, (item: IFormInputItem) => item.value)
-      }
-    }
-    .alignItems(HorizontalAlign.Start)
-    .width("100%")
-  }
+  // Status options for Select
+  statusOptions: SelectOption[] = [
+    { value: '治疗中' },
+    { value: '缓解' },
+    { value: '痊愈' }
+  ]
 
-  currStatusFormInputs: IFormInputItem[] = [
-    { label: '治疗中', value: 'ONGOING' },
-    { label: '缓解', value: 'REMISSION' },
-    { label: '痊愈', value: 'CURED' }
+  // Result options for Select
+  resultOptions: SelectOption[] = [
+    { value: '正常' },
+    { value: '轻度异常' },
+    { value: '显著异常' }
   ]
 
   @Builder
   private buildMedicalHistoryFields() {
-    Column({ space: 6 }) {
+    Column() {
       this.buildInputField('记录标题', '如：高血压病史', this.recordTitle, (v: string) => {
         this.recordTitle = v
-      })
+      }, true)
+
+      this.buildInputField('疾病名称', '如：原发性高血压', this.diseaseName, (v: string) => {
+        this.diseaseName = v
+      }, true)
+
+      this.buildDateField('确诊日期', this.diagnosedAtState, (value: Date) => {
+        this.diagnosedAtState = value
+      }, true)
+
+      Column() {
+        this.FormField('当前状态', true)
+        Select(this.statusOptions)
+          .selected(this.medicalStatusIndex)
+          .value(this.statusOptions[this.medicalStatusIndex].value)
+          .font({ size: 14 })
+          .fontColor('#1e293b')
+          .selectedOptionFont({ size: 14 })
+          .optionFont({ size: 14 })
+          .height(44)
+          .width('100%')
+          .borderRadius(12)
+          .backgroundColor('#f8fafc')
+          .onSelect((index: number) => {
+            this.medicalStatusIndex = index
+            switch (index) {
+              case 0: this.medicalStatus = 'ONGOING'; break
+              case 1: this.medicalStatus = 'REMISSION'; break
+              case 2: this.medicalStatus = 'CURED'; break
+            }
+          })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .margin({ bottom: 16 })
 
       this.buildDateField('记录日期', this.recordDateState, (value: Date) => {
         this.recordDateState = value
       })
 
-      this.buildInputField('疾病名称', '如：原发性高血压', this.diseaseName, (v: string) => {
-        this.diseaseName = v
-      })
-
-      this.buildDateField('确诊日期', this.diagnosedAtState, (value: Date) => {
-        this.diagnosedAtState = value
-      })
-
-      this.buildSelectField('当前状态', this.medicalStatus, this.currStatusFormInputs, (v: string) => {
-        this.medicalStatus = v
-      })
-
-      this.buildInputField('备注说明', '病程说明、并发症等（可选）', this.medicalNotes, (v: string) => {
+      this.buildTextAreaField('备注说明', '病程说明、并发症等（可选）', this.medicalNotes, (v: string) => {
         this.medicalNotes = v
       })
     }
+    .width('100%')
   }
-
-  checkResultFormItems: IFormInputItem[] = [
-    { label: '正常', value: 'NORMAL' },
-    { label: '轻度异常', value: 'MILD_ABNORMAL' },
-    { label: '显著异常', value: 'SIGNIFICANT_ABNORMAL' }
-  ]
 
   @Builder
   private buildCheckReportFields() {
-    Column({ space: 6 }) {
+    Column() {
       this.buildInputField('记录标题', '如：2025年度体检报告', this.recordTitle, (v: string) => {
         this.recordTitle = v
-      })
+      }, true)
 
-      this.buildDateField('检查日期', this.recordDateState, (value: Date) => {
-        this.recordDateState = value
+      this.buildDateField('检查日期', this.checkDateState, (value: Date) => {
         this.checkDateState = value
-      })
+        this.recordDateState = value
+      }, true)
 
-      this.buildInputField('就诊/检查医院', '如：市第一人民医院', this.checkHospitalName, (v: string) => {
+      this.buildInputField('检查医院', '如：市第一人民医院', this.checkHospitalName, (v: string) => {
         this.checkHospitalName = v
-      })
+      }, true)
 
       this.buildInputField('检查项目', '如：胸部CT、心电图', this.checkItem, (v: string) => {
         this.checkItem = v
-      })
+      }, true)
 
-      this.buildSelectField('检查结果', this.checkResultSummary, this.checkResultFormItems, (v: string) => {
-        this.checkResultSummary = v
-      })
+      Column() {
+        this.FormField('检查结果', true)
+        Select(this.resultOptions)
+          .selected(this.checkResultIndex)
+          .value(this.resultOptions[this.checkResultIndex].value)
+          .font({ size: 14 })
+          .fontColor('#1e293b')
+          .selectedOptionFont({ size: 14 })
+          .optionFont({ size: 14 })
+          .height(44)
+          .width('100%')
+          .borderRadius(12)
+          .backgroundColor('#f8fafc')
+          .onSelect((index: number) => {
+            this.checkResultIndex = index
+            switch (index) {
+              case 0: this.checkResultSummary = 'NORMAL'; break
+              case 1: this.checkResultSummary = 'MILD_ABNORMAL'; break
+              case 2: this.checkResultSummary = 'SIGNIFICANT_ABNORMAL'; break
+            }
+          })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .margin({ bottom: 16 })
 
-      this.buildInputField('关键结论/建议', '关键检查结论、随访建议等', this.checkNotes, (v: string) => {
+      this.buildTextAreaField('结论/建议', '关键检查结论、随访建议等', this.checkNotes, (v: string) => {
         this.checkNotes = v
       })
     }
+    .width('100%')
   }
 
   @Builder
   private buildMedicationFields() {
-    Column({ space: 6 }) {
+    Column() {
       this.buildInputField('记录标题', '如：降压药方案调整', this.recordTitle, (v: string) => {
         this.recordTitle = v
-      })
+      }, true)
 
-      this.buildDateField('开始用药日期', this.recordDateState, (value: Date) => {
-        this.recordDateState = value
-        this.medicationStartDateState = value
-      })
-
-      this.buildInputField('药品名称', '如：奥美沙坦 20mg；可多种药物', this.drugNameInput, (v: string) => {
+      this.buildInputField('药品名称', '如：奥美沙坦 20mg（多药用分号隔开）', this.drugNameInput, (v: string) => {
         this.drugNameInput = v
-      })
+      }, true)
 
-      this.buildInputField('单次剂量', '如：20mg', this.dosage, (v: string) => {
-        this.dosage = v
-      })
+      Row({ space: 12 }) {
+        Column() {
+          this.FormField('单次剂量', true)
+          TextInput({ text: this.dosage, placeholder: '如：20mg' })
+            .height(44)
+            .fontSize(14)
+            .padding({ left: 14, right: 14 })
+            .borderRadius(12)
+            .backgroundColor('#f8fafc')
+            .border({ width: 1, color: '#e2e8f0' })
+            .onChange((text: string) => {
+              this.dosage = text
+            })
+        }
+        .layoutWeight(1)
 
-      this.buildInputField('用药频次', '如：qd、bid 等', this.frequency, (v: string) => {
-        this.frequency = v
-      })
+        Column() {
+          this.FormField('用药频次', true)
+          TextInput({ text: this.frequency, placeholder: '如：qd' })
+            .height(44)
+            .fontSize(14)
+            .padding({ left: 14, right: 14 })
+            .borderRadius(12)
+            .backgroundColor('#f8fafc')
+            .border({ width: 1, color: '#e2e8f0' })
+            .onChange((text: string) => {
+              this.frequency = text
+            })
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .margin({ bottom: 16 })
 
       this.buildInputField('给药途径', '如：po 口服', this.route, (v: string) => {
         this.route = v
-      })
+      }, true)
+
+      this.buildDateField('开始日期', this.medicationStartDateState, (value: Date) => {
+        this.medicationStartDateState = value
+        this.recordDateState = value
+      }, true)
 
       Row() {
         Column() {
-          this.buildDateField('结束日期', this.medicationEndDateState, (value: Date) => {
-            this.medicationEndDateState = value
+          this.FormField('结束日期', false)
+          Row() {
+            Text('📅')
+              .fontSize(16)
+              .margin({ right: 10 })
+            Text(this.medicationEndDateEnabled ? this.formatDate(this.medicationEndDateState) : '长期用药')
+              .fontSize(14)
+              .fontColor(this.medicationEndDateEnabled ? '#1e293b' : '#94a3b8')
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .height(44)
+          .padding({ left: 14, right: 14 })
+          .borderRadius(12)
+          .backgroundColor('#f8fafc')
+          .border({ width: 1, color: '#e2e8f0' })
+          .onClick(() => {
+            if (this.medicationEndDateEnabled) {
+              this.pickDate(this.medicationEndDateState, (value: Date) => {
+                this.medicationEndDateState = value
+              })
+            }
           })
         }
         .layoutWeight(1)
 
         Column() {
+          Text('设置结束')
+            .fontSize(12)
+            .fontColor('#64748b')
+            .margin({ bottom: 8 })
           Toggle({ type: ToggleType.Switch, isOn: this.medicationEndDateEnabled })
             .onChange((isOn: boolean) => {
               this.medicationEndDateEnabled = isOn
             })
-          Text('是否设置结束日期')
-            .fontSize(11)
-            .fontColor('#6b7280')
         }
-        .margin({ left: 8 })
+        .width(80)
+        .alignItems(HorizontalAlign.Center)
       }
+      .width('100%')
+      .margin({ bottom: 16 })
 
-      this.buildInputField('开方医生', '如：王医生', this.prescribingDoctor, (v: string) => {
+      this.buildInputField('开方医生', '如：王医生（可选）', this.prescribingDoctor, (v: string) => {
         this.prescribingDoctor = v
       })
 
-      this.buildInputField('就诊医院', '如：社区卫生服务中心', this.medicationHospitalName, (v: string) => {
+      this.buildInputField('就诊医院', '如：社区卫生服务中心（可选）', this.medicationHospitalName, (v: string) => {
         this.medicationHospitalName = v
       })
 
-      this.buildInputField('用药备注', '用药目的、注意事项等', this.medicationNotes, (v: string) => {
+      this.buildTextAreaField('用药备注', '用药目的、注意事项等', this.medicationNotes, (v: string) => {
         this.medicationNotes = v
       })
     }
+    .width('100%')
   }
 
   @Builder
   private buildAllergyFields() {
-    Column({ space: 6 }) {
+    Column() {
       this.buildInputField('记录标题', '如：青霉素过敏史', this.recordTitle, (v: string) => {
         this.recordTitle = v
-      })
-
-      this.buildDateField('首次发生日期', this.recordDateState, (value: Date) => {
-        this.recordDateState = value
-        this.allergyFirstDateState = value
-      })
+      }, true)
 
       this.buildInputField('过敏源', '如：青霉素、花生等', this.allergyItem, (v: string) => {
         this.allergyItem = v
-      })
+      }, true)
 
-      this.buildInputField('过敏反应', '如：皮疹、呼吸困难，可多填', this.allergyReactionSymptoms, (v: string) => {
+      this.buildDateField('首次发生日期', this.allergyFirstDateState, (value: Date) => {
+        this.allergyFirstDateState = value
+        this.recordDateState = value
+      }, true)
+
+      this.buildTextAreaField('过敏反应', '如：皮疹、呼吸困难等', this.allergyReactionSymptoms, (v: string) => {
         this.allergyReactionSymptoms = v
       })
 
       Row() {
         Column() {
-          this.buildDateField('最近发生日期', this.allergyLastDateState, (value: Date) => {
-            this.allergyLastDateState = value
+          this.FormField('最近发生日期', false)
+          Row() {
+            Text('📅')
+              .fontSize(16)
+              .margin({ right: 10 })
+            Text(this.allergyLastDateEnabled ? this.formatDate(this.allergyLastDateState) : '未设置')
+              .fontSize(14)
+              .fontColor(this.allergyLastDateEnabled ? '#1e293b' : '#94a3b8')
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .height(44)
+          .padding({ left: 14, right: 14 })
+          .borderRadius(12)
+          .backgroundColor('#f8fafc')
+          .border({ width: 1, color: '#e2e8f0' })
+          .onClick(() => {
+            if (this.allergyLastDateEnabled) {
+              this.pickDate(this.allergyLastDateState, (value: Date) => {
+                this.allergyLastDateState = value
+              })
+            }
           })
         }
         .layoutWeight(1)
 
         Column() {
+          Text('设置日期')
+            .fontSize(12)
+            .fontColor('#64748b')
+            .margin({ bottom: 8 })
           Toggle({ type: ToggleType.Switch, isOn: this.allergyLastDateEnabled })
             .onChange((isOn: boolean) => {
               this.allergyLastDateEnabled = isOn
             })
-          Text('是否设置最近发生日期')
-            .fontSize(11)
-            .fontColor('#6b7280')
         }
-        .margin({ left: 8 })
+        .width(80)
+        .alignItems(HorizontalAlign.Center)
       }
+      .width('100%')
+      .margin({ bottom: 16 })
 
-      this.buildInputField('备注说明', '严重程度、诱发因素等', this.allergyNotes, (v: string) => {
+      this.buildTextAreaField('备注说明', '严重程度、诱发因素等', this.allergyNotes, (v: string) => {
         this.allergyNotes = v
       })
     }
+    .width('100%')
   }
 
   build() {
     Column() {
-      Text(this.mode === 'create' ? '新增健康档案记录' : '编辑健康档案记录')
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .margin({ bottom: 4 })
-
       if (this.recordType === 'MEDICAL_HISTORY') {
         this.buildMedicalHistoryFields()
       } else if (this.recordType === 'CHECK_REPORT') {
@@ -707,13 +887,16 @@ export struct HealthRecordForm {
         this.buildAllergyFields()
       }
 
-      Row() {
-        Button(this.mode === 'create' ? '提交新记录' : '保存修改')
+      // Action buttons
+      Row({ space: 12 }) {
+        Button(this.mode === 'create' ? '提交' : '保存')
           .type(ButtonType.Capsule)
           .layoutWeight(1)
-          .height(34)
-          .backgroundColor('#111827')
-          .fontColor('#f9fafb')
+          .height(48)
+          .backgroundColor('#2563eb')
+          .fontColor(Color.White)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
           .onClick(() => {
             this.validateAndSubmit()
           })
@@ -721,20 +904,17 @@ export struct HealthRecordForm {
         Button('取消')
           .type(ButtonType.Capsule)
           .layoutWeight(1)
-          .height(34)
-          .margin({ left: 8 })
-          .backgroundColor('#f9fafb')
-          .fontColor('#111827')
-          .border({
-            width: 1,
-            color: '#e5e7eb'
-          })
+          .height(48)
+          .backgroundColor('#f1f5f9')
+          .fontColor('#64748b')
+          .fontSize(15)
           .onClick(() => {
             this.onCancel()
           })
       }
-      .margin({ top: 10 })
+      .width('100%')
+      .margin({ top: 8 })
     }
+    .width('100%')
   }
 }
-
