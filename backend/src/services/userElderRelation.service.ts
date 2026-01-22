@@ -80,30 +80,33 @@ export class UserElderRelationService {
 
       try {
         // Get the latest health measurement (page 1, pageSize 1)
-        const { items: healthRecords } = await DailyHealthMeasurementRepository.findAll(
-          1, 1, relation.elder_id
-        );
+        // Use elder_user_id (User ID) to query health data, as the daily_health_measurement table references users.id
+        if (relation.elder_user_id) {
+          const { items: healthRecords } = await DailyHealthMeasurementRepository.findAll(
+            1, 1, relation.elder_user_id
+          );
 
-        if (healthRecords.length > 0) {
-          const latest = healthRecords[0];
-          healthSummary = {};
+          if (healthRecords.length > 0) {
+            const latest = healthRecords[0];
+            healthSummary = {};
 
-          // Blood pressure
-          if (latest.sbp !== undefined && latest.sbp !== null &&
-            latest.dbp !== undefined && latest.dbp !== null) {
-            healthSummary.latest_bp = `${latest.sbp}/${latest.dbp}`;
-            healthSummary.bp_level = bpLevel(latest.sbp, latest.dbp) || undefined;
-            if (healthSummary.bp_level && healthSummary.bp_level !== 'NORMAL') {
-              abnormalCount++;
+            // Blood pressure
+            if (latest.sbp !== undefined && latest.sbp !== null &&
+              latest.dbp !== undefined && latest.dbp !== null) {
+              healthSummary.latest_bp = `${latest.sbp}/${latest.dbp}`;
+              healthSummary.bp_level = bpLevel(latest.sbp, latest.dbp) || undefined;
+              if (healthSummary.bp_level && healthSummary.bp_level !== 'NORMAL') {
+                abnormalCount++;
+              }
             }
-          }
 
-          // Fasting blood glucose
-          if (latest.fpg !== undefined && latest.fpg !== null) {
-            healthSummary.latest_fpg = Number(latest.fpg).toFixed(1);
-            healthSummary.fpg_level = glucoseFpgLevel(latest.fpg) || undefined;
-            if (healthSummary.fpg_level && healthSummary.fpg_level !== 'NORMAL') {
-              abnormalCount++;
+            // Fasting blood glucose
+            if (latest.fpg !== undefined && latest.fpg !== null) {
+              healthSummary.latest_fpg = Number(latest.fpg).toFixed(1);
+              healthSummary.fpg_level = glucoseFpgLevel(latest.fpg) || undefined;
+              if (healthSummary.fpg_level && healthSummary.fpg_level !== 'NORMAL') {
+                abnormalCount++;
+              }
             }
           }
         }

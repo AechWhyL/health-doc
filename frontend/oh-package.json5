@@ -5,7 +5,8 @@
     "collect_personal_info": "file:./ohos_agcit/agcit_huawei_common_collect_personal_info/collect_personal_info",
     "@ohos/axios": "^2.2.6",
     "dayjs": "^1.11.13",
-    "module_form": "file:./ohos_agcit/agcit_huawei_household_module_form/module_form"
+    "module_form": "file:./ohos_agcit/agcit_huawei_household_module_form/module_form",
+    "@visactor/harmony-vchart": "^1.13.5"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.24",

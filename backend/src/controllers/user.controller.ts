@@ -150,7 +150,7 @@ export class UserController {
    *         description: 服务器内部错误
    */
   static async getUserById(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
+    const { id } = ctx.state.validatedParams || ctx.params;
     const result = await UserService.getUserById(id);
     ctx.success(result);
   }
@@ -341,7 +341,7 @@ export class UserController {
    *         description: 服务器内部错误
    */
   static async updateUser(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
+    const { id } = ctx.state.validatedParams || ctx.params;
     const data: UpdateUserRequest = ctx.state.validatedData || ctx.request.body;
     const result = await UserService.updateUser(id, data);
     ctx.success(result, '用户更新成功');
@@ -386,8 +386,8 @@ export class UserController {
    *         description: 服务器内部错误
    */
   static async deleteUser(ctx: Context) {
-    const { id } = ctx.state.validatedData || ctx.params;
-    await UserService.deleteUser(id);
+    const { id } = ctx.state.validatedParams || ctx.params;
+    const result = await UserService.deleteUser(id);
     ctx.success(null, '用户删除成功');
   }
 

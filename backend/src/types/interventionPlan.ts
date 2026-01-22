@@ -1,4 +1,5 @@
-export type InterventionPlanStatus = 'DRAFT' | 'PENDING' | 'ACTIVE' | 'PAUSED' | 'FINISHED' | 'CANCELLED';
+// 干预计划状态: ACTIVE=进行中, STOPPED=已停止
+export type InterventionPlanStatus = 'ACTIVE' | 'STOPPED';
 
 export interface InterventionPlan {
   id?: number;

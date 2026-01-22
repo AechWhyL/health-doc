@@ -1,6 +1,9 @@
-import { promptAction } from '@kit.ArkUI';
+import { Binding, promptAction, UIUtils } from '@kit.ArkUI';
 import { httpRequest } from '../common/api/HttpUtil';
 import { RequestEnum } from '../common/api/httpEnum';
+import { picker, fileIo as fs } from '@kit.CoreFileKit';
+import { FormData } from '@ohos/axios';
+import { JSON } from '@kit.ArkTS';
 
 interface ApiResponse<T = Object> {
   code: number;
@@ -29,6 +32,14 @@ interface HealthDataResponse {
   fpg: number;
   ppg_2h: number;
   weight: number;
+}
+
+interface SmartRecognitionResponse {
+  sbp?: number;
+  dbp?: number;
+  fpg?: number;
+  ppg_2h?: number;
+  weight?: number;
 }
 
 @Component
@@ -69,6 +80,66 @@ export struct AddHealthDataForm {
     return true;
   }
 
+  @State isRecognizing: boolean = false;
+
+  private async handleSmartRecognition() {
+    try {
+      const photoPicker = new picker.PhotoViewPicker();
+      const result = await photoPicker.select({
+        MIMEType: picker.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1
+      });
+
+      if (!result.photoUris || result.photoUris.length === 0) {
+        return;
+      }
+
+      this.isRecognizing = true;
+      const uri = result.photoUris[0];
+      
+      // 读取文件
+      const file = fs.openSync(uri, fs.OpenMode.READ_ONLY);
+      const stat = fs.statSync(file.fd);
+      const buffer = new ArrayBuffer(stat.size);
+      fs.readSync(file.fd, buffer);
+      fs.closeSync(file);
+
+      // 构建 FormData
+      const formData = new FormData();
+      formData.append('file', buffer, { filename: 'upload.jpg', type: 'image/jpeg' });
+
+      promptAction.showToast({ message: '正在识别中，请稍候...' });
+
+      const response = await httpRequest<ApiResponse<SmartRecognitionResponse>, FormData>({
+        url: '/api/v1/elder-health/daily-health/smart-recognition',
+        method: RequestEnum.POST,
+        params: formData,
+        contentType: 'multipart/form-data'
+      });
+
+      if (response.code === 200 && response.data) {
+        const data = response.data;
+        let msg = '识别成功';
+        console.log("[ai health data recognize] 识别成功：" + JSON.stringify(data))
+        
+        if (data.sbp) this.sbp = String(data.sbp);
+        if (data.dbp) this.dbp = String(data.dbp);
+        if (data.fpg) this.fpg = String(data.fpg);
+        if (data.ppg_2h) this.ppg2h = String(data.ppg_2h);
+        if (data.weight) this.weight = String(data.weight);
+        
+        promptAction.showToast({ message: msg });
+      } else {
+        promptAction.showToast({ message: response.message || '识别失败' });
+      }
+    } catch (error) {
+      console.error('智能识别失败:', error);
+      promptAction.showToast({ message: '识别出错，请重试' });
+    } finally {
+      this.isRecognizing = false;
+    }
+  }
+
   private async submitForm(): Promise<void> {
     if (!this.validateForm()) return;
 
@@ -90,7 +161,7 @@ export struct AddHealthDataForm {
       const response = await httpRequest<ApiResponse<HealthDataResponse>, HealthDataRequest>({
         url: '/api/v1/elder-health/daily-health',
         method: RequestEnum.POST,
-        params: data
+        params: data,
       });
 
       if (response.code === 200 || response.code === 201) {
@@ -132,13 +203,13 @@ export struct AddHealthDataForm {
   }
 
   @Builder
-  private InputField(label: string, placeholder: string, value: string, unit: string, onChange: (v: string) => void) {
+  private InputField(label: string, placeholder: string, value: Binding<string>, unit: string, onChange: (v: string) => void) {
     Row() {
       Text(label)
         .fontSize(14)
         .fontColor('#64748b')
         .width(80)
-      TextInput({ text: value, placeholder: placeholder })
+      TextInput({ text: value.value, placeholder: placeholder })
         .height(44)
         .fontSize(15)
         .backgroundColor('#f8fafc')
@@ -198,19 +269,42 @@ export struct AddHealthDataForm {
           .backgroundColor('#f8fafc')
           .borderRadius(12)
 
+          // 智能识别入口
+          Row() {
+            Button() {
+              Row() {
+                Text(this.isRecognizing ? '⏳' : '📸').fontSize(16).fontColor('#ffffff').margin({ right: 6 })
+                Text(this.isRecognizing ? '识别中...' : '拍照/上传 智能识别健康数据')
+                  .fontSize(14).fontColor('#ffffff')
+              }
+            }
+            .type(ButtonType.Normal)
+            .borderRadius(8)
+            .backgroundColor('#10b981') // Green color for distinction
+            .width('100%')
+            .height(44)
+            .onClick(() => {
+              if (!this.isRecognizing) {
+                this.handleSmartRecognition();
+              }
+            })
+          }
+          .width('100%')
+          .margin({ top: 16 })
+
           // 血压
           this.SectionTitle('💓', '血压')
-          this.InputField('收缩压', '如 120', this.sbp, 'mmHg', (v: string) => { this.sbp = v; })
-          this.InputField('舒张压', '如 80', this.dbp, 'mmHg', (v: string) => { this.dbp = v; })
+          this.InputField('收缩压', '如 120', UIUtils.makeBinding(()=>this.sbp), 'mmHg', (v: string) => { this.sbp = v; })
+          this.InputField('舒张压', '如 80', UIUtils.makeBinding(()=>this.dbp), 'mmHg', (v: string) => { this.dbp = v; })
 
           // 血糖
           this.SectionTitle('🩸', '血糖')
-          this.InputField('空腹血糖', '如 5.6', this.fpg, 'mmol/L', (v: string) => { this.fpg = v; })
-          this.InputField('餐后血糖', '如 7.8', this.ppg2h, 'mmol/L', (v: string) => { this.ppg2h = v; })
+          this.InputField('空腹血糖', '如 5.6', UIUtils.makeBinding(()=>this.fpg), 'mmol/L', (v: string) => { this.fpg = v; })
+          this.InputField('餐后血糖', '如 7.8', UIUtils.makeBinding(()=>this.ppg2h), 'mmol/L', (v: string) => { this.ppg2h = v; })
 
           // 体重
           this.SectionTitle('⚖️', '体重')
-          this.InputField('体重', '如 65.5', this.weight, 'kg', (v: string) => { this.weight = v; })
+          this.InputField('体重', '如 65.5', UIUtils.makeBinding(()=>this.weight), 'kg', (v: string) => { this.weight = v; })
 
           // 备注
           this.SectionTitle('📝', '备注（选填）')

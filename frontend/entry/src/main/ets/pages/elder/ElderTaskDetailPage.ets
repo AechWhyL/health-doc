@@ -543,6 +543,7 @@ export struct ElderTaskDetailPage {
       .backgroundColor(Color.White)
       .borderRadius(16)
       .shadow({ radius: 6, color: '#0f172a0a', offsetY: 2 })
+      .margin({bottom:16})
     }
   }
 

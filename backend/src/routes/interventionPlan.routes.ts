@@ -29,6 +29,7 @@ router.patch(
   validateBody(updateInterventionPlanStatusSchema),
   InterventionPlanController.updatePlanStatus
 );
+router.post('/plans/:id/stop', validateParams(idParamSchema), InterventionPlanController.stopPlan);
 
 export default router;
 

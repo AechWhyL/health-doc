@@ -29,10 +29,9 @@ const router = new Router({
  *         application/json:
  *           schema:
  *             type: object
- *             required:
+*             required:
  *               - title
  *               - creator_type
- *               - creator_id
  *               - target_staff_id
  *             properties:
  *               title:
@@ -47,7 +46,7 @@ const router = new Router({
  *                 description: 创建人类型
  *               creator_id:
  *                 type: integer
- *                 description: 创建人ID
+ *                 description: 创建人ID（可选，由后端从认证信息自动填充）
  *               target_staff_id:
  *                 type: integer
  *                 description: 目标医护人员ID

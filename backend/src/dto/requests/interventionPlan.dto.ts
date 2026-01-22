@@ -55,11 +55,11 @@ export const updateInterventionPlanSchema = Joi.object({
 
 export const updateInterventionPlanStatusSchema = Joi.object({
   status: Joi.string()
-    .valid('DRAFT', 'PENDING', 'ACTIVE', 'PAUSED', 'FINISHED', 'CANCELLED')
+    .valid('ACTIVE', 'STOPPED')
     .required()
     .messages({
       'string.base': '计划状态必须是字符串',
-      'any.only': '计划状态不合法',
+      'any.only': '计划状态不合法(有效值: ACTIVE=进行中, STOPPED=已停止)',
       'any.required': '计划状态为必填项'
     })
 });
@@ -77,11 +77,11 @@ export const queryInterventionPlanSchema = Joi.object({
     'number.max': '每页数量不能超过100'
   }),
   status: Joi.string()
-    .valid('DRAFT', 'PENDING', 'ACTIVE', 'PAUSED', 'FINISHED', 'CANCELLED')
+    .valid('ACTIVE', 'STOPPED')
     .optional()
     .messages({
       'string.base': '计划状态必须是字符串',
-      'any.only': '计划状态不合法'
+      'any.only': '计划状态不合法(有效值: ACTIVE=进行中, STOPPED=已停止)'
     }),
   orderBy: Joi.string().optional().allow('')
 });

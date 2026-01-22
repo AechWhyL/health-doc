@@ -520,6 +520,47 @@ export class InterventionPlanItemRepository {
     return await Database.update(sql, [itemId]);
   }
 
+  /**
+   * 批量更新指定计划下的所有计划项状态
+   */
+  static async updateStatusByPlanId(planId: number, status: string): Promise<number> {
+    const sql = `
+      UPDATE plan_item
+      SET status = ?
+      WHERE plan_id = ?
+    `;
+    return await Database.update(sql, [status, planId]);
+  }
+
+  /**
+   * 批量更新指定任务实例的状态
+   */
+  static async updateTaskInstanceStatusByIds(taskIds: number[], status: string): Promise<number> {
+    if (taskIds.length === 0) {
+      return 0;
+    }
+    const placeholders = taskIds.map(() => '?').join(', ');
+    const sql = `
+      UPDATE plan_task_instance
+      SET status = ?
+      WHERE id IN (${placeholders})
+    `;
+    return await Database.update(sql, [status, ...taskIds]);
+  }
+
+  /**
+   * 查询指定计划下所有PENDING状态的任务实例
+   */
+  static async findPendingTaskInstancesByPlanId(planId: number): Promise<{ id: number }[]> {
+    const sql = `
+      SELECT pti.id
+      FROM plan_task_instance pti
+      JOIN plan_item pi ON pti.item_id = pi.id
+      WHERE pi.plan_id = ? AND pti.status = 'PENDING'
+    `;
+    return await Database.query<{ id: number }>(sql, [planId]);
+  }
+
   static async getTaskStatsByElderIds(
     elderIds: number[],
     date: string

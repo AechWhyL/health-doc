@@ -166,8 +166,8 @@ export class InterventionPlanController {
    *         required: false
    *         schema:
    *           type: string
-   *           enum: [DRAFT, PENDING, ACTIVE, PAUSED, FINISHED, CANCELLED]
-   *         description: 计划状态筛选
+   *           enum: [ACTIVE, STOPPED]
+   *         description: 计划状态筛选(ACTIVE=进行中, STOPPED=已停止)
    *     responses:
    *       200:
    *         description: 查询成功
@@ -319,8 +319,8 @@ export class InterventionPlanController {
    *             properties:
    *               status:
    *                 type: string
-   *                 enum: [DRAFT, PENDING, ACTIVE, PAUSED, FINISHED, CANCELLED]
-   *                 description: 计划状态
+   *                 enum: [ACTIVE, STOPPED]
+   *                 description: 计划状态(ACTIVE=进行中, STOPPED=已停止)
    *     responses:
    *       200:
    *         description: 更新成功
@@ -351,6 +351,53 @@ export class InterventionPlanController {
     ctx.body = {
       code: 200,
       message: '干预计划状态更新成功',
+      data: result
+    };
+  }
+
+  /**
+   * @swagger
+   * /api/v1/intervention/plans/{id}/stop:
+   *   post:
+   *     summary: 中止健康干预计划
+   *     description: 中止指定的干预计划,同时将其下所有计划项和待执行(PENDING)的任务实例状态改为已停止(STOPPED)
+   *     tags: [健康干预计划管理]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: 干预计划ID
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: 中止成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 干预计划已成功中止
+   *                 data:
+   *                   $ref: '#/components/schemas/InterventionPlanResponse'
+   *       404:
+   *         description: 干预计划不存在
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async stopPlan(ctx: Context): Promise<void> {
+    const id = Number(ctx.params.id);
+    const result = await InterventionPlanService.stopPlan(id);
+
+    ctx.body = {
+      code: 200,
+      message: '干预计划已成功中止',
       data: result
     };
   }

@@ -27,7 +27,7 @@ interface CreateQuestionRequest {
   title: string;
   description: string;
   creator_type: string;
-  creator_id: number;
+  creator_id?: number;
   target_staff_id: number;
   priority: string;
 }
@@ -158,7 +158,6 @@ export struct FamilyConsultationTab {
         title: this.questionTitle.trim(),
         description: this.questionContent.trim(),
         creator_type: 'FAMILY',
-        creator_id: 1,
         target_staff_id: this.selectedStaff.user_id,
         priority: 'NORMAL'
       };

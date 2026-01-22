@@ -500,13 +500,25 @@ export class RuleEngineService {
     const days = windowDays > 0 ? windowDays : 30;
     const measurements = await DailyHealthMeasurementRepository.findByElderInRecentDays(elderId, days);
 
+    // Convert decimal strings to numbers
+    const processedMeasurements = measurements.map(m => ({
+      ...m,
+      sbp: m.sbp !== undefined && m.sbp !== null ? Number(m.sbp) : undefined,
+      dbp: m.dbp !== undefined && m.dbp !== null ? Number(m.dbp) : undefined,
+      fpg: m.fpg !== undefined && m.fpg !== null ? Number(m.fpg) : undefined,
+      ppg_2h: m.ppg_2h !== undefined && m.ppg_2h !== null ? Number(m.ppg_2h) : undefined,
+      weight: m.weight !== undefined && m.weight !== null ? Number(m.weight) : undefined,
+      steps: m.steps !== undefined && m.steps !== null ? Number(m.steps) : undefined
+    }));
+
     const context: HealthRuleContext = {
       elder,
-      measurements,
+      measurements: processedMeasurements,
       windowDays: days
     };
 
     const results: HealthRuleResult[] = [];
+    console.log("[rule evaluate] ", context);
     rules.forEach(rule => {
       const result = rule.evaluate(context);
       if (result) {

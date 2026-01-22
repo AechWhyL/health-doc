@@ -18,7 +18,7 @@ interface RequestData<P> {
 
 const instance: AxiosInstance = axios.create({
   baseURL: BASEURL.baseUrl,
-  timeout: 5000,
+  timeout: 12000,
 });
 
 export function setBaseUrl(url: string): void {

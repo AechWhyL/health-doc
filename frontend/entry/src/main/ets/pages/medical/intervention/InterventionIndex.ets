@@ -87,9 +87,6 @@ export struct InterventionIndex {
             if (plan.status === 'ACTIVE') {
               active++
             }
-            if (plan.status === 'PENDING') {
-              pending++
-            }
           }
         }
       }

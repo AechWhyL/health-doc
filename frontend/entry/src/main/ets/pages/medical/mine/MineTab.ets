@@ -1,4 +1,4 @@
-import { promptAction, router } from '@kit.ArkUI';
+import { Binding, promptAction, router, UIUtils } from '@kit.ArkUI';
 import dayjs from 'dayjs';
 import { httpRequest } from '../../../common/api/HttpUtil';
 import { RequestEnum } from '../../../common/api/httpEnum';
@@ -49,7 +49,6 @@ export struct MineTab {
   @State user: UserWithRoleResponse | null = null;
   @State isLoading: boolean = false;
   @State isSaving: boolean = false;
-
   // Stored original values (from server)
   @State realName: string = '';
   @State gender: number = 0;
@@ -58,7 +57,6 @@ export struct MineTab {
   @State jobTitle: string = '';
   @State goodAtTags: string = '';
   @State enableOnlineService: boolean = false;
-
   // Editing state
   @State editingField: EditableField = null;
   @State editingValue: string = '';
@@ -75,8 +73,12 @@ export struct MineTab {
   }
 
   getGenderLabel(): string {
-    if (this.gender === 0) return '男';
-    if (this.gender === 1) return '女';
+    if (this.gender === 0) {
+      return '男';
+    }
+    if (this.gender === 1) {
+      return '女';
+    }
     return '其他';
   }
 
@@ -90,17 +92,10 @@ export struct MineTab {
 
   // Format birth date for display (human readable)
   formatBirthDateForDisplay(): string {
-    if (!this.birthDate) return '请选择';
+    if (!this.birthDate) {
+      return '请选择';
+    }
     return dayjs(this.birthDate).format('YYYY年M月D日');
-  }
-
-  // Get field value directly from state for reactivity
-  getFieldValue(field: EditableField): string {
-    if (field === 'realName') return this.realName;
-    if (field === 'roleType') return this.roleType;
-    if (field === 'jobTitle') return this.jobTitle;
-    if (field === 'goodAtTags') return this.goodAtTags;
-    return '';
   }
 
   async loadUserInfo(): Promise<void> {
@@ -139,12 +134,21 @@ export struct MineTab {
   }
 
   startEditing(field: EditableField): void {
-    if (field === null) return;
+    if (field === null) {
+      return;
+    }
     this.editingField = field;
-    if (field === 'realName') this.editingValue = this.realName;
-    else if (field === 'roleType') this.editingValue = this.roleType;
-    else if (field === 'jobTitle') this.editingValue = this.jobTitle;
-    else if (field === 'goodAtTags') this.editingValue = this.goodAtTags;
+    if (field === 'realName') {
+      this.editingValue = this.realName;
+    } else if (field === 'roleType') {
+      this.editingValue =
+        this.roleType;
+    } else if (field === 'jobTitle') {
+      this.editingValue = this.jobTitle;
+    } else if (field ===
+      'goodAtTags') {
+      this.editingValue = this.goodAtTags;
+    }
   }
 
   cancelEditing(): void {
@@ -153,23 +157,39 @@ export struct MineTab {
   }
 
   async saveField(field: EditableField): Promise<void> {
-    if (field === null) return;
+    if (field === null) {
+      return;
+    }
     const payload: UpdateMedicalStaffPayload = {
       gender: this.gender,
       role_type: this.roleType,
       enable_online_service: this.enableOnlineService
     };
 
-    if (field === 'realName') payload.real_name = this.editingValue;
-    else if (field === 'roleType') payload.role_type = this.editingValue;
-    else if (field === 'jobTitle') payload.job_title = this.editingValue;
-    else if (field === 'goodAtTags') payload.good_at_tags = this.editingValue;
+    if (field === 'realName') {
+      payload.real_name = this.editingValue;
+    } else if (field === 'roleType') {
+      payload.role_type =
+        this.editingValue;
+    } else if (field === 'jobTitle') {
+      payload.job_title = this.editingValue;
+    } else if (field ===
+      'goodAtTags') {
+      payload.good_at_tags = this.editingValue;
+    }
 
     await this.submitUpdate(payload, () => {
-      if (field === 'realName') this.realName = this.editingValue;
-      else if (field === 'roleType') this.roleType = this.editingValue;
-      else if (field === 'jobTitle') this.jobTitle = this.editingValue;
-      else if (field === 'goodAtTags') this.goodAtTags = this.editingValue;
+      if (field === 'realName') {
+        this.realName = this.editingValue;
+      } else if (field === 'roleType') {
+        this.roleType =
+          this.editingValue;
+      } else if (field === 'jobTitle') {
+        this.jobTitle = this.editingValue;
+      } else if (field ===
+        'goodAtTags') {
+        this.goodAtTags = this.editingValue;
+      }
       this.cancelEditing();
     });
   }
@@ -209,7 +229,9 @@ export struct MineTab {
   }
 
   async submitUpdate(payload: UpdateMedicalStaffPayload, onSuccess: () => void): Promise<void> {
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
     this.isSaving = true;
     try {
       const response = await httpRequest<ApiResponse, UpdateMedicalStaffPayload>({
@@ -279,7 +301,7 @@ export struct MineTab {
   }
 
   @Builder
-  EditableTextRow(label: string, field: EditableField, placeholder: string = '') {
+  EditableTextRow(label: string, field: EditableField, value: Binding<string>, placeholder: string = '') {
     Column() {
       Text(label)
         .fontSize(13)
@@ -295,7 +317,12 @@ export struct MineTab {
             .fontColor('#1e293b')
             .backgroundColor('#f1f5f9')
             .borderRadius(8)
-            .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+            .padding({
+              left: 12,
+              right: 12,
+              top: 10,
+              bottom: 10
+            })
             .layoutWeight(1)
             .border({ width: 2, color: '#2563eb', radius: 8 })
             .onChange((val: string) => {
@@ -321,11 +348,11 @@ export struct MineTab {
         }
         .width('100%')
       } else {
-        // Display mode - access state directly via getFieldValue for reactivity
+        // Display mode - use passed value for reactivity
         Row() {
-          Text(this.getFieldValue(field) || placeholder)
+          Text(value.value || placeholder)
             .fontSize(15)
-            .fontColor(this.getFieldValue(field) ? '#1e293b' : '#9ca3af')
+            .fontColor(value ? '#1e293b' : '#9ca3af')
             .layoutWeight(1)
 
           Text('修改')
@@ -339,7 +366,12 @@ export struct MineTab {
         .padding({ top: 10, bottom: 10 })
         .backgroundColor('#f8fafc')
         .borderRadius(8)
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+        .padding({
+          left: 12,
+          right: 12,
+          top: 10,
+          bottom: 10
+        })
       }
     }
     .width('100%')
@@ -390,10 +422,20 @@ export struct MineTab {
         .margin({ bottom: 6 })
 
       Row() {
-        Text(this.formatBirthDateForDisplay())
-          .fontSize(15)
-          .fontColor(this.birthDate ? '#1e293b' : '#9ca3af')
-          .layoutWeight(1)
+        if(this.birthDate){
+          Text(dayjs(this.birthDate).format('YYYY年M月D日'))
+            .fontSize(15)
+            .fontColor(this.birthDate ? '#1e293b' : '#9ca3af')
+            .layoutWeight(1)
+        }else{
+          Text(
+            "请选择"
+          )
+            .fontSize(15)
+            .fontColor(this.birthDate ? '#1e293b' : '#9ca3af')
+            .layoutWeight(1)
+        }
+
 
         Text('选择')
           .fontSize(13)
@@ -412,7 +454,12 @@ export struct MineTab {
           })
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+      .padding({
+        left: 12,
+        right: 12,
+        top: 10,
+        bottom: 10
+      })
       .backgroundColor('#f8fafc')
       .borderRadius(8)
     }
@@ -466,7 +513,7 @@ export struct MineTab {
 
             CardContainer({ title: '基本信息' }) {
               Column() {
-                this.EditableTextRow('真实姓名', 'realName', '请输入真实姓名')
+                this.EditableTextRow('真实姓名', 'realName', UIUtils.makeBinding(() => this.realName), '请输入真实姓名')
                 this.GenderPickerRow()
                 this.BirthDatePickerRow()
               }
@@ -474,9 +521,10 @@ export struct MineTab {
 
             CardContainer({ title: '职业信息' }) {
               Column() {
-                this.EditableTextRow('医护类型', 'roleType', '例如：医生、护士')
-                this.EditableTextRow('职称', 'jobTitle', '例如：主任医师')
-                this.EditableTextRow('擅长领域', 'goodAtTags', '多个标签用逗号分隔')
+                this.EditableTextRow('医护类型', 'roleType', UIUtils.makeBinding(() => this.roleType), '例如：医生、护士')
+                this.EditableTextRow('职称', 'jobTitle', UIUtils.makeBinding(() => this.jobTitle), '例如：主任医师')
+                this.EditableTextRow('擅长领域', 'goodAtTags', UIUtils.makeBinding(() => this.goodAtTags),
+                  '多个标签用逗号分隔')
               }
             }
 

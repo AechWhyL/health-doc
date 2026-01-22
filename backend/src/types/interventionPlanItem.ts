@@ -1,6 +1,7 @@
 export type PlanItemType = 'MEDICATION' | 'REHAB';
 
-export type PlanItemStatus = 'ACTIVE' | 'PAUSED' | 'STOPPED';
+// 计划项状态: ACTIVE=进行中, STOPPED=已停止
+export type PlanItemStatus = 'ACTIVE' | 'STOPPED';
 
 export type PlanScheduleType = 'ONCE' | 'DAILY' | 'WEEKLY';
 

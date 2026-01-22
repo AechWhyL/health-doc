@@ -73,7 +73,7 @@ export class Database {
     const offset = (page - 1) * pageSize;
 
     const countSql = `SELECT COUNT(*) as total FROM ${tableName} WHERE ${where}`;
-    const countResult = params.length > 0 
+    const countResult = params.length > 0
       ? await this.queryOne<{ total: number }>(countSql, params)
       : await this.queryOne<{ total: number }>(countSql);
     const total = countResult?.total || 0;

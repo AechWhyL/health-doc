@@ -1,4 +1,5 @@
 import { InterventionPlanRepository } from '../repositories/interventionPlan.repository';
+import { InterventionPlanItemRepository } from '../repositories/interventionPlanItem.repository';
 import {
   CreateInterventionPlanRequest,
   UpdateInterventionPlanRequest,
@@ -16,7 +17,7 @@ export class InterventionPlanService {
       elder_user_id: data.elderUserId,
       title: data.title,
       description: data.description ?? null,
-      status: 'DRAFT',
+      status: 'ACTIVE', // 新创建的计划默认为"进行中"状态
       start_date: data.startDate,
       end_date: data.endDate ?? null,
       created_by_user_id: data.createdByUserId
@@ -116,6 +117,41 @@ export class InterventionPlanService {
 
     await InterventionPlanRepository.update(id, { status });
 
+    const updated = await InterventionPlanRepository.findById(id);
+    if (!updated) {
+      throw new NotFoundError('干预计划不存在');
+    }
+
+    return this.toResponse(updated);
+  }
+
+  /**
+   * 中止干预计划
+   * 会将计划、计划项、待执行任务实例的状态都改为"STOPPED"
+   */
+  static async stopPlan(id: number): Promise<InterventionPlanResponse> {
+    // 1. 验证计划是否存在
+    const plan = await InterventionPlanRepository.findById(id);
+    if (!plan) {
+      throw new NotFoundError('干预计划不存在');
+    }
+
+    // 2. 更新干预计划状态为 STOPPED
+    await InterventionPlanRepository.update(id, { status: 'STOPPED' });
+
+    // 3. 更新该计划下所有计划项状态为 STOPPED
+    await InterventionPlanItemRepository.updateStatusByPlanId(id, 'STOPPED');
+
+    // 4. 查询该计划下所有 PENDING 状态的任务实例
+    const pendingTasks = await InterventionPlanItemRepository.findPendingTaskInstancesByPlanId(id);
+
+    // 5. 批量更新任务实例状态为 STOPPED
+    if (pendingTasks.length > 0) {
+      const taskIds = pendingTasks.map(task => task.id);
+      await InterventionPlanItemRepository.updateTaskInstanceStatusByIds(taskIds, 'STOPPED');
+    }
+
+    // 6. 返回更新后的计划
     const updated = await InterventionPlanRepository.findById(id);
     if (!updated) {
       throw new NotFoundError('干预计划不存在');

@@ -61,6 +61,16 @@ export class InterventionService {
       params: data
     });
   }
+  /**
+   * 中止干预计划
+   */
+  static async stopPlan(planId: number): Promise<ApiResponse<InterventionPlanResponse>> {
+    return httpRequest<ApiResponse<InterventionPlanResponse>, Record<string, Object>>({
+      url: `/api/v1/intervention/plans/${planId}/stop`,
+      method: RequestEnum.POST,
+      token: 'auth'
+    });
+  }
 
   /**
    * 获取计划下的计划项列表

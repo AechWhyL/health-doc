@@ -9,32 +9,57 @@ interface ApiResponse<T = Object> {
   timestamp: number;
 }
 
-interface ConsultationQuestion {
-  id: number;
-  title: string;
-  content: string;
-  priority: string;
-  status: string;
-  creator_id: number;
-  creator_type: string;
-  created_at: string;
-  updated_at: string;
-}
-
 interface PaginationResponse<T> {
   items: T[];
   total: number;
 }
 
+interface ConsultationQuestion {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  created_at: string;
+}
+
 interface CreateQuestionRequest {
   title: string;
-  content: string;
+  description: string;
+  creator_type: string;
+  creator_id?: number;
+  target_staff_id: number;
   priority: string;
 }
 
 interface ConsultationParams {
-  creator_type: string;
+  page?: number;
+  pageSize?: number;
   status?: string;
+}
+
+interface MedicalStaffInfo {
+  id: number;
+  user_id: number;
+  gender: number;
+  role_type: string;
+  job_title: string | null;
+  good_at_tags: string | null;
+  real_name: string | null;
+  username: string;
+  phone: string | null;
+}
+
+interface MedicalStaffListData {
+  items: MedicalStaffInfo[];
+  total: number;
+}
+
+interface SearchStaffParams {
+  page: number;
+  pageSize: number;
+  goodAtTags?: string;
+  phone?: string;
 }
 
 @Component
@@ -43,9 +68,17 @@ export struct ElderConsultationTab {
   @State questions: ConsultationQuestion[] = [];
   @State isLoading: boolean = false;
   @State currentTab: number = 0;
-  @State showCreateDialog: boolean = false;
-  @State newQuestionTitle: string = '';
-  @State newQuestionContent: string = '';
+  // 全屏创建咨询状态
+  @State showCreatePage: boolean = false;
+  @State createStep: number = 1; // 1=选择医护, 2=填写表单
+  @State staffList: MedicalStaffInfo[] = [];
+  @State isLoadingStaff: boolean = false;
+  @State selectedStaff: MedicalStaffInfo | null = null;
+  @State searchKeyword: string = '';
+  @State searchPhone: string = '';
+  @State questionTitle: string = '';
+  @State questionContent: string = '';
+  @State isSubmitting: boolean = false;
 
   private tabs: string[] = ['全部', '待处理', '处理中', '已完成'];
 
@@ -56,17 +89,10 @@ export struct ElderConsultationTab {
   private async fetchQuestions(): Promise<void> {
     this.isLoading = true;
     try {
-      const params: ConsultationParams = {
-        creator_type: 'ELDER'
-      };
-
-      if (this.currentTab === 1) {
-        params.status = 'PENDING';
-      } else if (this.currentTab === 2) {
-        params.status = 'IN_PROGRESS';
-      } else if (this.currentTab === 3) {
-        params.status = 'COMPLETED';
-      }
+      const params: ConsultationParams = { page: 1, pageSize: 50 };
+      if (this.currentTab === 1) params.status = 'PENDING';
+      else if (this.currentTab === 2) params.status = 'IN_PROGRESS';
+      else if (this.currentTab === 3) params.status = 'COMPLETED';
 
       const response = await httpRequest<ApiResponse<PaginationResponse<ConsultationQuestion>>, ConsultationParams>({
         url: '/api/v1/consultation/questions',
@@ -84,16 +110,55 @@ export struct ElderConsultationTab {
     }
   }
 
-  private async createQuestion(): Promise<void> {
-    if (this.newQuestionTitle.trim() === '' || this.newQuestionContent.trim() === '') {
-      promptAction.showToast({ message: '请填写标题和内容' });
+  private async loadMedicalStaff(): Promise<void> {
+    this.isLoadingStaff = true;
+    try {
+      const params: SearchStaffParams = { page: 1, pageSize: 50 };
+      if (this.searchKeyword.trim()) params.goodAtTags = this.searchKeyword.trim();
+      if (this.searchPhone.trim()) params.phone = this.searchPhone.trim();
+
+      const response = await httpRequest<ApiResponse<MedicalStaffListData>, SearchStaffParams>({
+        url: '/api/v1/users/online-medical-staff',
+        method: RequestEnum.GET,
+        params: params
+      });
+
+      if (response.code === 200 && response.data) {
+        const data = response.data as Object;
+        if (Array.isArray((data as MedicalStaffListData).items)) {
+          this.staffList = (data as MedicalStaffListData).items;
+        } else if (Array.isArray((data as Record<string, MedicalStaffInfo[]>)['records'])) {
+          this.staffList = (data as Record<string, MedicalStaffInfo[]>)['records'];
+        }
+      }
+    } catch (error) {
+      console.error('获取医护人员列表失败:', error);
+    } finally {
+      this.isLoadingStaff = false;
+    }
+  }
+
+  private async submitQuestion(): Promise<void> {
+    if (!this.selectedStaff) {
+      promptAction.showToast({ message: '请选择咨询对象' });
+      return;
+    }
+    if (!this.questionTitle.trim()) {
+      promptAction.showToast({ message: '请输入标题' });
+      return;
+    }
+    if (!this.questionContent.trim()) {
+      promptAction.showToast({ message: '请输入内容' });
       return;
     }
 
+    this.isSubmitting = true;
     try {
       const data: CreateQuestionRequest = {
-        title: this.newQuestionTitle.trim(),
-        content: this.newQuestionContent.trim(),
+        title: this.questionTitle.trim(),
+        description: this.questionContent.trim(),
+        creator_type: 'ELDER',
+        target_staff_id: this.selectedStaff.user_id,
         priority: 'NORMAL'
       };
 
@@ -105,145 +170,349 @@ export struct ElderConsultationTab {
 
       if (response.code === 200 || response.code === 201) {
         promptAction.showToast({ message: '咨询已提交' });
-        this.showCreateDialog = false;
-        this.newQuestionTitle = '';
-        this.newQuestionContent = '';
+        this.closeCreatePage();
         this.fetchQuestions();
       } else {
         promptAction.showToast({ message: response.message || '提交失败' });
       }
     } catch (error) {
       console.error('创建咨询失败:', error);
-      promptAction.showToast({ message: '提交失败，请重试' });
+      promptAction.showToast({ message: '提交失败' });
+    } finally {
+      this.isSubmitting = false;
+    }
+  }
+
+  private openCreatePage(): void {
+    this.showCreatePage = true;
+    this.createStep = 1;
+    this.staffList = [];
+    this.selectedStaff = null;
+    this.searchKeyword = '';
+    this.searchPhone = '';
+    this.questionTitle = '';
+    this.questionContent = '';
+    this.loadMedicalStaff();
+  }
+
+  private closeCreatePage(): void {
+    this.showCreatePage = false;
+    this.createStep = 1;
+  }
+
+  private getRoleTypeText(roleType: string): string {
+    switch (roleType) {
+      case 'doctor': return '医生';
+      case 'nurse': return '护士';
+      case 'therapist': return '治疗师';
+      default: return '医护';
     }
   }
 
   private getStatusText(status: string): string {
     switch (status) {
-      case 'PENDING':
-        return '待处理';
-      case 'IN_PROGRESS':
-        return '处理中';
-      case 'RESOLVED':
-        return '已完成';
-      case 'CLOSED':
-        return '已关闭';
-      default:
-        return status;
+      case 'PENDING': return '待处理';
+      case 'IN_PROGRESS': return '处理中';
+      case 'COMPLETED': return '已完成';
+      default: return status;
     }
   }
 
   private getStatusColor(status: string): string {
     switch (status) {
-      case 'PENDING':
-        return '#f59e0b';
-      case 'IN_PROGRESS':
-        return '#16a34a';
-      case 'RESOLVED':
-        return '#2563eb';
-      case 'CLOSED':
-        return '#9ca3af';
-      default:
-        return '#64748b';
+      case 'PENDING': return '#f59e0b';
+      case 'IN_PROGRESS': return '#3b82f6';
+      case 'COMPLETED': return '#10b981';
+      default: return '#6b7280';
     }
   }
 
-  private formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
-  }
-
-  private openChat(question: ConsultationQuestion): void {
-    this.navPathStack.pushPath({
-      name: 'Elder_ConsultationChat',
-      param: question as Object
-    });
-  }
-
   @Builder
-  private QuestionItem(item: ConsultationQuestion) {
-    Column() {
-      Row() {
-        Column() {
+  QuestionItem(item: ConsultationQuestion) {
+    Row() {
+      Column() {
+        Row() {
           Text(item.title)
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
             .fontColor('#1e293b')
+            .layoutWeight(1)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-          Text(item.content)
-            .fontSize(13)
-            .fontColor('#64748b')
-            .maxLines(2)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .margin({ top: 6 })
-
-          Row() {
-            Text(this.getStatusText(item.status))
-              .fontSize(11)
-              .fontColor(this.getStatusColor(item.status))
-              .backgroundColor(this.getStatusColor(item.status) + '20')
-              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-              .borderRadius(10)
-
-            Text(this.formatDate(item.created_at))
-              .fontSize(11)
-              .fontColor('#9ca3af')
-              .margin({ left: 10 })
-          }
-          .margin({ top: 10 })
+          Text(this.getStatusText(item.status))
+            .fontSize(11)
+            .fontColor(this.getStatusColor(item.status))
+            .backgroundColor(this.getStatusColor(item.status) + '1a')
+            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+            .borderRadius(10)
         }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
+        .width('100%')
 
-        Text('→')
+        Text(item.description || '无描述')
+          .fontSize(13)
+          .fontColor('#64748b')
+          .margin({ top: 6 })
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Text(item.created_at?.substring(0, 10) || '')
+          .fontSize(11)
+          .fontColor('#9ca3af')
+          .margin({ top: 6 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor(Color.White)
+    .borderRadius(14)
+    .margin({ bottom: 10 })
+    .shadow({ radius: 4, color: '#0f172a0a', offsetY: 1 })
+    .onClick(() => {
+      this.navPathStack.pushPath({ name: 'Elder_ConsultationChat', param: item });
+    })
+  }
+
+  @Builder
+  StaffCard(staff: MedicalStaffInfo) {
+    Row() {
+      Column() {
+        Text(staff.gender === 0 ? '👨‍⚕️' : '👩‍⚕️').fontSize(26)
+      }
+      .width(50)
+      .height(50)
+      .borderRadius(25)
+      .backgroundColor('#f0fdf4')
+      .justifyContent(FlexAlign.Center)
+
+      Column() {
+        Row() {
+          Text(staff.real_name || staff.username)
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#1e293b')
+          Text(this.getRoleTypeText(staff.role_type))
+            .fontSize(10)
+            .fontColor('#16a34a')
+            .backgroundColor('#f0fdf4')
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .borderRadius(6)
+            .margin({ left: 8 })
+        }
+        if (staff.job_title) {
+          Text(staff.job_title).fontSize(12).fontColor('#64748b').margin({ top: 3 })
+        }
+        if (staff.good_at_tags) {
+          Text('擅长: ' + staff.good_at_tags).fontSize(11).fontColor('#94a3b8').margin({ top: 2 }).maxLines(1)
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+      .margin({ left: 12 })
+
+      Button('选择')
+        .type(ButtonType.Capsule)
+        .backgroundColor('#16a34a')
+        .fontSize(12)
+        .height(32)
+        .onClick(() => {
+          this.selectedStaff = staff;
+          this.createStep = 2;
+        })
+    }
+    .width('100%')
+    .padding(14)
+    .backgroundColor(Color.White)
+    .borderRadius(12)
+    .margin({ bottom: 10 })
+  }
+
+  @Builder
+  CreatePageContent() {
+    Column() {
+      // 顶部栏
+      Row() {
+        Text(this.createStep === 1 ? '✕' : '←')
           .fontSize(20)
-          .fontColor('#cbd5e1')
+          .fontColor('#374151')
+          .onClick(() => {
+            if (this.createStep === 2) {
+              this.createStep = 1;
+            } else {
+              this.closeCreatePage();
+            }
+          })
+
+        Text(this.createStep === 1 ? '选择咨询对象' : '填写咨询内容')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#166534')
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+
+        Text('').width(20)
       }
       .width('100%')
-      .padding(16)
+      .height(56)
+      .padding({ left: 16, right: 16 })
       .backgroundColor(Color.White)
-      .borderRadius(14)
-      .shadow({ radius: 4, color: '#0f172a0a', offsetY: 1 })
+      .border({ width: { bottom: 1 }, color: '#e5e7eb' })
+
+      if (this.createStep === 1) {
+        // 搜索栏
+        Column() {
+          TextInput({ text: this.searchKeyword, placeholder: '搜索擅长领域...' })
+            .height(40)
+            .fontSize(14)
+            .backgroundColor('#f0fdf4')
+            .borderRadius(10)
+            .onChange((v: string) => { this.searchKeyword = v; })
+            .onSubmit(() => { this.loadMedicalStaff(); })
+
+          Row() {
+            TextInput({ text: this.searchPhone, placeholder: '手机号搜索...' })
+              .height(40)
+              .fontSize(14)
+              .backgroundColor('#f0fdf4')
+              .borderRadius(10)
+              .layoutWeight(1)
+              .onChange((v: string) => { this.searchPhone = v; })
+              .onSubmit(() => { this.loadMedicalStaff(); })
+
+            Button('搜索')
+              .type(ButtonType.Capsule)
+              .backgroundColor('#16a34a')
+              .height(40)
+              .width(70)
+              .margin({ left: 10 })
+              .onClick(() => { this.loadMedicalStaff(); })
+          }
+          .width('100%')
+          .margin({ top: 10 })
+        }
+        .width('100%')
+        .padding(16)
+        .backgroundColor(Color.White)
+
+        // 医护列表
+        if (this.isLoadingStaff) {
+          Column() {
+            LoadingProgress().width(36).height(36)
+            Text('加载中...').fontSize(13).fontColor('#64748b').margin({ top: 10 })
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+        } else if (this.staffList.length === 0) {
+          Column() {
+            Text('👨‍⚕️').fontSize(48)
+            Text('暂无可用医护人员').fontSize(15).fontColor('#64748b').margin({ top: 12 })
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+        } else {
+          Scroll() {
+            Column() {
+              ForEach(this.staffList, (staff: MedicalStaffInfo) => {
+                this.StaffCard(staff)
+              }, (staff: MedicalStaffInfo) => staff.id.toString())
+            }
+            .width('100%')
+            .padding(16)
+          }
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+        }
+      } else {
+        // 填写表单
+        Scroll() {
+          Column() {
+            // 已选医护
+            Row() {
+              Text(this.selectedStaff?.gender === 0 ? '👨‍⚕️' : '👩‍⚕️').fontSize(22)
+              Column() {
+                Text('咨询对象').fontSize(11).fontColor('#64748b')
+                Text(this.selectedStaff?.real_name || this.selectedStaff?.username || '')
+                  .fontSize(15)
+                  .fontWeight(FontWeight.Medium)
+                  .margin({ top: 2 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .margin({ left: 10 })
+              .layoutWeight(1)
+
+              Text('更换').fontSize(13).fontColor('#16a34a').onClick(() => { this.createStep = 1; })
+            }
+            .width('100%')
+            .padding(14)
+            .backgroundColor('#f0fdf4')
+            .borderRadius(10)
+            .margin({ bottom: 20 })
+
+            Text('咨询标题').fontSize(14).fontColor('#374151').alignSelf(ItemAlign.Start)
+            TextInput({ text: this.questionTitle, placeholder: '简要描述您的问题' })
+              .height(46)
+              .fontSize(14)
+              .backgroundColor('#f0fdf4')
+              .borderRadius(10)
+              .margin({ top: 6, bottom: 18 })
+              .onChange((v: string) => { this.questionTitle = v; })
+
+            Text('详细描述').fontSize(14).fontColor('#374151').alignSelf(ItemAlign.Start)
+            TextArea({ text: this.questionContent, placeholder: '详细描述您的问题...' })
+              .height(140)
+              .fontSize(14)
+              .backgroundColor('#f0fdf4')
+              .borderRadius(10)
+              .margin({ top: 6, bottom: 24 })
+              .onChange((v: string) => { this.questionContent = v; })
+
+            Button(this.isSubmitting ? '提交中...' : '提交咨询')
+              .type(ButtonType.Capsule)
+              .backgroundColor('#16a34a')
+              .width('100%')
+              .height(48)
+              .enabled(!this.isSubmitting)
+              .onClick(() => { this.submitQuestion(); })
+          }
+          .width('100%')
+          .padding(20)
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
+      }
     }
-    .margin({ bottom: 10 })
-    .onClick(() => {
-      this.openChat(item);
-    })
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#f1f5f9')
   }
 
   build() {
     Stack() {
+      // 主内容
       Column() {
-        // 页面标题
+        // 标题栏
         Row() {
           Column() {
-            Text('咨询服务')
-              .fontSize(22)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#166534')
-            Text('有问题随时向医护咨询')
-              .fontSize(13)
-              .fontColor('#64748b')
-              .margin({ top: 4 })
+            Text('咨询服务').fontSize(22).fontWeight(FontWeight.Bold).fontColor('#166534')
+            Text('向医护人员咨询健康问题').fontSize(13).fontColor('#64748b').margin({ top: 4 })
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
-          Button('+ 新咨询')
+          Button('+ 新建咨询')
             .type(ButtonType.Capsule)
             .backgroundColor('#16a34a')
             .fontSize(13)
             .height(36)
-            .onClick(() => {
-              this.showCreateDialog = true;
-            })
+            .onClick(() => { this.openCreatePage(); })
         }
         .width('100%')
         .padding({ left: 20, right: 20, top: 16, bottom: 12 })
 
-        // Tab切换
+        // Tab
         Row() {
           ForEach(this.tabs, (item: string, index: number) => {
             Text(item)
@@ -262,7 +531,7 @@ export struct ElderConsultationTab {
         .width('100%')
         .padding({ left: 16, right: 16, bottom: 12 })
 
-        // 咨询列表
+        // 列表
         if (this.isLoading) {
           Column() {
             LoadingProgress().width(36).height(36)
@@ -273,16 +542,8 @@ export struct ElderConsultationTab {
           .justifyContent(FlexAlign.Center)
         } else if (this.questions.length === 0) {
           Column() {
-            Text('💬')
-              .fontSize(48)
-            Text('暂无咨询记录')
-              .fontSize(15)
-              .fontColor('#64748b')
-              .margin({ top: 16 })
-            Text('有问题就点击右上角发起咨询')
-              .fontSize(13)
-              .fontColor('#9ca3af')
-              .margin({ top: 8 })
+            Text('💬').fontSize(48)
+            Text('暂无咨询记录').fontSize(15).fontColor('#64748b').margin({ top: 16 })
           }
           .width('100%')
           .layoutWeight(1)
@@ -290,9 +551,7 @@ export struct ElderConsultationTab {
         } else {
           List() {
             ForEach(this.questions, (item: ConsultationQuestion) => {
-              ListItem() {
-                this.QuestionItem(item)
-              }
+              ListItem() { this.QuestionItem(item) }
             }, (item: ConsultationQuestion) => item.id.toString())
           }
           .width('100%')
@@ -302,81 +561,11 @@ export struct ElderConsultationTab {
       }
       .width('100%')
       .height('100%')
+      .backgroundColor('#f8fafc')
 
-      // 新建咨询弹窗
-      if (this.showCreateDialog) {
-        Column() {
-          Column() {
-            Text('新建咨询')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#166534')
-              .margin({ bottom: 16 })
-
-            Text('问题标题')
-              .fontSize(13)
-              .fontColor('#64748b')
-              .alignSelf(ItemAlign.Start)
-            TextInput({ text: this.newQuestionTitle, placeholder: '简述您的问题' })
-              .height(44)
-              .fontSize(14)
-              .backgroundColor('#f0fdf4')
-              .borderRadius(10)
-              .margin({ top: 6, bottom: 14 })
-              .onChange((value: string) => {
-                this.newQuestionTitle = value;
-              })
-
-            Text('详细描述')
-              .fontSize(13)
-              .fontColor('#64748b')
-              .alignSelf(ItemAlign.Start)
-            TextArea({ text: this.newQuestionContent, placeholder: '请详细描述您的问题或疑惑...' })
-              .height(120)
-              .fontSize(14)
-              .backgroundColor('#f0fdf4')
-              .borderRadius(10)
-              .margin({ top: 6, bottom: 20 })
-              .onChange((value: string) => {
-                this.newQuestionContent = value;
-              })
-
-            Row() {
-              Button('取消')
-                .type(ButtonType.Capsule)
-                .backgroundColor('#f1f5f9')
-                .fontColor('#64748b')
-                .layoutWeight(1)
-                .height(44)
-                .margin({ right: 10 })
-                .onClick(() => {
-                  this.showCreateDialog = false;
-                })
-
-              Button('提交')
-                .type(ButtonType.Capsule)
-                .backgroundColor('#16a34a')
-                .layoutWeight(1)
-                .height(44)
-                .onClick(() => {
-                  this.createQuestion();
-                })
-            }
-            .width('100%')
-          }
-          .width('90%')
-          .padding(24)
-          .backgroundColor(Color.White)
-          .borderRadius(20)
-          .shadow({ radius: 20, color: '#0002' })
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#00000066')
-        .justifyContent(FlexAlign.Center)
-        .onClick(() => {
-          this.showCreateDialog = false;
-        })
+      // 全屏创建咨询页面
+      if (this.showCreatePage) {
+        this.CreatePageContent()
       }
     }
     .width('100%')

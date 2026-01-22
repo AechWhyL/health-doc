@@ -44,8 +44,6 @@ struct ElderIndex {
             ElderHomeTab()
           } else if (this.currentTab === 'health') {
             ElderHealthTab()
-          } else if (this.currentTab === 'intervention') {
-            InterventionIndex()
           } else if (this.currentTab === 'consult') {
             ElderConsultationTab()
           } else if (this.currentTab === 'profile') {
@@ -60,7 +58,6 @@ struct ElderIndex {
         Row() {
           this.TabIcon('home', '🏠', '首页')
           this.TabIcon('health', '❤️', '健康')
-          this.TabIcon('intervention', '📋', '干预')
           this.TabIcon('consult', '💬', '咨询')
           this.TabIcon('profile', '👤', '我的')
         }

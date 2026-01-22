@@ -39,6 +39,12 @@ interface MyEldersListData {
   total: number;
 }
 
+interface HealthJudgment {
+  bp_level: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+  fpg_level: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+  ppg_level: 'NORMAL' | 'MILD' | 'MODERATE' | 'SEVERE';
+}
+
 interface HealthMeasurement {
   id: number;
   elder_id: number;
@@ -51,6 +57,7 @@ interface HealthMeasurement {
   steps?: number;
   source: string;
   remark?: string;
+  judgment?: HealthJudgment;
 }
 
 interface HealthMeasurementListData {
@@ -66,6 +73,8 @@ interface HealthSummary {
   latestFpg?: number;
   hasWarning: boolean;
   warningText?: string;
+  bpLevel?: string;
+  fpgLevel?: string;
 }
 
 interface ElderWithHealth {
@@ -80,6 +89,7 @@ interface PaginationParams {
 
 interface ElderIdParams extends PaginationParams {
   elder_id: number;
+  include_judgment?: boolean;
 }
 
 interface SearchElderParams {
@@ -171,7 +181,12 @@ export struct ElderOverviewTab {
 
   private async fetchLatestHealth(elderId: number): Promise<HealthSummary> {
     try {
-      const healthParams: ElderIdParams = { elder_id: elderId, page: 1, pageSize: 1 };
+      const healthParams: ElderIdParams = { 
+        elder_id: elderId, 
+        page: 1, 
+        pageSize: 1,
+        include_judgment: true
+      };
       const response = await httpRequest<ApiResponse<HealthMeasurementListData>, ElderIdParams>({
         url: '/api/v1/elder-health/daily-health/list',
         method: RequestEnum.GET,
@@ -180,20 +195,46 @@ export struct ElderOverviewTab {
 
       if (response.code === 200 && response.data && response.data.records.length > 0) {
         const latest = response.data.records[0];
-        const hasWarning = (latest.sbp !== undefined && latest.sbp >= 140) ||
-          (latest.dbp !== undefined && latest.dbp >= 90) ||
-          (latest.fpg !== undefined && latest.fpg >= 7.0);
-
+        
+        let hasWarning = false;
         let warningText: string | undefined = undefined;
-        if (hasWarning) {
+
+        if (latest.judgment) {
           const warnings: string[] = [];
-          if (latest.sbp !== undefined && latest.sbp >= 140) {
-            warnings.push('血压偏高');
+          // 检查血压
+          if (latest.judgment.bp_level && latest.judgment.bp_level !== 'NORMAL') {
+             if (latest.judgment.bp_level === 'SEVERE') warnings.push('血压严重偏高');
+             else if (latest.judgment.bp_level === 'MODERATE') warnings.push('血压中度偏高');
+             else warnings.push('血压偏高');
           }
-          if (latest.fpg !== undefined && latest.fpg >= 7.0) {
-            warnings.push('血糖偏高');
+          // 检查血糖 (空腹或餐后)
+          if (latest.judgment.fpg_level && latest.judgment.fpg_level !== 'NORMAL') {
+             if (latest.judgment.fpg_level === 'SEVERE') warnings.push('血糖严重偏高');
+             else if (latest.judgment.fpg_level === 'MODERATE') warnings.push('血糖中度偏高');
+             else warnings.push('血糖偏高');
+          } else if (latest.judgment.ppg_level && latest.judgment.ppg_level !== 'NORMAL') {
+             if (latest.judgment.ppg_level === 'SEVERE') warnings.push('血糖严重偏高');
+             else if (latest.judgment.ppg_level === 'MODERATE') warnings.push('血糖中度偏高');
+             else warnings.push('血糖偏高');
           }
-          warningText = warnings.join('、') + '，建议关注';
+
+          if (warnings.length > 0) {
+            hasWarning = true;
+            warningText = warnings.join('、') + '，建议关注';
+          }
+        } else {
+          // Fallback if no judgment (though backend should return it if requested)
+           const isBpHigh = (latest.sbp !== undefined && latest.sbp >= 140) ||
+            (latest.dbp !== undefined && latest.dbp >= 90);
+           const isBsHigh = (latest.fpg !== undefined && latest.fpg >= 7.0);
+           
+           if (isBpHigh || isBsHigh) {
+             hasWarning = true;
+             const warnings: string[] = [];
+             if (isBpHigh) warnings.push('血压偏高');
+             if (isBsHigh) warnings.push('血糖偏高');
+             warningText = warnings.join('、') + '，建议关注';
+           }
         }
 
         return {
@@ -201,7 +242,9 @@ export struct ElderOverviewTab {
           latestDbp: latest.dbp,
           latestFpg: latest.fpg,
           hasWarning: hasWarning,
-          warningText: warningText
+          warningText: warningText,
+          bpLevel: latest.judgment?.bp_level,
+          fpgLevel: latest.judgment?.fpg_level
         };
       }
     } catch (error) {

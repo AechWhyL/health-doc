@@ -1,6 +1,6 @@
-export type InterventionPlanStatus = 'DRAFT' | 'PENDING' | 'ACTIVE' | 'PAUSED' | 'FINISHED' | 'CANCELLED';
+export type InterventionPlanStatus = 'ACTIVE' | 'STOPPED';
 export type PlanItemType = 'MEDICATION' | 'REHAB';
-export type PlanItemStatus = 'ACTIVE' | 'PAUSED' | 'STOPPED';
+export type PlanItemStatus = 'ACTIVE' | 'STOPPED';
 export type PlanScheduleType = 'ONCE' | 'DAILY' | 'WEEKLY';
 export type PlanTaskStatus = 'PENDING' | 'COMPLETED' | 'SKIPPED' | 'MISSED';
 

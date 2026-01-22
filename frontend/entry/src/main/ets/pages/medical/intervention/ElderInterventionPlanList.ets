@@ -14,6 +14,7 @@ import { PlanFormRouteParams } from './InterventionPlanForm'
 import { PlanItemFormRouteParams } from './PlanItemFormPage'
 import { PlanItemDetailRouteParams } from './PlanItemDetailPage'
 import { CardContainer } from '../../../components/common/CardContainer'
+import { MedicalHealthDataParams } from '../data/MedicalHealthDataPage';
 
 interface PlanViewModel extends InterventionPlanResponse {
   isExpanded: boolean;
@@ -100,7 +101,7 @@ export struct ElderInterventionPlanList {
 
   private async loadActivePlansDetails() {
     for (let i = 0; i < this.plans.length; i++) {
-      if (this.plans[i].status === 'ACTIVE' || this.plans[i].status === 'PENDING') {
+      if (this.plans[i].status === 'ACTIVE') {
         await this.loadPlanItemsAndTasks(i);
       }
     }
@@ -187,22 +188,51 @@ export struct ElderInterventionPlanList {
     this.navPathStack.pushPathByName('Medical_Intervention_PlanForm', param);
   }
 
+  private goToHealthData() {
+    if (!this.elderRelation) {
+      return;
+    }
+    const param: MedicalHealthDataParams = {
+      elderId: this.elderRelation.elder_id,
+      elderName: this.elderRelation.elder.name
+    };
+    this.navPathStack.pushPathByName('Medical_HealthDataPage', param);
+  }
+
+  private handleStopPlan(plan: PlanViewModel) {
+    promptAction.showDialog({
+      title: '停止计划',
+      message: '确定要停止该干预计划吗？\n停止后，该计划及其下的所有计划项和待执行任务都将变为已停止状态。',
+      buttons: [
+        { text: '取消', color: '#666666' },
+        { text: '确定', color: '#dc2626' }
+      ]
+    }).then(async (resp) => {
+      if (resp.index === 1) {
+        this.isLoading = true;
+        try {
+          const res = await InterventionService.stopPlan(plan.id);
+          if (res.code === 200) {
+            promptAction.showToast({ message: '计划已停止' });
+            this.loadPlans(); // 刷新列表
+          } else {
+            promptAction.showToast({ message: res.message || '操作失败' });
+          }
+        } catch (error) {
+          promptAction.showToast({ message: '网络异常，请重试' });
+        } finally {
+          this.isLoading = false;
+        }
+      }
+    });
+  }
+
   private getStatusText(status: string): string {
     switch (status) {
       case 'ACTIVE':
-        return '执行中';
-      case 'PENDING':
-        return '未开始';
-      case 'FINISHED':
-        return '已完成';
-      case 'PAUSED':
-        return '已暂停';
+        return '进行的';
       case 'STOPPED':
-        return '已终止';
-      case 'CANCELLED':
-        return '已取消';
-      case 'DRAFT':
-        return '草稿';
+        return '已停止';
       default:
         return status;
     }
@@ -212,13 +242,8 @@ export struct ElderInterventionPlanList {
     switch (status) {
       case 'ACTIVE':
         return '#2563eb';
-      case 'FINISHED':
-        return '#059669';
       case 'STOPPED':
-      case 'CANCELLED':
-        return '#dc2626';
-      case 'PENDING':
-        return '#d97706';
+        return '#ef4444';
       default:
         return '#6b7280';
     }
@@ -228,13 +253,8 @@ export struct ElderInterventionPlanList {
     switch (status) {
       case 'ACTIVE':
         return '#eff6ff';
-      case 'FINISHED':
-        return '#ecfdf5';
       case 'STOPPED':
-      case 'CANCELLED':
         return '#fef2f2';
-      case 'PENDING':
-        return '#fffbeb';
       default:
         return '#f3f4f6';
     }
@@ -252,23 +272,38 @@ export struct ElderInterventionPlanList {
             }
           }.alignItems(HorizontalAlign.Start).layoutWeight(1)
 
-          Text(this.getStatusText(plan.status))
-            .fontSize(12)
-            .fontColor(this.getStatusColor(plan.status))
-            .padding({
-              left: 8,
-              right: 8,
-              top: 4,
-              bottom: 4
-            })
-            .backgroundColor(this.getStatusBgColor(plan.status))
-            .borderRadius(12)
+          if (plan.status === 'ACTIVE') {
+            Button('停止计划')
+              .type(ButtonType.Normal)
+              .fontSize(12)
+              .fontColor('#dc2626')
+              .backgroundColor('#fee2e2')
+              .borderRadius(12)
+              .height(24)
+              .onClick(() => {
+                this.handleStopPlan(plan)
+              })
+          }
         }.width('100%')
 
         Row() {
           Text(`${this.formatDate(plan.start_date)} ~ ${plan.end_date ? this.formatDate(plan.end_date) : '长期'}`)
             .fontSize(12)
             .fontColor('#94a3b8')
+
+          Text(this.getStatusText(plan.status))
+            .fontSize(12)
+            .fontColor(this.getStatusColor(plan.status))
+            .padding({
+              left: 8,
+              right: 8,
+              top: 2,
+              bottom: 2
+            })
+            .backgroundColor(this.getStatusBgColor(plan.status))
+            .borderRadius(4)
+            .margin({ left: 8 })
+
           if (plan.totalTaskCount > 0) {
             Text(`今日 ${plan.completedTaskCount}/${plan.totalTaskCount}`)
               .fontSize(12)
@@ -353,11 +388,18 @@ export struct ElderInterventionPlanList {
       }.width('100%').height('100%').backgroundColor('#f8fafc')
     }
     .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
-    .menus([{
-      value: '+', action: () => {
-        this.goToAddPlan()
+    .menus([
+      {
+        value: '健康数据', action: () => {
+          this.goToHealthData()
+        }
+      },
+      {
+        value: '+', action: () => {
+          this.goToAddPlan()
+        }
       }
-    }])
+    ])
     .onReady((ctx: NavDestinationContext) => {
       console.info('[ElderInterventionPlanList] onReady called, param:', JSON.stringify(ctx.pathInfo.param))
       const param = ctx.pathInfo.param as UserElderRelationItem

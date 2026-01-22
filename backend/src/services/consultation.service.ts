@@ -42,7 +42,7 @@ export class ConsultationService {
       title: data.title,
       description: data.description ?? null,
       creator_type: data.creator_type,
-      creator_id: data.creator_id,
+      creator_id: data.creator_id!, // Controller ensures this is filled from auth context
       target_staff_id: data.target_staff_id,
       category: data.category ?? null,
       status: 'PENDING',

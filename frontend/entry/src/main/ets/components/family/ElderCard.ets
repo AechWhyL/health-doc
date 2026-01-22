@@ -5,6 +5,8 @@ interface HealthSummary {
   latestFpg?: number;
   hasWarning: boolean;
   warningText?: string;
+  bpLevel?: string;
+  fpgLevel?: string;
 }
 
 interface StatusResult {
@@ -33,15 +35,31 @@ export struct ElderCard {
   }
 
   private formatPhone(): string {
-    if (this.elderPhone.length >= 11) {
-      return this.elderPhone.substring(0, 3) + '****' + this.elderPhone.substring(7);
-    }
+    // if (this.elderPhone.length >= 11) {
+    //   return this.elderPhone.substring(0, 3) + '****' + this.elderPhone.substring(7);
+    // }
     return this.elderPhone;
   }
 
   private getBpStatus(): StatusResult {
     const sbp = this.healthSummary.latestSbp;
     const dbp = this.healthSummary.latestDbp;
+    
+    // 优先使用后端判断结果
+    if (this.healthSummary.bpLevel) {
+      switch (this.healthSummary.bpLevel) {
+        case 'NORMAL':
+          return { text: '正常', color: '#16a34a', icon: '✓' };
+        case 'MILD':
+        case 'MODERATE':
+        case 'SEVERE':
+          return { text: '偏高', color: '#dc2626', icon: '⚠️' };
+        default:
+          return { text: '未知', color: '#9ca3af', icon: '—' };
+      }
+    }
+
+    // 降级兜底逻辑
     if (sbp === undefined || dbp === undefined) {
       const result: StatusResult = { text: '暂无数据', color: '#9ca3af', icon: '—' };
       return result;
@@ -60,6 +78,22 @@ export struct ElderCard {
 
   private getFpgStatus(): StatusResult {
     const fpg = this.healthSummary.latestFpg;
+    
+    // 优先使用后端判断结果
+    if (this.healthSummary.fpgLevel) {
+      switch (this.healthSummary.fpgLevel) {
+        case 'NORMAL':
+          return { text: '正常', color: '#16a34a', icon: '✓' };
+        case 'MILD':
+        case 'MODERATE':
+        case 'SEVERE':
+          return { text: '偏高', color: '#dc2626', icon: '⚠️' };
+        default:
+          return { text: '未知', color: '#9ca3af', icon: '—' };
+      }
+    }
+
+    // 降级兜底逻辑
     if (fpg === undefined) {
       const result: StatusResult = { text: '暂无数据', color: '#9ca3af', icon: '—' };
       return result;
@@ -153,6 +187,11 @@ export struct ElderCard {
                 .fontSize(16)
                 .fontColor('#9ca3af')
             }
+          }
+          .margin({ top: 4 })
+          .width("100%")
+
+          Row(){
             Text(' ' + this.getBpStatus().icon + ' ' + this.getBpStatus().text)
               .fontSize(12)
               .fontColor(this.getBpStatus().color)

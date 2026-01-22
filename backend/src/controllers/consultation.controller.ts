@@ -12,9 +12,12 @@ export class ConsultationController {
     const data: CreateConsultationQuestionRequest = ctx.state.validatedData || ctx.request.body;
 
     // 使用认证用户的ID作为creator_id
-    if (ctx.state.user) {
-      data.creator_id = ctx.state.user.userId;
+    if (!ctx.state.user || !ctx.state.user.userId) {
+      ctx.unauthorized('未认证或用户信息缺失');
+      return;
     }
+
+    data.creator_id = ctx.state.user.userId;
 
     const result = await ConsultationService.createQuestion(data);
     ctx.success(result, '咨询问题创建成功');

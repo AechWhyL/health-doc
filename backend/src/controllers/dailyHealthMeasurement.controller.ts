@@ -1,5 +1,6 @@
 import { Context } from 'koa';
 import { DailyHealthMeasurementService } from '../services/dailyHealthMeasurement.service';
+import { AiRecognitionService } from '../services/aiRecognition.service';
 import {
   createDailyHealthMeasurementSchema,
   updateDailyHealthMeasurementSchema,
@@ -33,7 +34,7 @@ export class DailyHealthMeasurementController {
    *             properties:
    *               elder_id:
    *                 type: integer
-   *                 description: 老人ID
+   *                 description: 老人用户ID
    *                 example: 3
    *               measured_at:
    *                 type: string
@@ -407,5 +408,73 @@ export class DailyHealthMeasurementController {
     const recordId = Number(id);
     await DailyHealthMeasurementService.deleteDailyHealthMeasurement(recordId);
     ctx.success(true);
+  }
+
+  /**
+   * @swagger
+   * /api/v1/elder-health/daily-health/smart-recognition:
+   *   post:
+   *     summary: 智能识别健康数据
+   *     description: 上传图片(体检单/仪器读书)，识别并返回结构化的健康数据
+   *     tags: [日常健康管理]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: 需识别的图片文件
+   *     responses:
+   *       200:
+   *         description: 识别成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: 识别成功
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     sbp:
+   *                       type: number
+   *                       description: 收缩压
+   *                     dbp:
+   *                       type: number
+   *                       description: 舒张压
+   *                     fpg:
+   *                       type: number
+   *                       description: 空腹血糖
+   *                     ppg_2h:
+   *                       type: number
+   *                       description: 餐后2小时血糖
+   *                     weight:
+   *                       type: number
+   *                       description: 体重
+   *       400:
+   *         description: 未上传文件
+   *       500:
+   *         description: 识别服务异常
+   */
+  static async recognizeHealthData(ctx: Context) {
+    const request = ctx.request as any;
+    const file = request.files?.file;
+    if (!file) {
+      ctx.error('请上传文件', 400);
+      return;
+    }
+
+    const fileObj = Array.isArray(file) ? file[0] : file;
+    const result = await AiRecognitionService.recognizeHealthData(fileObj.filepath);
+    ctx.success(result, '识别成功');
   }
 }

@@ -79,6 +79,21 @@
       "name": "Elder_ConsultationChat",
       "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
       "buildFunction": "ChatPageBuilder"
+    },
+    {
+      "name": "Medical_HealthDataPage",
+      "pageSourceFile": "src/main/ets/pages/medical/data/MedicalHealthDataPage.ets",
+      "buildFunction": "MedicalHealthDataPageBuilder"
+    },
+    {
+      "name": "Medical_AddHealthData",
+      "pageSourceFile": "src/main/ets/pages/medical/data/MedicalAddHealthDataPage.ets",
+      "buildFunction": "MedicalAddHealthDataPageBuilder"
+    },
+    {
+      "name": "Elder_AddHealthData",
+      "pageSourceFile": "src/main/ets/pages/elder/ElderAddHealthDataPage.ets",
+      "buildFunction": "ElderAddHealthDataPageBuilder"
     }
   ]
 }

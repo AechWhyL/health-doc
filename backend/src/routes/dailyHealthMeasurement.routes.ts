@@ -20,6 +20,12 @@ router.post(
   DailyHealthMeasurementController.createDailyHealthMeasurement
 );
 
+router.post(
+  '/smart-recognition',
+  authMiddleware,
+  DailyHealthMeasurementController.recognizeHealthData
+);
+
 router.get(
   '/list',
   validateQuery(queryDailyHealthMeasurementSchema),

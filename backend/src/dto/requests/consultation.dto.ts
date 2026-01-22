@@ -28,11 +28,10 @@ export const createConsultationQuestionSchema = Joi.object({
       'any.only': '创建人类型只能是ELDER、FAMILY或STAFF',
       'any.required': '创建人类型为必填项'
     }),
-  creator_id: Joi.number().integer().positive().required().messages({
+  creator_id: Joi.number().integer().positive().optional().messages({
     'number.base': '创建人ID必须是数字',
     'number.integer': '创建人ID必须是整数',
-    'number.positive': '创建人ID必须是正数',
-    'any.required': '创建人ID为必填项'
+    'number.positive': '创建人ID必须是正数'
   }),
   target_staff_id: Joi.number().integer().positive().required().messages({
     'number.base': '目标医护人员ID必须是数字',
@@ -182,7 +181,7 @@ export interface CreateConsultationQuestionRequest {
   title: string;
   description?: string;
   creator_type: ConsultationCreatorType;
-  creator_id: number;
+  creator_id?: number;
   target_staff_id: number;
   category?: string;
   priority: ConsultationPriority;
