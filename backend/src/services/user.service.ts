@@ -383,6 +383,7 @@ export class UserService {
     if (elderInfo) {
       result.elder_info = {
         id: elderInfo.id ?? 0,
+        user_id: elderInfo.user_id || null,
         name: elderInfo.name,
         gender: elderInfo.gender ?? 1,
         birth_date: elderInfo.birth_date,

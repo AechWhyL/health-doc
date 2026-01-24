@@ -171,6 +171,7 @@ export interface QueryElderRequest extends PaginationQuery {
 
 export interface ElderResponse {
   id: number;
+  user_id: number | null; // Added user_id for frontend to use in relations
   name: string;
   gender: number;
   birth_date: string;

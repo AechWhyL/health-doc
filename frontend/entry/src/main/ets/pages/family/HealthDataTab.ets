@@ -13,6 +13,7 @@ interface ApiResponse<T = Object> {
 
 interface ElderResponse {
   id: number;
+  user_id: number;
   name: string;
   gender: number;
   age: number;
@@ -75,7 +76,7 @@ export struct HealthDataTab {
         this.elders = response.data.items || [];
         if (this.elders.length > 0) {
            // Check if current selected ID is still in the list, if not, select first
-           const exists = this.elders.some(item => item.elder_id === this.selectedElderId);
+           const exists = this.elders.some(item => item.elder.user_id === this.selectedElderId);
            if (!exists) {
              this.selectElder(this.elders[0]);
            }
@@ -89,7 +90,7 @@ export struct HealthDataTab {
   }
 
   private selectElder(item: UserElderRelationItem): void {
-    this.selectedElderId = item.elder_id;
+    this.selectedElderId = item.elder.user_id;
     this.selectedElderName = item.elder.name;
   }
 
@@ -105,7 +106,7 @@ export struct HealthDataTab {
           const v: SelectOption = { value: item.elder.name };
           return v;
         }))
-          .selected(this.elders.findIndex(item => item.elder_id === this.selectedElderId))
+          .selected(this.elders.findIndex(item => item.elder.user_id === this.selectedElderId))
           .value(this.selectedElderName)
           .font({ size: 14 })
           .fontColor('#1e293b')

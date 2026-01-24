@@ -620,7 +620,7 @@ export class InterventionPlanItemService {
       1000
     );
 
-    const elderIds = items.map((item: any) => item.elder_id);
+    const elderIds = items.map((item: any) => item.elder_user_id).filter((id: number) => id != null);
 
     if (elderIds.length === 0) {
       return {

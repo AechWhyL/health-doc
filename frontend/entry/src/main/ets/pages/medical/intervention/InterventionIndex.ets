@@ -77,7 +77,8 @@ export struct InterventionIndex {
       // 这里的统计逻辑还是保留原样，或者后端也能提供更好
       // 暂时保留前端循环统计，因为只是 plan 列表，不像 task 那样 N*M
       for (const elder of this.elders) {
-        const response = await InterventionService.getPlansByElderUserId(elder.elder_id, {
+        const elderUserId = elder.elder_user_id ?? elder.elder_id;
+        const response = await InterventionService.getPlansByElderUserId(elderUserId, {
           page: 1,
           pageSize: 100
         })

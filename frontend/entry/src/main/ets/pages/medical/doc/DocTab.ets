@@ -15,6 +15,7 @@ interface ApiResponse<T = Object> {
 
 interface ElderResponse {
   id: number;
+  user_id: number;
   name: string;
   gender: number;
   birth_date: string;
@@ -272,7 +273,8 @@ export struct DocTab {
 
     try {
       const body: AddMyElderRequest = {
-        elder_id: this.phoneSearchResult.id
+        elder_id: this.phoneSearchResult.user_id
+        // user_id
       }
 
       const response = await httpRequest<ApiResponse<null>, AddMyElderRequest>({

@@ -193,7 +193,7 @@ export struct ElderInterventionPlanList {
       return;
     }
     const param: MedicalHealthDataParams = {
-      elderId: this.elderRelation.elder_id,
+      elderId: this.elderRelation.elder_user_id ?? this.elderRelation.elder_id,
       elderName: this.elderRelation.elder.name
     };
     this.navPathStack.pushPathByName('Medical_HealthDataPage', param);

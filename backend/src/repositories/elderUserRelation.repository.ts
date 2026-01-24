@@ -81,7 +81,7 @@ export class ElderUserRelationRepository {
     const countSql = `
       SELECT COUNT(*) AS total
       FROM elder_user_relations r
-      INNER JOIN elder_basic_info e ON r.elder_id = e.id
+      INNER JOIN elder_basic_info e ON r.elder_id = e.user_id
       WHERE ${whereClause}
     `;
     const countResult = await Database.queryOne<{ total: number }>(countSql, params);
@@ -109,7 +109,7 @@ export class ElderUserRelationRepository {
         e.created_at AS elder_created_at,
         e.updated_at AS elder_updated_at
       FROM elder_user_relations r
-      INNER JOIN elder_basic_info e ON r.elder_id = e.id
+      INNER JOIN elder_basic_info e ON r.elder_id = e.user_id
       WHERE ${whereClause}
       ORDER BY r.created_at DESC, r.id DESC
       LIMIT ${parseInt(String(pageSize), 10)} OFFSET ${parseInt(String(offset), 10)}
@@ -118,6 +118,15 @@ export class ElderUserRelationRepository {
     const items = await Database.query<ElderUserRelationWithElderRaw>(dataSql, params);
 
     return { items, total };
+  }
+
+  static async findByUserAndElderUser(userId: number, elderUserId: number): Promise<ElderUserRelationRecord | null> {
+    const sql = `
+      SELECT id, user_id, elder_id, relation_name, remark, created_at, updated_at
+      FROM elder_user_relations
+      WHERE user_id = ? AND elder_id = ?
+    `;
+    return await Database.queryOne<ElderUserRelationRecord>(sql, [userId, elderUserId]);
   }
 
   static async deleteByIdAndUserId(id: number, userId: number): Promise<boolean> {

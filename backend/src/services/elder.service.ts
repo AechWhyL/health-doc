@@ -110,6 +110,7 @@ export class ElderService {
 
     return {
       id: elder.id!,
+      user_id: elder.user_id || null,
       name: elder.name,
       gender: elder.gender,
       birth_date: elder.birth_date,

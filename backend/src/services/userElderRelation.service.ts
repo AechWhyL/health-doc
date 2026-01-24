@@ -131,14 +131,17 @@ export class UserElderRelationService {
     userId: number,
     data: CreateUserElderRelationRequest
   ): Promise<UserElderRelationItemResponse> {
-    const elder = await ElderRepository.findById(data.elder_id);
+    // The elder_id in request is actually the USER ID of the elder (as agreed in plan)
+    const elderUserId = data.elder_id;
+
+    const elder = await ElderRepository.findByUserId(elderUserId);
     if (!elder) {
-      const error = new Error('老人信息不存在');
+      const error = new Error('该老人尚未绑定账号，无法关联');
       error.name = 'NotFoundError';
       throw error;
     }
 
-    const exists = await ElderUserRelationRepository.findByUserAndElder(userId, data.elder_id);
+    const exists = await ElderUserRelationRepository.findByUserAndElderUser(userId, elderUserId);
     if (exists) {
       const error = new Error('该老人已存在关联关系');
       error.name = 'ValidationError';
@@ -147,7 +150,7 @@ export class UserElderRelationService {
 
     const insertId = await ElderUserRelationRepository.create({
       user_id: userId,
-      elder_id: data.elder_id,
+      elder_id: elderUserId, // Store the Elder's USER ID
       relation_name: data.relation_name ?? null,
       remark: data.remark ?? null
     });
@@ -185,6 +188,7 @@ export class UserElderRelationService {
 
     return {
       id: elder.id || 0,
+      user_id: elder.user_id || null,
       name: elder.name,
       gender: elder.gender,
       birth_date: elder.birth_date,

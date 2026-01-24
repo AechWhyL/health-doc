@@ -12,6 +12,7 @@ interface ApiResponse<T = Object> {
 
 interface ElderResponse {
   id: number;
+  user_id: number;
   name: string;
   gender: number;
   age: number;
@@ -62,7 +63,7 @@ export struct DataTab {
         this.elders = response.data.items || []
         if (this.elders.length > 0) {
           // Check if current selected ID is still in the list, if not, select first
-           const exists = this.elders.some(item => item.elder_id === this.selectedElderId);
+           const exists = this.elders.some(item => item.elder.user_id === this.selectedElderId);
            if (!exists) {
              this.selectElder(this.elders[0]);
            }
@@ -76,8 +77,8 @@ export struct DataTab {
   }
 
   private selectElder(item: UserElderRelationItem): void {
-    this.selectedElderId = item.elder_id
-    this.selectedElderName = item.elder.name
+    this.selectedElderId = item.elder.user_id;
+    this.selectedElderName = item.elder.name;
   }
 
   @Builder

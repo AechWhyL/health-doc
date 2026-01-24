@@ -12,6 +12,7 @@ interface ApiResponse<T = Object> {
 
 interface ElderResponse {
   id: number;
+  user_id: number;
   name: string;
   gender: number;
   birth_date: string;
@@ -162,7 +163,7 @@ export struct ElderOverviewTab {
       // 为每个老人获取最新健康数据
       const eldersWithHealth: ElderWithHealth[] = [];
       for (const item of items) {
-        const healthSummary = await this.fetchLatestHealth(item.elder_id);
+        const healthSummary = await this.fetchLatestHealth(item.elder.user_id);
         eldersWithHealth.push({
           relation: item,
           healthSummary: healthSummary
@@ -303,7 +304,7 @@ export struct ElderOverviewTab {
     this.isAdding = true;
     try {
       const data: AddElderRelationRequest = {
-        elder_id: this.selectedElder.id,
+        elder_id: this.selectedElder.user_id,
         relation_name: this.relationName.trim() || undefined
       };
 
