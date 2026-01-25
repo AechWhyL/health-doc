@@ -26,7 +26,8 @@ export class HealthRecordRepository {
     return result;
   }
 
-  static async findAll(page: number, pageSize: number, where: string = '1=1', params: any[] = [], orderBy: string = 'created_at DESC'): Promise<{ items: HealthRecord[]; total: number }> {
+  static async findAll(page: number, pageSize: number, where: string = '1=1', params: any[] = [], sortBy: string = 'created_at', sortOrder: string = 'desc'): Promise<{ items: HealthRecord[]; total: number }> {
+    const orderBy = `${sortBy} ${sortOrder.toUpperCase()}`;
     const result = await Database.paginate<HealthRecord>('health_record', page, pageSize, where, params, orderBy);
     return {
       items: result.items.map(item => {

@@ -99,6 +99,26 @@
       "name": "Common_AssociatedElders",
       "pageSourceFile": "src/main/ets/pages/common/AssociatedEldersPage.ets",
       "buildFunction": "AssociatedEldersPageBuilder"
+    },
+    {
+      "name": "Common_AddHealthRecord",
+      "pageSourceFile": "src/main/ets/pages/common/AddHealthRecordPage.ets",
+      "buildFunction": "AddHealthRecordPageBuilder"
+    },
+    {
+      "name": "Common_HealthRecordDetail",
+      "pageSourceFile": "src/main/ets/pages/common/HealthRecordDetailPage.ets",
+      "buildFunction": "HealthRecordDetailPageBuilder"
+    },
+    {
+      "name": "Medical_HealthRecordList",
+      "pageSourceFile": "src/main/ets/pages/medical/doc/MedicalHealthRecordListPage.ets",
+      "buildFunction": "MedicalHealthRecordListPageBuilder"
+    },
+    {
+      "name": "Family_HealthRecordList",
+      "pageSourceFile": "src/main/ets/pages/family/FamilyHealthRecordListPage.ets",
+      "buildFunction": "FamilyHealthRecordListPageBuilder"
     }
   ]
 }

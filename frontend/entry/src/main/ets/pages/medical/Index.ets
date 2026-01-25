@@ -106,8 +106,8 @@ struct MedicalIndex {
         })
       }
       .width("100%")
-      .title({ main: '健康关护 · 医护端', sub: '查看档案、分析数据、管理干预计划' })
       .titleMode(NavigationTitleMode.Mini)
+      .hideTitleBar(true)
       .hideBackButton(true)
       .mode(NavigationMode.Stack)
       .menus(this.buildNavigationMenus)

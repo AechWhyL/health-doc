@@ -440,6 +440,9 @@ export struct DocTab {
               })
             }, (item: ElderWithHealth) => item.relation.relation_id.toString())
           }
+          .constraintSize({
+            minHeight:"100%"
+          })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)

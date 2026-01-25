@@ -227,6 +227,7 @@ export struct ChatPage {
       .alignContent(Alignment.TopStart)
     }
     .hideTitleBar(false)
+    .title("咨询")
     .onReady((context: NavDestinationContext) => {
       const params = context.pathInfo.param as ConsultationQuestion;
       console.log("ChatPageReady")

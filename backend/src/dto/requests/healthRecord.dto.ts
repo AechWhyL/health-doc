@@ -242,7 +242,9 @@ export const queryHealthRecordSchema = Joi.object({
   elder_id: Joi.number().integer().positive().optional(),
   record_type: Joi.string().valid('MEDICAL_HISTORY', 'CHECK_REPORT', 'MEDICATION', 'ALLERGY').optional(),
   start_date: Joi.date().iso().optional(),
-  end_date: Joi.date().iso().optional()
+  end_date: Joi.date().iso().optional(),
+  sort_by: Joi.string().valid('created_at', 'record_date').optional(),
+  sort_order: Joi.string().valid('asc', 'desc').optional()
 });
 
 export interface CreateHealthRecordRequest {

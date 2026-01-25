@@ -77,16 +77,18 @@ export struct HealthRecordDetailDialog {
     }
   }
 
-  private getStringValue(content: Record<string, Object>, key: string): string {
-    const value = content[key]
+  private getStringValue(content: Object, key: string): string {
+    const record = content as Record<string, Object>
+    const value = record[key]
     if (typeof value === 'string' && value.trim() !== '') {
       return value
     }
     return ''
   }
 
-  private getArrayAsString(content: Record<string, Object>, key: string): string {
-    const value = content[key]
+  private getArrayAsString(content: Object, key: string): string {
+    const record = content as Record<string, Object>
+    const value = record[key]
     if (Array.isArray(value)) {
       return (value as string[]).join('、')
     }
@@ -97,7 +99,7 @@ export struct HealthRecordDetailDialog {
   }
 
   @Builder
-  private buildMedicalHistoryContent(content: Record<string, Object>) {
+  private buildMedicalHistoryContent(content: Object) {
     Column({ space: 12 }) {
       if (this.getStringValue(content, 'disease_name')) {
         this.ContentRow('🏷️ 疾病名称', this.getStringValue(content, 'disease_name'))
@@ -116,7 +118,7 @@ export struct HealthRecordDetailDialog {
   }
 
   @Builder
-  private buildCheckReportContent(content: Record<string, Object>) {
+  private buildCheckReportContent(content: Object) {
     Column({ space: 12 }) {
       if (this.getStringValue(content, 'check_date')) {
         this.ContentRow('📅 检查日期', this.formatDate(this.getStringValue(content, 'check_date')))
@@ -138,7 +140,7 @@ export struct HealthRecordDetailDialog {
   }
 
   @Builder
-  private buildMedicationContent(content: Record<string, Object>) {
+  private buildMedicationContent(content: Object) {
     Column({ space: 12 }) {
       if (this.getArrayAsString(content, 'drug_name')) {
         this.ContentRow('💊 药品名称', this.getArrayAsString(content, 'drug_name'))
@@ -172,7 +174,7 @@ export struct HealthRecordDetailDialog {
   }
 
   @Builder
-  private buildAllergyContent(content: Record<string, Object>) {
+  private buildAllergyContent(content: Object) {
     Column({ space: 12 }) {
       if (this.getStringValue(content, 'allergy_item')) {
         this.ContentRow('🚫 过敏源', this.getStringValue(content, 'allergy_item'))
@@ -192,6 +194,7 @@ export struct HealthRecordDetailDialog {
     }
     .width('100%')
   }
+
 
   @Builder
   private ContentRow(label: string, value: string) {

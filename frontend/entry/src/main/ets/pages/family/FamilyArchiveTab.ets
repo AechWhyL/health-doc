@@ -1,6 +1,11 @@
 import { promptAction } from '@kit.ArkUI';
 import { httpRequest } from '../../common/api/HttpUtil';
 import { RequestEnum } from '../../common/api/httpEnum';
+import { HealthRecordListView } from '../../components/health_record/HealthRecordListView';
+import {
+  HealthRecordItem,
+  AddHealthRecordParams
+} from '../../models/HealthArchiveModels';
 
 interface ApiResponse<T = Object> {
   code: number;
@@ -29,31 +34,9 @@ interface MyEldersListData {
   total: number;
 }
 
-type HealthRecordType = 'MEDICAL_HISTORY' | 'CHECK_REPORT' | 'MEDICATION' | 'ALLERGY';
-
-interface HealthRecord {
-  id: number;
-  elder_id: number;
-  record_type: HealthRecordType;
-  record_title: string;
-  record_date: string;
-  content_structured: Object;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface HealthRecordListData {
-  items: HealthRecord[];
-  total: number;
-}
-
 interface PaginationParams {
   page: number;
   pageSize: number;
-}
-
-interface ElderIdParams extends PaginationParams {
-  elder_id: number;
 }
 
 @Component
@@ -62,9 +45,8 @@ export struct FamilyArchiveTab {
   @State elders: UserElderRelationItem[] = [];
   @State selectedElderId: number = -1;
   @State selectedElderName: string = '';
-  @State healthRecords: HealthRecord[] = [];
   @State isLoadingElders: boolean = false;
-  @State isLoadingRecords: boolean = false;
+  @State refreshKey: number = 0; // 用于触发列表刷新
 
   aboutToAppear(): void {
     this.loadElders();
@@ -85,7 +67,6 @@ export struct FamilyArchiveTab {
         if (this.elders.length > 0) {
           this.selectedElderId = this.elders[0].elder_id;
           this.selectedElderName = this.elders[0].elder.name;
-          this.loadHealthRecords();
         }
       }
     } catch (error) {
@@ -95,68 +76,41 @@ export struct FamilyArchiveTab {
     }
   }
 
-  private async loadHealthRecords(): Promise<void> {
-    if (this.selectedElderId < 0) {
-      return;
-    }
-
-    this.isLoadingRecords = true;
-    try {
-      const params: ElderIdParams = { elder_id: this.selectedElderId, page: 1, pageSize: 30 };
-      const response = await httpRequest<ApiResponse<HealthRecordListData>, ElderIdParams>({
-        url: '/api/v1/elder-health/health-record/list',
-        method: RequestEnum.GET,
-        params: params
-      });
-
-      if (response.code === 200 && response.data) {
-        this.healthRecords = response.data.items || [];
-      }
-    } catch (error) {
-      console.error('加载健康档案失败:', error);
-      promptAction.showToast({ message: '加载健康档案失败' });
-    } finally {
-      this.isLoadingRecords = false;
-    }
-  }
-
   private selectElder(item: UserElderRelationItem): void {
     this.selectedElderId = item.elder_id;
     this.selectedElderName = item.elder.name;
-    this.loadHealthRecords();
   }
 
-  private getRecordTypeName(type: HealthRecordType): string {
-    switch (type) {
-      case 'MEDICAL_HISTORY': return '病史';
-      case 'CHECK_REPORT': return '检查报告';
-      case 'MEDICATION': return '用药记录';
-      case 'ALLERGY': return '过敏信息';
-      default: return '健康档案';
-    }
+  private handleItemClick(record: HealthRecordItem): void {
+    this.navPathStack.pushPath({
+      name: 'Family_HealthArchiveDetail',
+      param: record
+    });
   }
 
-  private getRecordTypeIcon(type: HealthRecordType): string {
-    switch (type) {
-      case 'MEDICAL_HISTORY': return '🏥';
-      case 'CHECK_REPORT': return '🔬';
-      case 'MEDICATION': return '💊';
-      case 'ALLERGY': return '⚠️';
-      default: return '📋';
-    }
-  }
+  private handleAddClick(): void {
+    if (this.selectedElderId <= 0) return;
 
-  private formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+    const params: AddHealthRecordParams = {
+      elderId: this.selectedElderId,
+      elderName: this.selectedElderName,
+      mode: 'create'
+    };
+
+    this.navPathStack.pushPath({
+      name: 'Common_AddHealthRecord',
+      param: params,
+      onPop: () => {
+        // 页面返回时刷新列表
+        this.refreshKey++;
+      }
+    });
   }
 
   @Builder
   private ElderSelector() {
     Row() {
-      Text('选择老人：')
+      Text('选择老人:')
         .fontSize(14)
         .fontColor('#64748b')
 
@@ -165,7 +119,7 @@ export struct FamilyArchiveTab {
           const v: SelectOption = { value: item.elder.name };
           return v;
         }))
-          .selected(0)
+          .selected(this.elders.findIndex(item => item.elder_id === this.selectedElderId))
           .value(this.selectedElderName)
           .font({ size: 14 })
           .fontColor('#1e293b')
@@ -182,98 +136,6 @@ export struct FamilyArchiveTab {
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 12 })
     .backgroundColor(Color.White)
-  }
-
-  @Builder
-  private RecordList() {
-    if (this.isLoadingRecords) {
-      Column() {
-        LoadingProgress().width(32).height(32)
-        Text('加载中...').fontSize(13).fontColor('#64748b').margin({ top: 8 })
-      }
-      .width('100%')
-      .height(200)
-      .justifyContent(FlexAlign.Center)
-    } else if (this.healthRecords.length === 0) {
-      Column() {
-        Text('📋')
-          .fontSize(40)
-        Text('暂无健康档案记录')
-          .fontSize(14)
-          .fontColor('#9ca3af')
-          .margin({ top: 12 })
-      }
-      .width('100%')
-      .height(200)
-      .justifyContent(FlexAlign.Center)
-    } else {
-      List() {
-        ForEach(this.healthRecords, (record: HealthRecord) => {
-          ListItem() {
-            this.RecordItem(record)
-          }
-        }, (record: HealthRecord) => record.id.toString())
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .padding({ left: 16, right: 16 })
-    }
-  }
-
-  @Builder
-  private RecordItem(record: HealthRecord) {
-    Row() {
-      Column() {
-        Text(this.getRecordTypeIcon(record.record_type))
-          .fontSize(24)
-      }
-      .width(44)
-      .height(44)
-      .borderRadius(22)
-      .backgroundColor('#f1f5f9')
-      .justifyContent(FlexAlign.Center)
-
-      Column() {
-        Row() {
-          Text(this.getRecordTypeName(record.record_type))
-            .fontSize(12)
-            .fontColor('#2563eb')
-            .backgroundColor('#eff6ff')
-            .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-            .borderRadius(8)
-          Text(this.formatDate(record.record_date))
-            .fontSize(12)
-            .fontColor('#9ca3af')
-            .margin({ left: 8 })
-        }
-
-        Text(record.record_title)
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#1e293b')
-          .margin({ top: 6 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-      .margin({ left: 12 })
-
-      Text('→')
-        .fontSize(16)
-        .fontColor('#9ca3af')
-    }
-    .width('100%')
-    .padding(14)
-    .backgroundColor(Color.White)
-    .borderRadius(12)
-    .margin({ bottom: 8 })
-    .onClick(() => {
-      this.navPathStack.pushPath({
-        name: 'Family_HealthArchiveDetail',
-        param: record
-      });
-    })
   }
 
   build() {
@@ -299,8 +161,30 @@ export struct FamilyArchiveTab {
       // 老人选择器
       this.ElderSelector()
 
-      // 档案列表
-      this.RecordList()
+      // 档案列表 (使用新组件)
+      if (this.selectedElderId > 0) {
+        HealthRecordListView({
+          elderId: this.selectedElderId,
+          elderName: this.selectedElderName,
+          showAddButton: true,
+          onItemClick: (record: HealthRecordItem) => {
+            this.handleItemClick(record);
+          },
+          onAddClick: () => {
+            this.handleAddClick();
+          }
+        })
+      } else {
+        Column() {
+          Text('请选择老人查看档案')
+            .fontSize(14)
+            .fontColor('#9ca3af')
+            .margin({ top: 50 })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      }
     }
     .width('100%')
     .height('100%')

@@ -37,7 +37,9 @@ export class HealthRecordService {
     elderId?: number,
     recordType?: HealthRecordType,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    sortBy: string = 'created_at',
+    sortOrder: string = 'desc'
   ): Promise<{ items: HealthRecordResponse[]; total: number }> {
     let where = '1=1';
     const params: any[] = [];
@@ -59,7 +61,7 @@ export class HealthRecordService {
       params.push(endDate);
     }
 
-    const { items, total } = await HealthRecordRepository.findAll(page, pageSize, where, params);
+    const { items, total } = await HealthRecordRepository.findAll(page, pageSize, where, params, sortBy, sortOrder);
     return {
       items: items.map(item => this.toResponse(item)),
       total

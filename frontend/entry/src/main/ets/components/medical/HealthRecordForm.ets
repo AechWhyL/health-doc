@@ -1,5 +1,13 @@
 import { promptAction } from '@kit.ArkUI';
-import { HealthRecordType, HealthRecordFormSubmitPayload } from '../../models/HealthRecordModels';
+import {
+  HealthRecordType,
+  HealthRecordFormSubmitPayload,
+  HealthRecordContent,
+  MedicalHistoryContent,
+  CheckReportContent,
+  MedicationContent,
+  AllergyContent
+} from '../../models/HealthArchiveModels';
 
 interface IFormInputItem {
   label: string,
@@ -17,7 +25,7 @@ export struct HealthRecordForm {
   @Prop mode: 'create' | 'edit' = 'create'
   @Prop initialTitle: string = ''
   @Prop initialDate: string = ''
-  @Prop initialContent: Record<string, Object> | null = null
+  @Prop initialContent: HealthRecordContent | null = null
   onSubmit: (payload: HealthRecordFormSubmitPayload) => void = () => {
   }
   onCancel: () => void = () => {
@@ -115,146 +123,72 @@ export struct HealthRecordForm {
     }
   }
 
-  private fillContentFromInitial(content: Record<string, Object>): void {
+  private fillContentFromInitial(content: HealthRecordContent): void {
     if (this.recordType === 'MEDICAL_HISTORY') {
-      const disease = this.getStringField(content, 'disease_name')
-      if (disease !== null) {
-        this.diseaseName = disease
+      const c = content as MedicalHistoryContent;
+      this.diseaseName = c.disease_name || ''
+      const diagnosedAt = this.parseDateFromString(c.diagnosed_at)
+      if (diagnosedAt) {
+        this.diagnosedAtState = diagnosedAt
       }
-      const diagnosedAt = this.getStringField(content, 'diagnosed_at')
-      if (diagnosedAt !== null) {
-        const dt = this.parseDateFromString(diagnosedAt)
-        if (dt) {
-          this.diagnosedAtState = dt
-        }
-      }
-      const status = this.getStringField(content, 'status')
-      if (status !== null) {
-        this.medicalStatus = status
-        this.medicalStatusIndex = this.getStatusIndex(status)
-      }
-      const notes = this.getStringField(content, 'notes')
-      if (notes !== null) {
-        this.medicalNotes = notes
-      }
+      this.medicalStatus = c.status || 'ONGOING'
+      this.medicalStatusIndex = this.getStatusIndex(this.medicalStatus)
+      this.medicalNotes = c.notes || ''
+
     } else if (this.recordType === 'CHECK_REPORT') {
-      const checkDate = this.getStringField(content, 'check_date')
-      if (checkDate !== null) {
-        const cd = this.parseDateFromString(checkDate)
-        if (cd) {
-          this.checkDateState = cd
-        }
+      const c = content as CheckReportContent;
+      const checkDate = this.parseDateFromString(c.check_date)
+      if (checkDate) {
+        this.checkDateState = checkDate
       }
-      const hospital = this.getStringField(content, 'hospital_name')
-      if (hospital !== null) {
-        this.checkHospitalName = hospital
-      }
-      const checkItem = this.getStringField(content, 'check_item')
-      if (checkItem !== null) {
-        this.checkItem = checkItem
-      }
-      const resultSummary = this.getStringField(content, 'result_summary')
-      if (resultSummary !== null) {
-        this.checkResultSummary = resultSummary
-        this.checkResultIndex = this.getResultIndex(resultSummary)
-      }
-      const notes = this.getStringField(content, 'notes')
-      if (notes !== null) {
-        this.checkNotes = notes
-      }
+      this.checkHospitalName = c.hospital_name || ''
+      this.checkItem = c.check_item || ''
+      this.checkResultSummary = c.result_summary || 'NORMAL'
+      this.checkResultIndex = this.getResultIndex(this.checkResultSummary)
+      this.checkNotes = c.notes || ''
+
     } else if (this.recordType === 'MEDICATION') {
-      const drugNamesValue = content['drug_name']
-      if (drugNamesValue instanceof Array) {
-        const names: Array<Object> = drugNamesValue as Array<Object>
-        let combined: string = ''
-        for (let i = 0; i < names.length; i++) {
-          const item = names[i]
-          if (typeof item === 'string') {
-            if (combined === '') {
-              combined = item
-            } else {
-              combined = combined + '；' + item
-            }
-          }
-        }
-        this.drugNameInput = combined
+      const c = content as MedicationContent;
+      if (c.drug_name && Array.isArray(c.drug_name)) {
+        this.drugNameInput = c.drug_name.join('；')
       }
-      const dosage = this.getStringField(content, 'dosage')
-      if (dosage !== null) {
-        this.dosage = dosage
+      this.dosage = c.dosage || ''
+      this.frequency = c.frequency || ''
+      this.route = c.route || ''
+      const startDate = this.parseDateFromString(c.start_date)
+      if (startDate) {
+        this.medicationStartDateState = startDate
       }
-      const frequency = this.getStringField(content, 'frequency')
-      if (frequency !== null) {
-        this.frequency = frequency
-      }
-      const route = this.getStringField(content, 'route')
-      if (route !== null) {
-        this.route = route
-      }
-      const startDate = this.getStringField(content, 'start_date')
-      if (startDate !== null) {
-        const sd = this.parseDateFromString(startDate)
-        if (sd) {
-          this.medicationStartDateState = sd
-        }
-      }
-      const endDate = this.getStringField(content, 'end_date')
-      if (endDate !== null && endDate !== '') {
-        const ed = this.parseDateFromString(endDate)
-        if (ed) {
-          this.medicationEndDateState = ed
+      if (c.end_date) {
+        const endDate = this.parseDateFromString(c.end_date)
+        if (endDate) {
+          this.medicationEndDateState = endDate
           this.medicationEndDateEnabled = true
         }
       }
-      const notes = this.getStringField(content, 'notes')
-      if (notes !== null) {
-        this.medicationNotes = notes
-      }
-      const prescribingDoctor = this.getStringField(content, 'prescribing_doctor')
-      if (prescribingDoctor !== null) {
-        this.prescribingDoctor = prescribingDoctor
-      }
-      const hospitalName = this.getStringField(content, 'hospital_name')
-      if (hospitalName !== null) {
-        this.medicationHospitalName = hospitalName
-      }
+      this.medicationNotes = c.notes || ''
+      this.prescribingDoctor = c.prescribing_doctor || ''
+      this.medicationHospitalName = c.hospital_name || ''
+
     } else if (this.recordType === 'ALLERGY') {
-      const allergyItem = this.getStringField(content, 'allergy_item')
-      if (allergyItem !== null) {
-        this.allergyItem = allergyItem
+      const c = content as AllergyContent;
+      this.allergyItem = c.allergy_item || ''
+      const firstDate = this.parseDateFromString(c.first_occurrence_date)
+      if (firstDate) {
+        this.allergyFirstDateState = firstDate
       }
-      const firstDate = this.getStringField(content, 'first_occurrence_date')
-      if (firstDate !== null) {
-        const fd = this.parseDateFromString(firstDate)
-        if (fd) {
-          this.allergyFirstDateState = fd
-        }
-      }
-      const lastDate = this.getStringField(content, 'last_occurrence_date')
-      if (lastDate !== null && lastDate !== '') {
-        const ld = this.parseDateFromString(lastDate)
-        if (ld) {
-          this.allergyLastDateState = ld
+      if (c.last_occurrence_date) {
+        const lastDate = this.parseDateFromString(c.last_occurrence_date)
+        if (lastDate) {
+          this.allergyLastDateState = lastDate
           this.allergyLastDateEnabled = true
         }
       }
-      const reactions = this.getStringField(content, 'reaction_symptoms')
-      if (reactions !== null) {
-        this.allergyReactionSymptoms = reactions
+      if (c.reaction_symptoms && Array.isArray(c.reaction_symptoms)) {
+        this.allergyReactionSymptoms = c.reaction_symptoms.join('；')
       }
-      const notes = this.getStringField(content, 'notes')
-      if (notes !== null) {
-        this.allergyNotes = notes
-      }
+      this.allergyNotes = c.notes || ''
     }
-  }
-
-  private getStringField(content: Record<string, Object>, key: string): string | null {
-    const value = content[key]
-    if (typeof value === 'string') {
-      return value
-    }
-    return null
   }
 
   private formatDate(date: Date): string {
@@ -262,8 +196,8 @@ export struct HealthRecordForm {
     return date.toISOString().split('T')[0]
   }
 
-  private parseDateFromString(value: string): Date | null {
-    if (value === '') {
+  private parseDateFromString(value: string | undefined): Date | null {
+    if (!value || value === '') {
       return null
     }
     const parts = value.split('-')
@@ -331,7 +265,10 @@ export struct HealthRecordForm {
       return
     }
     const recordDate = this.formatDate(this.recordDateState)
-    let content: Record<string, Object> = {}
+    
+    // Construct specific content object based on type
+    let content: HealthRecordContent;
+
     if (this.recordType === 'MEDICAL_HISTORY') {
       const disease = this.diseaseName.trim()
       if (disease === '') {
@@ -340,15 +277,16 @@ export struct HealthRecordForm {
         })
         return
       }
-      const diagnosedAt = this.formatDate(this.diagnosedAtState)
-      content['disease_name'] = disease
-      content['diagnosed_at'] = diagnosedAt
-      content['status'] = this.medicalStatus
-      if (this.medicalNotes.trim()) {
-        content['notes'] = this.medicalNotes.trim()
+      
+      const medicalContent: MedicalHistoryContent = {
+        disease_name: disease,
+        diagnosed_at: this.formatDate(this.diagnosedAtState),
+        status: this.medicalStatus as 'ONGOING' | 'REMISSION' | 'CURED',
+        notes: this.medicalNotes.trim() || undefined
       }
+      content = medicalContent;
+
     } else if (this.recordType === 'CHECK_REPORT') {
-      const checkDate = this.formatDate(this.checkDateState)
       const hospital = this.checkHospitalName.trim()
       const item = this.checkItem.trim()
       if (hospital === '') {
@@ -363,13 +301,16 @@ export struct HealthRecordForm {
         })
         return
       }
-      content['check_date'] = checkDate
-      content['hospital_name'] = hospital
-      content['check_item'] = item
-      content['result_summary'] = this.checkResultSummary
-      if (this.checkNotes.trim()) {
-        content['notes'] = this.checkNotes.trim()
+
+      const checkContent: CheckReportContent = {
+        check_date: this.formatDate(this.checkDateState),
+        hospital_name: hospital,
+        check_item: item,
+        result_summary: this.checkResultSummary as 'NORMAL' | 'MILD_ABNORMAL' | 'SIGNIFICANT_ABNORMAL',
+        notes: this.checkNotes.trim() || undefined
       }
+      content = checkContent;
+
     } else if (this.recordType === 'MEDICATION') {
       const drugNamesRaw = this.drugNameInput.trim()
       if (drugNamesRaw === '') {
@@ -388,30 +329,21 @@ export struct HealthRecordForm {
         })
         return
       }
-      const startDate = this.formatDate(this.medicationStartDateState)
-      let endDate: string = ''
-      if (this.medicationEndDateEnabled) {
-        endDate = this.formatDate(this.medicationEndDateState)
-      }
-      content['drug_name'] = drugNames
-      content['dosage'] = dosageText
-      content['frequency'] = frequencyText
-      content['route'] = routeText
-      content['start_date'] = startDate
-      // Only add end_date if enabled, otherwise don't include it (undefined is ok for optional)
-      if (this.medicationEndDateEnabled) {
-        content['end_date'] = this.formatDate(this.medicationEndDateState)
-      }
-      if (this.medicationNotes.trim()) {
-        content['notes'] = this.medicationNotes.trim()
-      }
-      if (this.prescribingDoctor.trim()) {
-        content['prescribing_doctor'] = this.prescribingDoctor.trim()
-      }
-      if (this.medicationHospitalName.trim()) {
-        content['hospital_name'] = this.medicationHospitalName.trim()
-      }
-    } else if (this.recordType === 'ALLERGY') {
+      
+      const medContent: MedicationContent = {
+        drug_name: drugNames,
+        dosage: dosageText,
+        frequency: frequencyText,
+        route: routeText,
+        start_date: this.formatDate(this.medicationStartDateState),
+        end_date: this.medicationEndDateEnabled ? this.formatDate(this.medicationEndDateState) : undefined,
+        notes: this.medicationNotes.trim() || undefined,
+        prescribing_doctor: this.prescribingDoctor.trim() || undefined,
+        hospital_name: this.medicationHospitalName.trim() || undefined
+      };
+      content = medContent;
+
+    } else { // ALLERGY
       const allergyItemText = this.allergyItem.trim()
       if (allergyItemText === '') {
         this.getUIContext().getPromptAction().showToast({
@@ -419,12 +351,7 @@ export struct HealthRecordForm {
         })
         return
       }
-      const firstDate = this.formatDate(this.allergyFirstDateState)
-      let lastDate: string = ''
-      if (this.allergyLastDateEnabled) {
-        lastDate = this.formatDate(this.allergyLastDateState)
-      }
-      // reaction_symptoms must be an array with at least 1 item per backend validation
+      
       const symptomsText = this.allergyReactionSymptoms.trim()
       if (!symptomsText) {
         this.getUIContext().getPromptAction().showToast({
@@ -432,23 +359,24 @@ export struct HealthRecordForm {
         })
         return
       }
-      content['allergy_item'] = allergyItemText
-      content['first_occurrence_date'] = firstDate
-      // Only add last_occurrence_date if enabled
-      if (this.allergyLastDateEnabled) {
-        content['last_occurrence_date'] = this.formatDate(this.allergyLastDateState)
-      }
-      content['reaction_symptoms'] = this.splitDrugNames(symptomsText)
-      if (this.allergyNotes.trim()) {
-        content['notes'] = this.allergyNotes.trim()
-      }
+      
+      const allergyContent: AllergyContent = {
+        allergy_item: allergyItemText,
+        first_occurrence_date: this.formatDate(this.allergyFirstDateState),
+        last_occurrence_date: this.allergyLastDateEnabled ? this.formatDate(this.allergyLastDateState) : undefined,
+        reaction_symptoms: this.splitDrugNames(symptomsText),
+        notes: this.allergyNotes.trim() || undefined
+      };
+      content = allergyContent;
     }
+
     const payload: HealthRecordFormSubmitPayload = {
       recordType: this.recordType,
       recordTitle: title,
       recordDate: recordDate,
       contentStructured: content
     }
+
     this.onSubmit(payload)
   }
 
@@ -828,6 +756,9 @@ export struct HealthRecordForm {
         Column() {
           this.FormField('最近发生日期', false)
           Row() {
+            Text('📅')
+            // ... (rest of date picker UI is same as before)
+// ... truncated for brevity, but I will include full code ...
             Text('📅')
               .fontSize(16)
               .margin({ right: 10 })

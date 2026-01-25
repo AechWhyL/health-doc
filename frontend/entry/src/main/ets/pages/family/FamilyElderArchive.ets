@@ -1,23 +1,18 @@
-import { promptAction } from '@kit.ArkUI';
-import dayjs from 'dayjs';
-import { HealthRecordDetailDialog } from '../../../components/medical/HealthRecordDetailDialog';
 import {
-  HealthRecordItem,
   ElderBasicInfo
-} from '../../../models/HealthArchiveModels';
+} from '../../models/HealthArchiveModels';
+import dayjs from 'dayjs';
 
 @Builder
-export function ElderArchiveBuilder() {
-  ElderArchive()
+export function FamilyElderArchiveBuilder() {
+  FamilyElderArchive()
 }
 
 @ComponentV2
-export struct ElderArchive {
+export struct FamilyElderArchive {
   @Local private elder: ElderBasicInfo | null = null;
-  @Local private viewingRecord: HealthRecordItem | null = null;
-
+  
   navPathStack: NavPathStack = new NavPathStack();
-  private detailDialogController: CustomDialogController | null = null;
 
   private formatBirthDate(dateStr: string): string {
     if (!dateStr) return '未填写';
@@ -36,7 +31,7 @@ export struct ElderArchive {
     if (!this.elder) return;
 
     this.navPathStack.pushPath({
-      name: 'Medical_HealthRecordList',
+      name: 'Family_HealthRecordList',
       param: this.elder
     });
   }
@@ -163,38 +158,36 @@ export struct ElderArchive {
   }
 
   build() {
-    Column() {
-      NavDestination() {
-        Scroll() {
-          Column() {
-            // Elder info card
-            this.buildElderInfoCard()
+    NavDestination() {
+      Scroll() {
+        Column() {
+          // Elder info card
+          this.buildElderInfoCard()
 
-            Blank(20)
+          Blank(20)
 
-            // Health record entry card
-            this.buildHealthRecordEntryCard()
+          // Health record entry card
+          this.buildHealthRecordEntryCard()
 
-            Column().height(20)
-          }
-          .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-          .constraintSize({
-            minHeight:"100%"
-          })
+          Column().height(20)
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-        .backgroundColor('#f1f5f9')
+        .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+        .constraintSize({
+          minHeight:"100%"
+        })
       }
-      .title('老人详情')
-      .onReady((ctx: NavDestinationContext) => {
-        this.navPathStack = ctx.pathStack;
-        this.elder = ctx.pathInfo.param as ElderBasicInfo;
-      })
       .width('100%')
       .layoutWeight(1)
+      .scrollBar(BarState.Off)
       .backgroundColor('#f1f5f9')
     }
+    .title('老人详情')
+    .onReady((ctx: NavDestinationContext) => {
+      this.navPathStack = ctx.pathStack;
+      this.elder = ctx.pathInfo.param as ElderBasicInfo;
+    })
+    .width('100%')
+    .layoutWeight(1)
+    .backgroundColor('#f1f5f9')
   }
 }

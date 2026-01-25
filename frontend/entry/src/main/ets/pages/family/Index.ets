@@ -102,8 +102,7 @@ struct FamilyIndex {
         })
       }
       .width('100%')
-      .title('健康关护 · 家属端')
-      .titleMode(NavigationTitleMode.Mini)
+      .hideTitleBar(true)
       .hideBackButton(true)
       .mode(NavigationMode.Stack)
     }

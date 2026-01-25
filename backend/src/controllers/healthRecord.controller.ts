@@ -219,21 +219,21 @@ export class HealthRecordController {
       return;
     }
 
-    const { page, pageSize, elder_id, record_type, start_date, end_date } = value;
+    const { page, pageSize, elder_id, record_type, start_date, end_date, sort_by, sort_order } = value;
     const pageNum = parseInt(page.toString(), 10);
     const pageSizeNum = parseInt(pageSize.toString(), 10);
-    
-    if (isNaN(pageNum) || pageNum <1) {
+
+    if (isNaN(pageNum) || pageNum < 1) {
       ctx.badRequest('无效的页码');
       return;
     }
-    if (isNaN(pageSizeNum) || pageSizeNum <1 || pageSizeNum > 100) {
+    if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 100) {
       ctx.badRequest('无效的每页大小');
       return;
     }
 
     const elderIdNum = elder_id ? parseInt(elder_id.toString(), 10) : undefined;
-    
+
     if (elder_id && isNaN(elderIdNum!)) {
       ctx.badRequest('无效的老人ID');
       return;
@@ -245,10 +245,12 @@ export class HealthRecordController {
       elderIdNum,
       record_type,
       start_date,
-      end_date
+      end_date,
+      sort_by,
+      sort_order
     );
     const pages = Math.ceil(total / pageSizeNum);
-    
+
     ctx.paginate(items, pageNum, pageSizeNum, total);
   }
 
