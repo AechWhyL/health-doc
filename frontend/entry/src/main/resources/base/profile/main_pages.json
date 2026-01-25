@@ -2,6 +2,7 @@
   "src": [
     "pages/Login",
     "pages/Register",
+    "pages/AppInitializer",
     "pages/elder/Index",
     "pages/family/Index",
     "pages/medical/Index"

@@ -165,8 +165,18 @@ export class SocketService {
 
   public async init(uri: string): Promise<void> {
     console.log("[socket debug] trying to init Socket Service")
-    if (this.client) {
+    
+    // 如果已经初始化且连接正常，直接返回
+    if (this.client && this.isConnected) {
+      console.log("[socket debug] Socket Service already initialized and connected");
       return;
+    }
+
+    // 如果已经有 client 但未连接，先清理
+    if (this.client && !this.isConnected) {
+      console.log("[socket debug] Socket Service exists but not connected, cleaning up");
+      this.client.close();
+      this.client = null;
     }
 
     // 优先尝试使用 Web Bridge (如果已配置)

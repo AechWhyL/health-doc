@@ -3,7 +3,6 @@ import { ConsultationService } from '../../../common/api/ConsultationService';
 import { ConsultationQuestion, ConsultationMessage } from '../../../models/ConsultationModels';
 import { ChatView } from '../../../components/medical/ChatView';
 import { BASEURL } from '../../../common/api/httpEnum';
-import { SocketBridge } from '../../../components/SocketBridge';
 
 @Builder
 export function ChatPageBuilder() {
@@ -39,6 +38,8 @@ export struct ChatPage {
 
   aboutToAppear(): void {
     console.log('[socket debug] chatPage about to appear')
+    // 获取全局 SocketService 实例
+    this.socketService = SocketService.getInstance();
   }
 
   // 初始化数据
@@ -50,9 +51,6 @@ export struct ChatPage {
       console.log('[socket debug] socket service not ready,stop init')
       return
     }
-
-    // 初始化 Socket 连接
-    this.socketService.init(BASEURL.baseUrl);
 
     // 加入房间
     this.socketService.joinQuestion(
@@ -76,7 +74,7 @@ export struct ChatPage {
       this.socketService.leaveQuestion(this.questionId);
       this.socketService.off('new_message', this.onNewMessage);
       this.socketService.off('send_message:ack', this.onSendMessageAck);
-      this.socketService.close()
+      // 注意：不再关闭 WebSocket 连接，因为它是全局的
     }
   }
 
@@ -162,12 +160,6 @@ export struct ChatPage {
   build() {
     NavDestination() {
       Stack() {
-        SocketBridge({
-          onWebControllerAttached: () => {
-            this.socketService = SocketService.getInstance()
-            this.initData()
-          }
-        })
 
         Column() {
           // Header

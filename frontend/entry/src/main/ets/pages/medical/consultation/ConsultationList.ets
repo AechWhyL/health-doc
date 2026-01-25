@@ -156,6 +156,9 @@ export struct ConsultationList {
               this.buildQuestionCard(item)
             }, (item: ConsultationQuestion) => item.id.toString())
           }
+          .constraintSize({
+            minHeight:"100%"
+          })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)

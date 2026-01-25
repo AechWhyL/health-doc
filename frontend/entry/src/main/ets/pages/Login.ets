@@ -117,21 +117,9 @@ struct Login {
       // 同时更新 AppStorage，方便应用内使用
       AppStorage.setOrCreate('currentUser', loginData.user);
 
-      const roles = loginData.user.roles;
-      let target: string = 'pages/Login';
-      if (roles && roles.length > 0) {
-        const roleCodes = roles.map(role => role.role_code);
-        if (roleCodes.indexOf('medical_staff') >= 0 || roleCodes.indexOf('MEDICAL_STAFF') >= 0) {
-          target = 'pages/medical/Index';
-        } else if (roleCodes.indexOf('elder') >= 0 || roleCodes.indexOf('ELDER') >= 0) {
-          target = 'pages/elder/Index';
-        } else if (roleCodes.indexOf('family') >= 0 || roleCodes.indexOf('FAMILY') >= 0) {
-          target = 'pages/family/Index';
-        }
-      }
-
+      // 跳转到应用初始化页面，由其负责 WebSocket 初始化和角色路由
       router.pushUrl({
-        url: target
+        url: 'pages/AppInitializer'
       }).catch(() => {});
     } catch (error) {
       console.log(error);
