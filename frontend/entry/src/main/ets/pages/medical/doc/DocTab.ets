@@ -138,11 +138,7 @@ export struct DocTab {
   @State private eldersWithHealth: ElderWithHealth[] = []
   @State private isLoadingElders: boolean = false
   @State private elderError: string = ''
-  @State private searchKeyword: string = ''
-  @State private isSearchingByPhone: boolean = false
-  @State private phoneSearchResult: ElderResponse | null = null
-  @State private isAddingRelation: boolean = false
-  @State private showAddPanel: boolean = false
+
   @State private abnormalCount: number = 0
   @Consume('navPathStack') navPathStack: NavPathStack;
 
@@ -209,96 +205,7 @@ export struct DocTab {
     return this.eldersWithHealth.some((item: ElderWithHealth) => item.relation.elder_id === elderId)
   }
 
-  private async searchElderByPhone(): Promise<void> {
-    if (this.isSearchingByPhone) {
-      return
-    }
-    const value = this.searchKeyword.trim()
-    if (value === '') {
-      return
-    }
-    if (!/^\d{11}$/.test(value)) {
-      promptAction.showToast({ message: '请输入11位手机号搜索老人' })
-      return
-    }
 
-    this.isSearchingByPhone = true
-    this.phoneSearchResult = null
-
-    try {
-      let params: ElderListQueryParams = {
-        page: 1,
-        pageSize: 1,
-        phone: value
-      }
-
-      const response = await httpRequest<ApiResponse<ElderListPageData>, ElderListQueryParams>({
-        url: '/api/v1/elder-health/elder/list',
-        method: RequestEnum.GET,
-        token: 'auth',
-        params
-      })
-
-      if (response.code !== 200 || !response.data) {
-        promptAction.showToast({ message: '未找到该手机号对应的老人' })
-        return
-      }
-
-      const pageData = response.data
-      const records = pageData && pageData.items ? pageData.items : []
-      if (records.length === 0) {
-        promptAction.showToast({ message: '未找到该手机号对应的老人' })
-        return
-      }
-
-      this.phoneSearchResult = records[0]
-      this.showAddPanel = true
-    } catch (error) {
-      promptAction.showToast({ message: '搜索失败' })
-    } finally {
-      this.isSearchingByPhone = false
-    }
-  }
-
-  private async addElderRelation(): Promise<void> {
-    if (this.isAddingRelation || !this.phoneSearchResult) {
-      return
-    }
-    if (this.isElderLinked(this.phoneSearchResult.id)) {
-      promptAction.showToast({ message: '该老人已关联' })
-      return
-    }
-
-    this.isAddingRelation = true
-
-    try {
-      const body: AddMyElderRequest = {
-        elder_id: this.phoneSearchResult.user_id
-        // user_id
-      }
-
-      const response = await httpRequest<ApiResponse<null>, AddMyElderRequest>({
-        url: '/api/v1/users/me/elders',
-        method: RequestEnum.POST,
-        token: 'auth',
-        params: body
-      })
-
-      if (response.code !== 200) {
-        promptAction.showToast({ message: response.message || '关联失败' })
-        return
-      }
-
-      promptAction.showToast({ message: '关联成功' })
-      this.showAddPanel = false
-      this.phoneSearchResult = null
-      this.loadElders(true)
-    } catch (error) {
-      promptAction.showToast({ message: '网络异常' })
-    } finally {
-      this.isAddingRelation = false
-    }
-  }
 
   private openElderArchiveDetail(elder: ElderResponse): void {
     this.navPathStack.pushPath({
@@ -331,44 +238,8 @@ export struct DocTab {
     }
   }
 
-  @Builder
-  private buildSearchBar() {
-    Row() {
-      Row() {
-        Text('🔍')
-          .fontSize(16)
-          .margin({ right: 8 })
-        TextInput({ text: this.searchKeyword, placeholder: '搜索姓名或手机号...' })
-          .height(40)
-          .fontSize(14)
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .onChange((value: string) => {
-            this.searchKeyword = value
-          })
-          .onSubmit(() => {
-            this.searchElderByPhone()
-          })
-      }
-      .layoutWeight(1)
-      .padding({ left: 12, right: 12 })
-      .backgroundColor('#f1f5f9')
-      .borderRadius(20)
 
-      Button(this.isSearchingByPhone ? '...' : '搜索')
-        .type(ButtonType.Capsule)
-        .height(40)
-        .width(64)
-        .fontSize(14)
-        .backgroundColor('#2563eb')
-        .margin({ left: 10 })
-        .onClick(() => {
-          this.searchElderByPhone()
-        })
-    }
-    .width('100%')
-    .padding({ bottom: 12 })
-  }
+
 
   @Builder
   private buildStatsBar() {
@@ -391,55 +262,6 @@ export struct DocTab {
     }
     .width('100%')
     .margin({ bottom: 16 })
-  }
-
-  @Builder
-  private buildAddPanel() {
-    if (this.showAddPanel) {
-      CardContainer({ title: '添加老人' }) {
-        Column() {
-          if (this.phoneSearchResult) {
-            Row() {
-              Text(this.getGenderEmoji(this.phoneSearchResult.gender))
-                .fontSize(32)
-                .margin({ right: 12 })
-              Column() {
-                Text(this.phoneSearchResult.name)
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                Text(`${this.phoneSearchResult.age}岁 · ${this.phoneSearchResult.phone}`)
-                  .fontSize(13)
-                  .fontColor('#64748b')
-                  .margin({ top: 2 })
-              }
-              .alignItems(HorizontalAlign.Start)
-              .layoutWeight(1)
-            }
-            .width('100%')
-            .margin({ bottom: 12 })
-
-            if (this.isElderLinked(this.phoneSearchResult.id)) {
-              Text('✓ 已关联')
-                .fontSize(14)
-                .fontColor('#16a34a')
-            } else {
-              Button(this.isAddingRelation ? '添加中...' : '确认添加')
-                .type(ButtonType.Capsule)
-                .width('100%')
-                .height(40)
-                .backgroundColor('#2563eb')
-                .onClick(() => {
-                  this.addElderRelation()
-                })
-            }
-          } else {
-            Text('请在上方搜索栏输入老人手机号搜索')
-              .fontSize(13)
-              .fontColor('#9ca3af')
-          }
-        }
-      }
-    }
   }
 
   @Builder
@@ -511,14 +333,8 @@ export struct DocTab {
 
   build() {
     Column() {
-      // 搜索栏
-      this.buildSearchBar()
-
       // 统计栏
       this.buildStatsBar()
-
-      // 添加面板
-      this.buildAddPanel()
 
       // 老人列表
       SectionHeader({

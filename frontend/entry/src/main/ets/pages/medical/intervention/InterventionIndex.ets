@@ -289,6 +289,9 @@ export struct InterventionIndex {
               this.buildElderCard(item)
             }, (item: UserElderRelationItem) => item.relation_id.toString())
           }
+          .constraintSize({
+            minHeight:"100%"
+          })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)

@@ -46,6 +46,7 @@ type EditableField = 'realName' | 'roleType' | 'jobTitle' | 'goodAtTags' | null;
 
 @Component
 export struct MineTab {
+  @Consume('navPathStack') navPathStack: NavPathStack;
   @State user: UserWithRoleResponse | null = null;
   @State isLoading: boolean = false;
   @State isSaving: boolean = false;
@@ -530,6 +531,33 @@ export struct MineTab {
 
             CardContainer({ title: '服务设置' }) {
               this.OnlineServiceRow()
+            }
+
+            CardContainer({ title: '管理' }) {
+              Column() {
+                Row() {
+                  Text('关联老人')
+                    .fontSize(15)
+                    .fontColor('#1e293b')
+                    .layoutWeight(1)
+                  
+                  Text('查看/添加')
+                    .fontSize(13)
+                    .fontColor('#9ca3af')
+                    .margin({ right: 4 })
+
+                  Text('›')
+                    .fontSize(18)
+                    .fontColor('#cbd5e1')
+                }
+                .width('100%')
+                .padding({ left: 12, right: 12, top: 14, bottom: 14 })
+                .backgroundColor('#f8fafc')
+                .borderRadius(8)
+                .onClick(() => {
+                  this.navPathStack.pushPath({ name: 'Common_AssociatedElders' });
+                })
+              }
             }
 
             // Logout Button

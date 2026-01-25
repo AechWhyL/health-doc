@@ -150,44 +150,48 @@ export struct HealthDataTab {
 
       // 数据组件
       if (this.selectedElderId > 0) {
-        DailyHealthDataView({ 
-          elderId: this.selectedElderId,
-          onAddClick: () => {
-            this.navPathStack.pushPath({
-              name: 'Family_AddHealthData',
-              param: {
-                elderId: this.selectedElderId,
-                elderName: this.selectedElderName
-              } as AddHealthDataParams,
-              onPop: () => {
-                 // 自动刷新逻辑已经由 DailyHealthDataView 的 loadHealthData 处理，
-                 // 但是页面返回时，aboutToAppear 会被 navPathStack interception 触发 loadElders。
-                 // 这里我们主要依赖 DailyHealthDataView 的 watch 或者手动刷新。
-                 // 由于 DailyHealthDataView 是子组件，其 @Watch('elderId') 只在 ID 变化时触发。
-                 // 我们需要一种机制来强制刷新数据。
-                 // 既然页面返回会触发 navPathStack interception -> loadElders，但 loadElders 不会变动 ID，所以子组件不会刷新。
-                 // 最好是在这里强制刷新一下。
-                 // 这里可以使用 key 属性或者类似机制，但 ArkTS 推荐数据驱动。
-                 // 简单的做法是重新赋值 elderId (hack) 或者调用子组件方法。
-                 // 这里的 onPop 回调是在 AddHealthDataPage pop 时触发的。
-                 // 我们可以重新设置一个 flag 或者... 
-                 // 实际上，DailyHealthDataView 在 aboutToAppear 会加载数据。
-                 // 当从 AddHealthDataPage 返回时，DailyHealthDataView 并没有销毁。
-                 // 我们可以传递一个 @State refreshKey 给 DailyHealthDataView 并 watch 它。
-                 // 或者简单点，我们先不仅做这个优化，因为 HealthDataTab 的 onPop 逻辑其实是在 HealthDataTab 自己的 aboutToAppear nav interception 里写的。
-                 // wait, the AddHealthDataPage code says: this.navPathStack.pop(true);
-                 // The logic in HealthDataTab aboutToAppear handles "to page is navigation home" -> loadElders().
-                 // We should make loadElders also trigger refreshing the data view if needed.
-                 // Actually, simpler: reuse the selectedElderId trick.
-                 const id = this.selectedElderId;
-                 this.selectedElderId = -1;
-                 setTimeout(() => {
-                   this.selectedElderId = id;
-                 }, 10);
-              }
-            });
-          }
-        })
+        Row(){
+          DailyHealthDataView({
+            elderId: this.selectedElderId,
+            onAddClick: () => {
+              this.navPathStack.pushPath({
+                name: 'Family_AddHealthData',
+                param: {
+                  elderId: this.selectedElderId,
+                  elderName: this.selectedElderName
+                } as AddHealthDataParams,
+                onPop: () => {
+                  // 自动刷新逻辑已经由 DailyHealthDataView 的 loadHealthData 处理，
+                  // 但是页面返回时，aboutToAppear 会被 navPathStack interception 触发 loadElders。
+                  // 这里我们主要依赖 DailyHealthDataView 的 watch 或者手动刷新。
+                  // 由于 DailyHealthDataView 是子组件，其 @Watch('elderId') 只在 ID 变化时触发。
+                  // 我们需要一种机制来强制刷新数据。
+                  // 既然页面返回会触发 navPathStack interception -> loadElders，但 loadElders 不会变动 ID，所以子组件不会刷新。
+                  // 最好是在这里强制刷新一下。
+                  // 这里可以使用 key 属性或者类似机制，但 ArkTS 推荐数据驱动。
+                  // 简单的做法是重新赋值 elderId (hack) 或者调用子组件方法。
+                  // 这里的 onPop 回调是在 AddHealthDataPage pop 时触发的。
+                  // 我们可以重新设置一个 flag 或者...
+                  // 实际上，DailyHealthDataView 在 aboutToAppear 会加载数据。
+                  // 当从 AddHealthDataPage 返回时，DailyHealthDataView 并没有销毁。
+                  // 我们可以传递一个 @State refreshKey 给 DailyHealthDataView 并 watch 它。
+                  // 或者简单点，我们先不仅做这个优化，因为 HealthDataTab 的 onPop 逻辑其实是在 HealthDataTab 自己的 aboutToAppear nav interception 里写的。
+                  // wait, the AddHealthDataPage code says: this.navPathStack.pop(true);
+                  // The logic in HealthDataTab aboutToAppear handles "to page is navigation home" -> loadElders().
+                  // We should make loadElders also trigger refreshing the data view if needed.
+                  // Actually, simpler: reuse the selectedElderId trick.
+                  const id = this.selectedElderId;
+                  this.selectedElderId = -1;
+                  setTimeout(() => {
+                    this.selectedElderId = id;
+                  }, 10);
+                }
+              });
+            }
+          })
+        }
+        .layoutWeight(1)
+
       } else {
         Column() {
           Text('请选择老人查看数据')

@@ -123,14 +123,7 @@ export struct ElderOverviewTab {
   @State elders: ElderWithHealth[] = [];
   @State isLoading: boolean = false;
   @State errorMessage: string = '';
-  // 搜索相关
-  @State showAddDialog: boolean = false;
-  @State searchPhone: string = '';
-  @State searchResults: ElderResponse[] = [];
-  @State isSearching: boolean = false;
-  @State selectedElder: ElderResponse | null = null;
-  @State relationName: string = '';
-  @State isAdding: boolean = false;
+
 
   aboutToAppear(): void {
     this.loadElders();
@@ -262,76 +255,7 @@ export struct ElderOverviewTab {
     });
   }
 
-  private async searchElderByPhone(): Promise<void> {
-    if (this.searchPhone.trim() === '') {
-      promptAction.showToast({ message: '请输入手机号' });
-      return;
-    }
-    this.isSearching = true;
-    this.searchResults = [];
-    this.selectedElder = null;
 
-    try {
-      const params: SearchElderParams = { phone: this.searchPhone.trim(), page: 1, pageSize: 10 };
-      const response = await httpRequest<ApiResponse<ElderListData>, SearchElderParams>({
-        url: '/api/v1/elder-health/elder/list',
-        method: RequestEnum.GET,
-        params: params
-      });
-
-      if (response.code === 200 && response.data) {
-        this.searchResults = response.data.items || [];
-        if (this.searchResults.length === 0) {
-          promptAction.showToast({ message: '未找到匹配的老人' });
-        }
-      } else {
-        promptAction.showToast({ message: response.message || '搜索失败' });
-      }
-    } catch (error) {
-      console.error('搜索老人失败:', error);
-      promptAction.showToast({ message: '搜索失败，请重试' });
-    } finally {
-      this.isSearching = false;
-    }
-  }
-
-  private async addElderRelation(): Promise<void> {
-    if (!this.selectedElder) {
-      promptAction.showToast({ message: '请先选择要添加的老人' });
-      return;
-    }
-
-    this.isAdding = true;
-    try {
-      const data: AddElderRelationRequest = {
-        elder_id: this.selectedElder.user_id,
-        relation_name: this.relationName.trim() || undefined
-      };
-
-      const response = await httpRequest<ApiResponse<AddElderRelationResponse>, AddElderRelationRequest>({
-        url: '/api/v1/users/me/elders',
-        method: RequestEnum.POST,
-        params: data
-      });
-
-      if (response.code === 200 || response.code === 201) {
-        promptAction.showToast({ message: '添加成功' });
-        this.showAddDialog = false;
-        this.searchPhone = '';
-        this.searchResults = [];
-        this.selectedElder = null;
-        this.relationName = '';
-        this.loadElders(); // 刷新列表
-      } else {
-        promptAction.showToast({ message: response.message || '添加失败' });
-      }
-    } catch (error) {
-      console.error('添加老人关联失败:', error);
-      promptAction.showToast({ message: '添加失败，请重试' });
-    } finally {
-      this.isAdding = false;
-    }
-  }
 
   build() {
     Stack() {
@@ -351,18 +275,7 @@ export struct ElderOverviewTab {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Button('+ 添加老人')
-          .type(ButtonType.Capsule)
-          .backgroundColor('#2563eb')
-          .fontSize(13)
-          .height(36)
-          .onClick(() => {
-            this.showAddDialog = true;
-            this.searchPhone = '';
-            this.searchResults = [];
-            this.selectedElder = null;
-            this.relationName = '';
-          })
+
       }
       .width('100%')
       .padding({ left: 20, right: 20, top: 16, bottom: 12 })
@@ -449,157 +362,7 @@ export struct ElderOverviewTab {
     .width('100%')
     .height('100%')
 
-    // 搜索添加老人弹窗
-    if (this.showAddDialog) {
-      Column() {
-        Column() {
-          Text('添加关联老人')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#1e293b')
-            .margin({ bottom: 16 })
 
-          // 手机号搜索
-          Text('输入老人手机号搜索')
-            .fontSize(13)
-            .fontColor('#64748b')
-            .alignSelf(ItemAlign.Start)
-          Row() {
-            TextInput({ text: this.searchPhone, placeholder: '请输入手机号' })
-              .height(44)
-              .fontSize(14)
-              .backgroundColor('#f8fafc')
-              .borderRadius(10)
-              .layoutWeight(1)
-              .onChange((value: string) => {
-                this.searchPhone = value;
-              })
-            Button(this.isSearching ? '...' : '搜索')
-              .type(ButtonType.Capsule)
-              .backgroundColor('#2563eb')
-              .height(44)
-              .width(70)
-              .margin({ left: 10 })
-              .enabled(!this.isSearching)
-              .onClick(() => {
-                this.searchElderByPhone();
-              })
-          }
-          .width('100%')
-          .margin({ top: 6, bottom: 14 })
-
-          // 搜索结果
-          if (this.searchResults.length > 0) {
-            Text('搜索结果')
-              .fontSize(13)
-              .fontColor('#64748b')
-              .alignSelf(ItemAlign.Start)
-              .margin({ bottom: 8 })
-
-            ForEach(this.searchResults, (elder: ElderResponse) => {
-              Row() {
-                Column() {
-                  Text(elder.gender === 1 ? '👴' : '👵').fontSize(24)
-                }
-                .width(40)
-                .height(40)
-                .borderRadius(20)
-                .backgroundColor('#f1f5f9')
-                .justifyContent(FlexAlign.Center)
-
-                Column() {
-                  Text(elder.name)
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor('#1e293b')
-                  Text(elder.phone + ' · ' + elder.age + '岁')
-                    .fontSize(12)
-                    .fontColor('#64748b')
-                    .margin({ top: 2 })
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start)
-                .margin({ left: 10 })
-
-                if (this.selectedElder && this.selectedElder.id === elder.id) {
-                  Text('✓')
-                    .fontSize(16)
-                    .fontColor('#16a34a')
-                } else {
-                  Text('选择')
-                    .fontSize(13)
-                    .fontColor('#2563eb')
-                }
-              }
-              .width('100%')
-              .padding(12)
-              .backgroundColor(this.selectedElder && this.selectedElder.id === elder.id ? '#eff6ff' : '#f8fafc')
-              .borderRadius(10)
-              .margin({ bottom: 8 })
-              .onClick(() => {
-                this.selectedElder = elder;
-              })
-            }, (elder: ElderResponse) => elder.id.toString())
-          }
-
-          // 关系名称
-          if (this.selectedElder) {
-            Text('与老人的关系（可选）')
-              .fontSize(13)
-              .fontColor('#64748b')
-              .alignSelf(ItemAlign.Start)
-              .margin({ top: 8 })
-            TextInput({ text: this.relationName, placeholder: '如：父亲、母亲' })
-              .height(44)
-              .fontSize(14)
-              .backgroundColor('#f8fafc')
-              .borderRadius(10)
-              .margin({ top: 6, bottom: 16 })
-              .onChange((value: string) => {
-                this.relationName = value;
-              })
-          }
-
-          // 按钮
-          Row() {
-            Button('取消')
-              .type(ButtonType.Capsule)
-              .backgroundColor('#f1f5f9')
-              .fontColor('#64748b')
-              .layoutWeight(1)
-              .height(44)
-              .margin({ right: 10 })
-              .onClick(() => {
-                this.showAddDialog = false;
-              })
-
-            Button(this.isAdding ? '添加中...' : '确认添加')
-              .type(ButtonType.Capsule)
-              .backgroundColor(this.selectedElder ? '#2563eb' : '#cbd5e1')
-              .layoutWeight(1)
-              .height(44)
-              .enabled(!!this.selectedElder && !this.isAdding)
-              .onClick(() => {
-                this.addElderRelation();
-              })
-          }
-          .width('100%')
-          .margin({ top: 8 })
-        }
-        .width('90%')
-        .padding(24)
-        .backgroundColor(Color.White)
-        .borderRadius(20)
-        .shadow({ radius: 20, color: '#0002' })
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor('#00000066')
-      .justifyContent(FlexAlign.Center)
-      .onClick(() => {
-        this.showAddDialog = false;
-      })
-    }
     }
     .width('100%')
     .height('100%')

@@ -94,6 +94,11 @@
       "name": "Elder_AddHealthData",
       "pageSourceFile": "src/main/ets/pages/elder/ElderAddHealthDataPage.ets",
       "buildFunction": "ElderAddHealthDataPageBuilder"
+    },
+    {
+      "name": "Common_AssociatedElders",
+      "pageSourceFile": "src/main/ets/pages/common/AssociatedEldersPage.ets",
+      "buildFunction": "AssociatedEldersPageBuilder"
     }
   ]
 }
