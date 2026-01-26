@@ -19,7 +19,7 @@ interface RoleResponse {
   description: string | null;
 }
 
-interface UserWithRoleResponse {
+export interface UserWithRoleResponse {
   id: number;
   username: string;
   email: string | null;

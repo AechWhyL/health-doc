@@ -209,14 +209,98 @@
     }
     ```
 
-前端建议处理流程：
+- 事件名：`notification:consultation_reply`
+  - 方向：服务器 → 咨询房间内所有客户端
+  - 用途：当有新咨询回复时，向房间内其他用户推送系统通知
+  - 数据结构：
+    ```json
+    {
+      "type": "CONSULTATION_REPLY",
+      "question_id": 123,
+      "sender_id": 456,
+      "sender_name": "张三",
+      "message_preview": "你好...",
+      "created_at": "2026-01-26T16:00:00.000Z"
+    }
+    ```
 
-1. 建立 Socket.io 连接；
-2. 登录成功后，立即发送一次 `bind_user` 事件，携带当前登录用户的 `user_id`；
-3. 监听 `notification:new` 事件，追加到本地通知列表，并根据需求弹出提示；
-4. 切换账号或退出登录时，可以断开连接或在新连接上重新绑定。
+- 事件名：`notification:task_reminder`
+  - 方向：服务器 → 用户房间内所有客户端
+  - 用途：每日定时（如晚上8点）推送未完成任务提醒
+  - 数据结构：
+    ```json
+    {
+      "type": "TASK_REMINDER",
+      "task_date": "2026-01-26",
+      "pending_tasks": [
+        {
+          "task_id": 1,
+          "item_name": "喝水",
+          "task_time": "10:00"
+        }
+      ]
+    }
+    ```
 
-## 5. 当前事件清单一览
+- 事件名：`notification:task_checkin`
+  - 方向：服务器 → 医护人员用户房间
+  - 用途：当老人/家属完成任务签到时，通知关联的医护人员
+  - 数据结构：
+    ```json
+    {
+      "type": "TASK_CHECKIN",
+      "task_id": 1,
+      "elder_name": "王五",
+      "item_name": "散步",
+      "complete_time": "2026-01-26T16:00:00.000Z"
+    }
+    ```
+
+## 5. 测试专用事件（仅调试环境可用）
+
+以下事件仅用于开发和测试阶段方便 Postman 触发通知推送，生产环境不建议依赖。
+
+- 事件名：`test:push_consultation_reply`
+  - 方向：客户端 → 服务器
+  - 用途：模拟推送咨询回复通知（触发 `notification:consultation_reply`）
+  - 请求数据：
+    ```json
+    {
+      "question_id": 123,           // 必填，推送到哪个咨询房间
+      "sender_id": 999,             // 可选
+      "sender_name": "测试医生",    // 可选
+      "message_preview": "测试回复" // 可选
+    }
+    ```
+
+- 事件名：`test:push_task_reminder`
+  - 方向：客户端 → 服务器
+  - 用途：模拟推送任务提醒通知（触发 `notification:task_reminder`）
+  - 请求数据：
+    ```json
+    {
+      "user_id": 1001,              // 必填，推送到哪个用户
+      "task_date": "2026-01-26",    // 可选
+      "pending_tasks": [            // 可选
+        { "task_id": 1, "item_name": "测试任务A", "task_time": "10:00" }
+      ]
+    }
+    ```
+
+- 事件名：`test:push_task_checkin`
+  - 方向：客户端 → 服务器
+  - 用途：模拟推送任务签到通知（触发 `notification:task_checkin`）
+  - 请求数据：
+    ```json
+    {
+      "medical_staff_id": 2001,     // 必填，推送到哪个医护人员
+      "task_id": 501,               // 可选
+      "elder_name": "张大爷",       // 可选
+      "item_name": "晨练"           // 可选
+    }
+    ```
+
+## 6. 当前事件清单一览
 
 按事件名归类如下：
 
@@ -225,6 +309,9 @@
   - `leave_question`
   - `send_message`
   - `bind_user`
+  - `test:push_consultation_reply`
+  - `test:push_task_reminder`
+  - `test:push_task_checkin`
 
 - 服务器 → 客户端：
   - `joined_question`
@@ -232,6 +319,9 @@
   - `send_message:ack`
   - `new_message`
   - `notification:new`
+  - `notification:consultation_reply`
+  - `notification:task_reminder`
+  - `notification:task_checkin`
   - `bind_user:ack`
   - `error`
 

@@ -1,5 +1,6 @@
 // import { client_socket } from '@ohos/socketio';
 import { webview } from "@kit.ArkWeb";
+import { JSON } from "@kit.ArkTS";
 
 // 定义通用接口
 export interface ISocketClient {
@@ -83,10 +84,15 @@ export class BridgeSocketClient implements ISocketClient {
 
   emit(event: string, data: string): void {
     try {
+      if (!this.controller) {
+        console.warn('[BridgeSocketClient] Emit failed: controller is null');
+        return;
+      }
       const safeData = data.replace(/'/g, "\\'");
+      // 执行 JS。这里包裹 try catch 是因为如果 Web 组件正好在销毁，controller.runJavaScript 会抛出异常
       this.controller.runJavaScript(`window.bridge.emit('${event}', '${safeData}')`);
     } catch (e) {
-      console.error('Bridge emit failed:', e);
+      console.error('[BridgeSocketClient] Bridge emit failed:', e);
     }
   }
 
@@ -238,6 +244,18 @@ export class SocketService {
     this.client.on('error', (data: string): void => {
       this.notifyListeners('error', data);
     });
+
+    // 注册通知事件监听
+    this.client.on('notification:consultation_reply', (data: string): void => {
+      this.notifyListeners('notification:consultation_reply', data);
+    });
+    this.client.on('notification:task_reminder', (data: string): void => {
+      this.notifyListeners('notification:task_reminder', data);
+    });
+    this.client.on('notification:task_checkin', (data: string): void => {
+      this.notifyListeners('notification:task_checkin', data);
+    });
+
     console.log("[socket debug] trying to connect socket")
     this.client.connect(uri);
   }
@@ -259,6 +277,7 @@ export class SocketService {
 
   public joinQuestion(questionId: number, userId: number, userType: string, displayName: string): void {
     if (!this.client) {
+      console.log("[socket debug] join_question: this.client not is null")
       return;
     }
     const payload = JSON.stringify({
@@ -268,6 +287,7 @@ export class SocketService {
       role_display_name: displayName
     });
     this.client.emit('join_question', payload);
+    console.log("[socket debug] join_question: ", JSON.stringify(payload));
   }
 
   public leaveQuestion(questionId: number): void {
@@ -288,9 +308,20 @@ export class SocketService {
     this.client.emit('send_message', typeof message === 'string' ? message : JSON.stringify(message));
   }
 
+  public bindUser(userId: number): void {
+    if (!this.client) {
+      return;
+    }
+    const payload = JSON.stringify({
+      user_id: userId
+    });
+    console.log("[socket debug] Binding user to socket:", userId);
+    this.client.emit('bind_user', payload);
+  }
+
   // --- 事件订阅 ---
 
-  public on(event: string, callback: (data: Object | string) => void) {
+  public on<T>(event: string, callback: (data: T | string) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
@@ -310,7 +341,7 @@ export class SocketService {
     }
   }
 
-  private notifyListeners(event: string, data: Object | string) {
+  private notifyListeners(event: string, data: Object) {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.forEach(cb => {

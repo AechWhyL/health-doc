@@ -32,7 +32,7 @@
     },
     {
       "name": "Medical_ConsultationTab_ChatPage",
-      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/ChatPage.ets",
       "buildFunction": "ChatPageBuilder"
     },
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Family_ConsultationChat",
-      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/ChatPage.ets",
       "buildFunction": "ChatPageBuilder"
     },
     {
@@ -77,7 +77,7 @@
     },
     {
       "name": "Elder_ConsultationChat",
-      "pageSourceFile": "src/main/ets/pages/medical/consultation/ChatPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/ChatPage.ets",
       "buildFunction": "ChatPageBuilder"
     },
     {

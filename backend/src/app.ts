@@ -65,23 +65,6 @@ routes.forEach(router => {
   app.use(router.routes()).use(router.allowedMethods());
 });
 
-app.use(async (ctx) => {
-  if (ctx.path === '/api/health') {
-    ctx.success({ status: 'ok', version: '1.0.0' }, '健康检查成功');
-  } else if (ctx.path === '/api/test/error') {
-    ctx.error('测试错误响应', 400);
-  } else if (ctx.path === '/api/test/paginate') {
-    const mockData = [
-      { id: 1, name: '测试数据1' },
-      { id: 2, name: '测试数据2' },
-      { id: 3, name: '测试数据3' },
-      { id: 4, name: '测试数据4' },
-      { id: 5, name: '测试数据5' }
-    ];
-    ctx.paginate(mockData, 1, 10, 50, '分页数据获取成功');
-  }
-});
-
 RoleService.ensureDefaultRoles()
   .then(() => {
     console.log('默认角色已初始化');
@@ -92,6 +75,15 @@ RoleService.ensureDefaultRoles()
 
 const httpServer = createServer(app.callback());
 initSocketServer(httpServer);
+
+// 初始化定时任务调度器
+import('./services/taskScheduler').then(({ TaskScheduler }) => {
+  TaskScheduler.init();
+  console.log('定时任务调度器已初始化');
+}).catch((error) => {
+  console.error('初始化定时任务调度器失败', error);
+});
+
 
 httpServer.listen(config.PORT, () => {
   console.log(`HTTP 服务器已启动，运行在 http://localhost:${config.PORT}`);

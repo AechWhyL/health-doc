@@ -19,6 +19,10 @@
     {
       "name": "reason_media",
       "value": "用于访问本地媒体"
+    },
+    {
+      "name": "reason_notification",
+      "value": "需要发送通知以提醒您重要的消息和任务"
     }
   ]
 }

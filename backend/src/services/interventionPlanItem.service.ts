@@ -582,6 +582,39 @@ export class InterventionPlanItemService {
       throw new NotFoundError('任务实例不存在');
     }
 
+    // 如果任务状态更新为已完成，推送签到通知给医护人员
+    if (data.status === 'COMPLETED') {
+      try {
+        // 获取计划项信息
+        const planItem = await InterventionPlanItemRepository.findById(updated.item_id);
+        if (planItem) {
+          // 获取干预计划信息
+          const { InterventionPlanRepository } = await import('../repositories/interventionPlan.repository');
+          const plan = await InterventionPlanRepository.findById(planItem.plan_id);
+          if (plan) {
+            // 获取老人用户信息
+            const { Database } = await import('../config/database');
+            const elderUserSql = 'SELECT name FROM users WHERE id = ?';
+            const elderUser = await Database.queryOne<{ name: string }>(elderUserSql, [
+              plan.elder_user_id
+            ]);
+
+            // 推送通知给创建计划的医护人员
+            const { emitTaskCheckinNotification } = await import('../realtime/socket');
+            emitTaskCheckinNotification(
+              plan.created_by_user_id,
+              taskId,
+              elderUser?.name || '老人',
+              planItem.name
+            );
+          }
+        }
+      } catch (error) {
+        console.error('[InterventionPlanItemService] Failed to emit task checkin notification:', error);
+        // 不影响主流程，仅记录错误
+      }
+    }
+
     return {
       id: updated.id!,
       item_id: updated.item_id,

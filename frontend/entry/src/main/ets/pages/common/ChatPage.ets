@@ -1,8 +1,9 @@
-import { SocketService } from '../../../common/api/SocketService';
-import { ConsultationService } from '../../../common/api/ConsultationService';
-import { ConsultationQuestion, ConsultationMessage } from '../../../models/ConsultationModels';
-import { ChatView } from '../../../components/medical/ChatView';
-import { BASEURL } from '../../../common/api/httpEnum';
+import { SocketService } from '../../common/api/SocketService';
+import { ConsultationService } from '../../common/api/ConsultationService';
+import { ConsultationQuestion, ConsultationMessage } from '../../models/ConsultationModels';
+import { ChatView } from '../../components/medical/ChatView';
+import { BASEURL } from '../../common/api/httpEnum';
+import { UserWithRoleResponse } from '../Login';
 
 @Builder
 export function ChatPageBuilder() {
@@ -16,9 +17,9 @@ export struct ChatPage {
   @State title: string = '';
   @State messages: ConsultationMessage[] = [];
   @State isLoadingMessages: boolean = false;
-  @State currentUserId: number = 456; // 假设当前登录医生ID为456
-  @State currentUserType: string = 'STAFF';
-  @State currentUserDisplayName: string = '王医生';
+  @State currentUserId: number = 0;
+  @State currentUserType: string = '';
+  @State currentUserDisplayName: string = '';
   private socketService: SocketService | null = null;
   // 监听器回调引用
   private onNewMessage = (data: Object | string) => {
@@ -38,6 +39,30 @@ export struct ChatPage {
 
   aboutToAppear(): void {
     console.log('[socket debug] chatPage about to appear')
+    // 获取当前用户信息
+    const user = AppStorage.get<UserWithRoleResponse>('currentUser');
+    if (user) {
+      this.currentUserId = user.id;
+      this.currentUserDisplayName = user.real_name || user.username;
+      
+      // 简单的角色映射逻辑：根据角色代码列表判断当前身份
+      // 优先级：医护 > 家属 > 老人 (假设一个人可能有多个角色，这里取最高优先级的身份作为当前聊天身份)
+      // 实际业务中可能需要通过路由参数或者上下文明确指定以什么身份进入聊天
+      const roleCodes = user.roles.map(r => r.role_code.toLowerCase());
+      if (roleCodes.includes('medical_staff')) {
+        this.currentUserType = 'STAFF';
+      } else if (roleCodes.includes('family')) {
+        this.currentUserType = 'FAMILY';
+      } else if (roleCodes.includes('elder')) {
+        this.currentUserType = 'ELDER';
+      } else {
+        this.currentUserType = 'UNKNOWN';
+      }
+      console.log(`[ChatPage] Initialized with User: ${this.currentUserId}, Type: ${this.currentUserType}, Name: ${this.currentUserDisplayName}`);
+    } else {
+      console.error('[ChatPage] No current user found in AppStorage');
+    }
+
     // 获取全局 SocketService 实例
     this.socketService = SocketService.getInstance();
   }
@@ -222,7 +247,7 @@ export struct ChatPage {
     .title("咨询")
     .onReady((context: NavDestinationContext) => {
       const params = context.pathInfo.param as ConsultationQuestion;
-      console.log("ChatPageReady")
+      console.log("ChatPageReady: "+ JSON.stringify(params))
       if (params) {
         this.questionId = params.id;
         this.title = params.title;

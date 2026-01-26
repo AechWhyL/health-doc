@@ -1,5 +1,4 @@
 import router from '@ohos.router';
-import { GlobalSocketManager } from '../components/GlobalSocketManager';
 
 interface UserRole {
   id: number;
@@ -22,21 +21,26 @@ interface CurrentUser {
 
 /**
  * 应用初始化中间层页面
- * 负责 WebSocket 初始化和角色路由
+ * 职责：
+ * 1. 验证用户信息
+ * 2. 根据角色分发到对应主页
+ * 
+ * 注意：WebSocket 的全局初始化已移动到各端主页面的 Index.ets 中，
+ * 以确保 SocketBridge 组件在应用生命周期内持续存在且不随此中间页面的销毁而失效。
  */
 @Entry
 @Component
 struct AppInitializer {
-  @State private isInitializing: boolean = true;
-  @State private statusText: string = '正在初始化连接...';
   private currentUser: CurrentUser | null = null;
 
   aboutToAppear(): void {
     // 从 AppStorage 读取当前用户信息
-    const userStr = AppStorage.get<CurrentUser>('currentUser');
-    if (userStr) {
-      this.currentUser = userStr;
+    const user = AppStorage.get<CurrentUser>('currentUser');
+    if (user) {
+      this.currentUser = user;
       console.log('[AppInitializer] Current user loaded:', JSON.stringify(this.currentUser));
+      // 立即执行路由分发
+      this.routeToMainPage();
     } else {
       console.error('[AppInitializer] No current user found, redirecting to login');
       this.redirectToLogin();
@@ -44,51 +48,38 @@ struct AppInitializer {
   }
 
   /**
-   * WebSocket 初始化完成回调
-   */
-  private onSocketInitialized = (): void => {
-    console.log('[AppInitializer] WebSocket initialized, routing to main page');
-    this.statusText = '连接成功，正在跳转...';
-    
-    // 延迟一小段时间，让用户看到成功提示
-    setTimeout(() => {
-      this.routeToMainPage();
-    }, 500);
-  }
-
-  /**
    * 根据用户角色跳转到对应主页面
    */
   private routeToMainPage(): void {
     if (!this.currentUser || !this.currentUser.roles || this.currentUser.roles.length === 0) {
-      console.error('[AppInitializer] Invalid user data, redirecting to login');
+      console.error('[AppInitializer] Invalid user data or no roles, redirecting to login');
       this.redirectToLogin();
       return;
     }
 
-    const roleCodes = this.currentUser.roles.map(role => role.role_code);
+    const roleCodes = this.currentUser.roles.map(role => role.role_code.toLowerCase());
     let targetPage: string = '';
 
-    // 根据角色确定目标页面
-    if (roleCodes.indexOf('medical_staff') >= 0 || roleCodes.indexOf('MEDICAL_STAFF') >= 0) {
+    // 根据角色确定目标页面 (支持大写或小写匹配)
+    if (roleCodes.includes('medical_staff')) {
       targetPage = 'pages/medical/Index';
-    } else if (roleCodes.indexOf('elder') >= 0 || roleCodes.indexOf('ELDER') >= 0) {
+    } else if (roleCodes.includes('elder')) {
       targetPage = 'pages/elder/Index';
-    } else if (roleCodes.indexOf('family') >= 0 || roleCodes.indexOf('FAMILY') >= 0) {
+    } else if (roleCodes.includes('family')) {
       targetPage = 'pages/family/Index';
     } else {
-      console.error('[AppInitializer] Unknown role, redirecting to login');
+      console.error('[AppInitializer] Unknown role code(s):', roleCodes);
       this.redirectToLogin();
       return;
     }
 
     console.log('[AppInitializer] Routing to:', targetPage);
     
-    // 使用 replaceUrl 替换当前页面，避免用户返回到初始化页面
+    // 使用 replaceUrl 确保初始化页面从栈中移除
     router.replaceUrl({
       url: targetPage
-    }).catch((err:string) => {
-      console.error('[AppInitializer] Failed to route:', err);
+    }).catch((err: Error) => {
+      console.error('[AppInitializer] Failed to route to ' + targetPage + ':', err.message);
       this.redirectToLogin();
     });
   }
@@ -99,46 +90,28 @@ struct AppInitializer {
   private redirectToLogin(): void {
     router.replaceUrl({
       url: 'pages/Login'
-    }).catch((err:string) => {
-      console.error('[AppInitializer] Failed to redirect to login:', err);
+    }).catch((err: Error) => {
+      console.error('[AppInitializer] Critical: Failed to redirect to login:', err.message);
     });
   }
 
   build() {
-    Stack() {
-      // 全局 WebSocket 管理器（隐藏的 Web 视图）
-      GlobalSocketManager({
-        onInitialized: this.onSocketInitialized
-      })
-
-      // 加载界面
-      Column() {
-        // Logo 或标题
-        Text('老年人健康档案管理平台')
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1f2937')
-          .margin({ bottom: 40 })
-
-        // 加载进度
-        LoadingProgress()
-          .width(48)
-          .height(48)
-          .color('#2563eb')
-          .margin({ bottom: 16 })
-
-        // 状态文本
-        Text(this.statusText)
-          .fontSize(14)
-          .fontColor('#6b7280')
-      }
-      .width('100%')
-      .height('100%')
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-      .backgroundColor('#f9fafb')
+    Column() {
+      // 保持简洁的加载视图
+      LoadingProgress()
+        .width(40)
+        .height(40)
+        .color('#2563eb')
+        .margin({ bottom: 16 })
+      
+      Text('正在准备您的工作空间...')
+        .fontSize(14)
+        .fontColor('#6b7280')
     }
     .width('100%')
     .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .backgroundColor('#f9fafb')
   }
 }
