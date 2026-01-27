@@ -338,7 +338,7 @@ export struct DocTab {
 
       // 老人列表
       SectionHeader({
-        title: '已关联的老人',
+        title: '我正在关注的老人列表',
         subtitle: `共 ${this.eldersWithHealth.length} 位`
       })
 
@@ -393,10 +393,10 @@ export struct DocTab {
                         .margin({ left: 8 })
                     }
 
-                    Text(item.relation.relation_name || '关联老人')
-                      .fontSize(12)
-                      .fontColor('#94a3b8')
-                      .margin({ top: 4 })
+                    // Text(item.relation.relation_name || '关联老人')
+                    //   .fontSize(12)
+                    //   .fontColor('#94a3b8')
+                    //   .margin({ top: 4 })
 
                     // 健康摘要
                     Row({ space: 8 }) {

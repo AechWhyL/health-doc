@@ -169,6 +169,7 @@ export struct ElderInterventionPlanList {
       completedTaskCount: plan.completedTaskCount,
       totalTaskCount: plan.totalTaskCount
     };
+    console.log("[ElderInterventionPlanList] "+JSON.stringify(updated))
     const newPlans = this.plans.slice();
     newPlans[index] = updated;
     this.plans = newPlans;
@@ -230,7 +231,7 @@ export struct ElderInterventionPlanList {
   private getStatusText(status: string): string {
     switch (status) {
       case 'ACTIVE':
-        return '进行的';
+        return '进行中';
       case 'STOPPED':
         return '已停止';
       default:
@@ -390,12 +391,15 @@ export struct ElderInterventionPlanList {
     .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
     .menus([
       {
-        value: $r('sys.symbol.heart'), action: () => {
+        value:"健康",
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.heart')), action: () => {
           this.goToHealthData()
         }
       },
       {
-        value: $r('sys.symbol.plus'), action: () => {
+        value: $r('sys.symbol.plus'),
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.plus')),
+        action: () => {
           this.goToAddPlan()
         }
       }

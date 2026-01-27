@@ -522,7 +522,7 @@ export struct MineTab {
 
             CardContainer({ title: '职业信息' }) {
               Column() {
-                this.EditableTextRow('医护类型', 'roleType', UIUtils.makeBinding(() => this.roleType), '例如：医生、护士')
+                // this.EditableTextRow('医护类型', 'roleType', UIUtils.makeBinding(() => this.roleType), '例如：医生、护士')
                 this.EditableTextRow('职称', 'jobTitle', UIUtils.makeBinding(() => this.jobTitle), '例如：主任医师')
                 this.EditableTextRow('擅长领域', 'goodAtTags', UIUtils.makeBinding(() => this.goodAtTags),
                   '多个标签用逗号分隔')

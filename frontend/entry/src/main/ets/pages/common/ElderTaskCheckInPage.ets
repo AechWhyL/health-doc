@@ -7,6 +7,7 @@ import axios, { AxiosError, AxiosProgressEvent, AxiosResponse, FormData } from '
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { preferenceUtils } from '../../common/preferenceUtils';
+import dayjs from 'dayjs';
 
 interface ApiResponse<T = Object> {
   code: number;
@@ -407,7 +408,7 @@ export struct ElderTaskCheckInPage {
               Text('完成时间：')
                 .fontSize(14)
                 .fontColor('#64748b')
-              Text(this.taskDetail.complete_time)
+              Text(dayjs(this.taskDetail.complete_time).format("YYYY-MM-DD，hh时mm分"))
                 .fontSize(14)
                 .fontColor('#1e293b')
             }

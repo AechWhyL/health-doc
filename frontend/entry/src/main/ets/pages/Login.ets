@@ -153,12 +153,12 @@ struct Login {
   build() {
     Column() {
       Column() {
-        Text('老年人健康档案管理平台')
+        Text('老年健康档案管理平台')
           .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .margin({ bottom: 8 });
 
-        Text('统一登录入口，支持老人/家属/医护三端')
+        Text('统一登录入口')
           .fontSize(12)
           .fontColor('#6b7280');
       }
@@ -166,14 +166,6 @@ struct Login {
       .padding({ top: 32, left: 24, right: 24 });
 
       Column() {
-        Text('欢迎回来')
-          .fontSize(20)
-          .fontWeight(FontWeight.Medium)
-          .margin({ bottom: 4 });
-
-        Text('使用手机号或邮箱登录，系统将自动识别角色')
-          .fontSize(12)
-          .fontColor('#6b7280');
 
         Column() {
           Text('手机号/邮箱')
@@ -210,20 +202,20 @@ struct Login {
         }
         .margin({ top: 16 });
 
-        Row() {
-          Checkbox({ name: 'remember', group: 'login-remember' })
-            .select(this.form.rememberMe)
-            .size({ width: 18, height: 18 })
-            .onChange(() => {
-              this.toggleRememberMe();
-            });
-
-          Text('记住我（使用更长有效期的刷新令牌）')
-            .fontSize(12)
-            .fontColor('#4b5563')
-            .margin({ left: 8 });
-        }
-        .margin({ top: 12 });
+        // Row() {
+        //   Checkbox({ name: 'remember', group: 'login-remember' })
+        //     .select(this.form.rememberMe)
+        //     .size({ width: 18, height: 18 })
+        //     .onChange(() => {
+        //       this.toggleRememberMe();
+        //     });
+        //
+        //   Text('记住我（使用更长有效期的刷新令牌）')
+        //     .fontSize(12)
+        //     .fontColor('#4b5563')
+        //     .margin({ left: 8 });
+        // }
+        // .margin({ top: 12 });
 
         if (this.errorMessage !== '') {
           Text(this.errorMessage)
@@ -245,11 +237,6 @@ struct Login {
           });
 
         Row() {
-          Text('忘记密码')
-            .fontSize(12)
-            .fontColor('#2563eb');
-
-          Blank();
 
           Text('还没有账号？立即注册')
             .fontSize(12)

@@ -164,24 +164,24 @@ export struct ElderConsultationTab {
         .width('100%')
         .padding({ left: 20, right: 20, top: 16, bottom: 12 })
 
-        // Tab
-        Row() {
-          ForEach(this.tabs, (item: string, index: number) => {
-            Text(item)
-              .fontSize(14)
-              .fontColor(this.currentTab === index ? '#ffffff' : '#64748b')
-              .backgroundColor(this.currentTab === index ? '#166534' : '#f1f5f9')
-              .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-              .borderRadius(18)
-              .margin({ right: 8 })
-              .onClick(() => {
-                this.currentTab = index;
-                this.fetchQuestions();
-              })
-          })
-        }
-        .width('100%')
-        .padding({ left: 16, right: 16, bottom: 12 })
+        // // Tab
+        // Row() {
+        //   ForEach(this.tabs, (item: string, index: number) => {
+        //     Text(item)
+        //       .fontSize(14)
+        //       .fontColor(this.currentTab === index ? '#ffffff' : '#64748b')
+        //       .backgroundColor(this.currentTab === index ? '#166534' : '#f1f5f9')
+        //       .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+        //       .borderRadius(18)
+        //       .margin({ right: 8 })
+        //       .onClick(() => {
+        //         this.currentTab = index;
+        //         this.fetchQuestions();
+        //       })
+        //   })
+        // }
+        // .width('100%')
+        // .padding({ left: 16, right: 16, bottom: 12 })
 
         // 列表
         if (this.isLoading) {

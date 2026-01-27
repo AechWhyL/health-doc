@@ -239,11 +239,6 @@ export struct Register {
             }, (chip: RoleChipConfig) => chip.code);
           }
           .margin({ top: 8 });
-
-          Text('角色代码示例：ELDER / FAMILY / MEDICAL_STAFF')
-            .fontSize(11)
-            .fontColor('#9ca3af')
-            .margin({ top: 4 });
         }
         .margin({ top: 16 });
 
@@ -264,22 +259,22 @@ export struct Register {
         }
         .margin({ top: 20 });
 
-        Column() {
-          Text('邮箱（可选）')
-            .fontSize(12)
-            .fontColor('#6b7280');
-
-          TextInput({ text: this.form.email, placeholder: '也可作为登录账号' })
-            .height(40)
-            .fontSize(14)
-            .padding({ left: 16, right: 16 })
-            .borderRadius(20)
-            .backgroundColor('#f9fafb')
-            .onChange((value: string) => {
-              this.updateEmail(value);
-            });
-        }
-        .margin({ top: 16 });
+        // Column() {
+        //   Text('邮箱（可选）')
+        //     .fontSize(12)
+        //     .fontColor('#6b7280');
+        //
+        //   TextInput({ text: this.form.email, placeholder: '也可作为登录账号' })
+        //     .height(40)
+        //     .fontSize(14)
+        //     .padding({ left: 16, right: 16 })
+        //     .borderRadius(20)
+        //     .backgroundColor('#f9fafb')
+        //     .onChange((value: string) => {
+        //       this.updateEmail(value);
+        //     });
+        // }
+        // .margin({ top: 16 });
 
         Column() {
           Text('登录密码')
@@ -355,11 +350,6 @@ export struct Register {
           .onClick(() => {
             this.handleGoLogin();
           });
-
-        Text('注册API：POST /api/v1/users，提交字段示意：phone/email、password、role_code')
-          .fontSize(10)
-          .fontColor('#9ca3af')
-          .margin({ top: 10 });
       }
       .width('100%')
       .padding({ left: 24, right: 24, top: 8 });
