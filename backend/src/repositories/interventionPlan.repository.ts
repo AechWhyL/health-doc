@@ -81,7 +81,8 @@ export class InterventionPlanRepository {
     page: number,
     pageSize: number,
     status?: string,
-    orderBy?: string
+    orderBy?: string,
+    createdByUserId?: number
   ): Promise<{ items: InterventionPlan[]; total: number }> {
     const whereParts: string[] = ['elder_user_id = ?'];
     const params: any[] = [elderUserId];
@@ -89,6 +90,11 @@ export class InterventionPlanRepository {
     if (status) {
       whereParts.push('status = ?');
       params.push(status);
+    }
+
+    if (createdByUserId) {
+      whereParts.push('created_by_user_id = ?');
+      params.push(createdByUserId);
     }
 
     const where = whereParts.join(' AND ');

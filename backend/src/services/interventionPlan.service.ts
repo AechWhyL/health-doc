@@ -51,14 +51,15 @@ export class InterventionPlanService {
     size: number;
     records: InterventionPlanResponse[];
   }> {
-    const { page, pageSize, status, orderBy } = query;
+    const { page, pageSize, status, orderBy, createdByUserId } = query;
 
     const { items, total } = await InterventionPlanRepository.findByElderUserId(
       elderUserId,
       page,
       pageSize,
       status,
-      orderBy
+      orderBy,
+      createdByUserId
     );
 
     const pages = Math.ceil(total / pageSize);

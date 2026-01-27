@@ -211,7 +211,8 @@ export class InterventionPlanController {
       page: ctx.query.page ? Number(ctx.query.page) : 1,
       pageSize: ctx.query.pageSize ? Number(ctx.query.pageSize) : 10,
       status: (ctx.query.status as any) || undefined,
-      orderBy: (ctx.query.orderBy as string) || undefined
+      orderBy: (ctx.query.orderBy as string) || undefined,
+      createdByUserId: ctx.query.createdByUserId ? Number(ctx.query.createdByUserId) : undefined
     };
 
     const result = await InterventionPlanService.getPlansByElderUserId(elderUserId, query);

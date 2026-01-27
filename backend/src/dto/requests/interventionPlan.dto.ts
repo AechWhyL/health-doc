@@ -78,12 +78,16 @@ export const queryInterventionPlanSchema = Joi.object({
   }),
   status: Joi.string()
     .valid('ACTIVE', 'STOPPED')
-    .optional()
     .messages({
       'string.base': '计划状态必须是字符串',
       'any.only': '计划状态不合法(有效值: ACTIVE=进行中, STOPPED=已停止)'
     }),
-  orderBy: Joi.string().optional().allow('')
+  orderBy: Joi.string().optional().allow(''),
+  createdByUserId: Joi.number().integer().positive().optional().messages({
+    'number.base': '创建人ID必须是数字',
+    'number.integer': '创建人ID必须是整数',
+    'number.positive': '创建人ID必须是正数'
+  })
 });
 
 export const idParamSchema = Joi.object({
@@ -123,6 +127,7 @@ export interface UpdateInterventionPlanRequest {
 export interface QueryInterventionPlanRequest extends PaginationQuery {
   status?: InterventionPlanStatus;
   orderBy?: string;
+  createdByUserId?: number;
 }
 
 export interface InterventionPlanStatusUpdateRequest {

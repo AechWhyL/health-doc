@@ -103,6 +103,7 @@ export interface QueryInterventionPlanRequest {
   pageSize?: number;
   status?: InterventionPlanStatus;
   orderBy?: string;
+  createdByUserId?: number;
 }
 
 export interface MedicationDetail {
