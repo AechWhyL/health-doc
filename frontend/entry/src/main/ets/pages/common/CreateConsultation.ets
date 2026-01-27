@@ -47,9 +47,13 @@ interface ConsultationQuestion {
   title: string;
 }
 
+export interface CreateConsultationPageParams {
+  creatorType: string;
+}
+
 @Component
 export struct CreateConsultation {
-  @Consume('navPathStack') navPathStack: NavPathStack;
+  private navPathStack: NavPathStack = new NavPathStack();
   @State staffList: MedicalStaffInfo[] = [];
   @State isLoading: boolean = true;
   @State selectedStaff: MedicalStaffInfo | null = null;
@@ -59,6 +63,8 @@ export struct CreateConsultation {
   @State questionContent: string = '';
   @State isSubmitting: boolean = false;
   @State showForm: boolean = false;
+
+  @State creatorType: string = 'FAMILY'; // 默认为 FAMILY，如果有参数传入则覆盖
 
   aboutToAppear(): void {
     this.loadMedicalStaff();
@@ -126,7 +132,7 @@ export struct CreateConsultation {
       const data: CreateQuestionRequest = {
         title: this.questionTitle.trim(),
         description: this.questionContent.trim(),
-        creator_type: 'FAMILY',
+        creator_type: this.creatorType,
         creator_id: 0,
         target_staff_id: this.selectedStaff.user_id,
         priority: 'NORMAL'
@@ -242,20 +248,29 @@ export struct CreateConsultation {
             .margin({ left: 8 })
         }
 
-        if (staff.job_title) {
-          Text(staff.job_title)
-            .fontSize(13)
-            .fontColor('#64748b')
-            .margin({ top: 4 })
-        }
+        Row(){
+          if (staff.job_title) {
+            Text(staff.job_title)
+              .fontSize(13)
+              .fontColor('#64748b')
+              .margin({ top: 4 })
+          }
 
-        if (staff.good_at_tags) {
-          Text('擅长: ' + staff.good_at_tags)
-            .fontSize(12)
-            .fontColor('#94a3b8')
-            .margin({ top: 4 })
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Divider()
+            .vertical(true)
+            .height(16)
+            .color('#182431')
+            .opacity(0.6)
+            .margin({ left: 4, right: 4 })
+
+          if (staff.good_at_tags) {
+            Text('擅长: ' + staff.good_at_tags)
+              .fontSize(12)
+              .fontColor('#94a3b8')
+              .margin({ top: 4 })
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
         }
       }
       .layoutWeight(1)
@@ -369,6 +384,9 @@ export struct CreateConsultation {
     }
     .width('100%')
     .padding({ left: 20, right: 20, top: 20, bottom: 30 })
+    .constraintSize({
+      minHeight:'100%'
+    })
   }
 
   build() {
@@ -410,6 +428,9 @@ export struct CreateConsultation {
                 }, (staff: MedicalStaffInfo) => staff.id.toString())
               }
               .padding({ left: 16, right: 16, top: 12, bottom: 20 })
+              .constraintSize({
+                minHeight:'100%'
+              })
             }
             .layoutWeight(1)
             .scrollBar(BarState.Off)
@@ -428,6 +449,13 @@ export struct CreateConsultation {
       .backgroundColor('#f1f5f9')
     }
     .title(this.showForm ? '填写咨询' : '选择咨询对象')
+    .onReady((ctx: NavDestinationContext) => {
+      this.navPathStack = ctx.pathStack;
+      const params = ctx.pathInfo.param as CreateConsultationPageParams;
+      if (params && params.creatorType) {
+        this.creatorType = params.creatorType;
+      }
+    })
     .backgroundColor('#f1f5f9')
   }
 }

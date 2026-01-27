@@ -115,6 +115,7 @@ struct ElderIndex {
         .width('100%')
         .title('健康关护 · 长辈版')
         .titleMode(NavigationTitleMode.Mini)
+        .hideTitleBar(true)
         .hideBackButton(true)
         .mode(NavigationMode.Stack)
       }

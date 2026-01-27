@@ -47,7 +47,12 @@
     },
     {
       "name": "Family_CreateConsultation",
-      "pageSourceFile": "src/main/ets/pages/family/CreateConsultation.ets",
+      "pageSourceFile": "src/main/ets/pages/common/CreateConsultation.ets",
+      "buildFunction": "CreateConsultationBuilder"
+    },
+    {
+      "name": "Elder_CreateConsultation",
+      "pageSourceFile": "src/main/ets/pages/common/CreateConsultation.ets",
       "buildFunction": "CreateConsultationBuilder"
     },
     {

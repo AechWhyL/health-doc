@@ -30,34 +30,7 @@ interface ElderResponse {
   birth_date?: string;
 }
 
-interface HealthMeasurement {
-  id: number;
-  elder_id: number;
-  measured_at: string;
-  sbp?: number;
-  dbp?: number;
-  fpg?: number;
-  weight?: number;
-}
 
-interface HealthMeasurementListData {
-  items: HealthMeasurement[];
-  total: number;
-}
-
-interface PaginationParams {
-  page: number;
-  pageSize: number;
-}
-
-interface ElderIdParams extends PaginationParams {
-  elder_id: number;
-}
-
-interface StatusResult {
-  text: string;
-  color: string;
-}
 
 // 新的今日任务API响应类型
 export interface ElderTaskInstanceInfo {
@@ -130,7 +103,7 @@ export struct ElderHomeTab {
   @State elderId: number = -1;
   @State elderName: string = '';
   @State elderInfo: ElderResponse | null = null;
-  @State latestHealth: HealthMeasurement | null = null;
+
   @State todayTasksData: ElderTodayTasksResponse | null = null;
   @State isLoading: boolean = true;
   @State profileIncomplete: boolean = false;
@@ -177,8 +150,7 @@ export struct ElderHomeTab {
           this.elderName = user.username;
         }
 
-        // 获取最新健康数据
-        await this.loadLatestHealth();
+
         // 获取今日任务
         await this.loadTodayTasks();
       }
@@ -210,24 +182,7 @@ export struct ElderHomeTab {
     this.profileIncomplete = missing.length > 0;
   }
 
-  private async loadLatestHealth(): Promise<void> {
-    if (this.elderId < 0) return;
 
-    try {
-      const healthParams: ElderIdParams = { elder_id: this.elderId, page: 1, pageSize: 1 };
-      const response = await httpRequest<ApiResponse<HealthMeasurementListData>, ElderIdParams>({
-        url: '/api/v1/elder-health/daily-health/list',
-        method: RequestEnum.GET,
-        params: healthParams
-      });
-
-      if (response.code === 200 && response.data && response.data.items.length > 0) {
-        this.latestHealth = response.data.items[0];
-      }
-    } catch (error) {
-      console.warn('获取健康数据失败:', error);
-    }
-  }
 
   private async loadTodayTasks(): Promise<void> {
     try {
@@ -246,41 +201,7 @@ export struct ElderHomeTab {
     }
   }
 
-  private getBpStatus(): StatusResult {
-    if (!this.latestHealth || this.latestHealth.sbp === undefined) {
-      const result: StatusResult = { text: '暂无数据', color: '#9ca3af' };
-      return result;
-    }
-    const sbp = this.latestHealth.sbp;
-    if (sbp >= 140) {
-      const result: StatusResult = { text: '偏高', color: '#dc2626' };
-      return result;
-    }
-    if (sbp < 90) {
-      const result: StatusResult = { text: '偏低', color: '#f59e0b' };
-      return result;
-    }
-    const result: StatusResult = { text: '正常', color: '#16a34a' };
-    return result;
-  }
 
-  private getFpgStatus(): StatusResult {
-    if (!this.latestHealth || this.latestHealth.fpg === undefined) {
-      const result: StatusResult = { text: '暂无数据', color: '#9ca3af' };
-      return result;
-    }
-    const fpg = this.latestHealth.fpg;
-    if (fpg >= 7.0) {
-      const result: StatusResult = { text: '偏高', color: '#dc2626' };
-      return result;
-    }
-    if (fpg < 3.9) {
-      const result: StatusResult = { text: '偏低', color: '#f59e0b' };
-      return result;
-    }
-    const result: StatusResult = { text: '正常', color: '#16a34a' };
-    return result;
-  }
 
   private navigateToTaskDetail(task: ElderTaskInstanceInfo, planItem: ElderPlanItemInfo, plan: ElderPlanInfo): void {
     const param: TaskDetailNavParam = {
@@ -291,112 +212,7 @@ export struct ElderHomeTab {
     this.navPathStack.pushPathByName('Elder_TaskDetail', param);
   }
 
-  @Builder
-  private HealthOverviewCard() {
-    Column() {
-      Row() {
-        Text('💓 健康概览')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#166534')
-      }
-      .width('100%')
-      .margin({ bottom: 16 })
 
-      Row() {
-        // 血压卡片
-        Column() {
-          Text('血压')
-            .fontSize(12)
-            .fontColor('#64748b')
-          if (this.latestHealth && this.latestHealth.sbp !== undefined && this.latestHealth.dbp !== undefined) {
-            Text(this.latestHealth.sbp + '/' + this.latestHealth.dbp)
-              .fontSize(22)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#1e293b')
-              .margin({ top: 4 })
-            Text(this.getBpStatus().text)
-              .fontSize(11)
-              .fontColor(this.getBpStatus().color)
-              .margin({ top: 4 })
-          } else {
-            Text('—')
-              .fontSize(22)
-              .fontColor('#9ca3af')
-              .margin({ top: 4 })
-          }
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-        .padding(12)
-        .backgroundColor('#f0fdf4')
-        .borderRadius(12)
-
-        Column() {
-          Text('血糖')
-            .fontSize(12)
-            .fontColor('#64748b')
-          if (this.latestHealth && this.latestHealth.fpg !== undefined) {
-            Text(this.latestHealth.fpg.toFixed(1))
-              .fontSize(22)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#1e293b')
-              .margin({ top: 4 })
-            Text(this.getFpgStatus().text)
-              .fontSize(11)
-              .fontColor(this.getFpgStatus().color)
-              .margin({ top: 4 })
-          } else {
-            Text('—')
-              .fontSize(22)
-              .fontColor('#9ca3af')
-              .margin({ top: 4 })
-          }
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-        .padding(12)
-        .backgroundColor('#f0fdf4')
-        .borderRadius(12)
-        .margin({ left: 10 })
-
-        Column() {
-          Text('体重')
-            .fontSize(12)
-            .fontColor('#64748b')
-          if (this.latestHealth && this.latestHealth.weight !== undefined) {
-            Text(this.latestHealth.weight.toFixed(1))
-              .fontSize(22)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#1e293b')
-              .margin({ top: 4 })
-            Text('kg')
-              .fontSize(11)
-              .fontColor('#64748b')
-              .margin({ top: 4 })
-          } else {
-            Text('—')
-              .fontSize(22)
-              .fontColor('#9ca3af')
-              .margin({ top: 4 })
-          }
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-        .padding(12)
-        .backgroundColor('#f0fdf4')
-        .borderRadius(12)
-        .margin({ left: 10 })
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding(18)
-    .backgroundColor(Color.White)
-    .borderRadius(16)
-    .shadow({ radius: 6, color: '#0f172a0a', offsetY: 2 })
-    .margin({ bottom: 14 })
-  }
 
   @Builder
   private TodayTasksCard() {
@@ -575,9 +391,12 @@ export struct ElderHomeTab {
             if (this.profileIncomplete) {
               this.ProfileCompletionBanner()
             }
-            this.HealthOverviewCard()
+
             this.TodayTasksCard()
           }
+          .constraintSize({
+            minHeight:'100%'
+          })
           .padding({ left: 16, right: 16, bottom: 20 })
         }
         .layoutWeight(1)

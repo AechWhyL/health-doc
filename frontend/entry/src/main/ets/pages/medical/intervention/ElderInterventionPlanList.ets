@@ -1,4 +1,4 @@
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, SymbolGlyphModifier } from '@kit.ArkUI';
 import { InterventionService } from '../../../common/api/InterventionService';
 import dayjs from 'dayjs';
 import {
@@ -390,12 +390,12 @@ export struct ElderInterventionPlanList {
     .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
     .menus([
       {
-        value: '健康数据', action: () => {
+        value: $r('sys.symbol.heart'), action: () => {
           this.goToHealthData()
         }
       },
       {
-        value: '+', action: () => {
+        value: $r('sys.symbol.plus'), action: () => {
           this.goToAddPlan()
         }
       }

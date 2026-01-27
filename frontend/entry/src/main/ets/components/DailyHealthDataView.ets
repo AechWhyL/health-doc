@@ -235,18 +235,18 @@ export struct DailyHealthDataView {
       
       Blank()
       
-      if (this.onAddClick) {
-        Button('+ 添加')
-          .type(ButtonType.Capsule)
-          .backgroundColor('#2563eb')
-          .fontSize(12)
-          .height(28)
-          .onClick(() => {
-            if (this.onAddClick) {
-              this.onAddClick();
-            }
-          })
-      }
+      // if (this.onAddClick) {
+      //   Button('+ 添加')
+      //     .type(ButtonType.Capsule)
+      //     .backgroundColor('#2563eb')
+      //     .fontSize(12)
+      //     .height(28)
+      //     .onClick(() => {
+      //       if (this.onAddClick) {
+      //         this.onAddClick();
+      //       }
+      //     })
+      // }
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 12 })

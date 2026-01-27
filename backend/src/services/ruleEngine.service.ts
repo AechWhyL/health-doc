@@ -28,20 +28,17 @@ export function bpLevel(sbp?: number, dbp?: number): HealthStatusLevel | null {
   const s = sbp ?? 0;
   const d = dbp ?? 0;
 
-  if (s < 120 && d < 80) {
-    return 'NORMAL';
-  }
-  if ((s >= 120 && s < 130) && d < 80) {
-    return 'MILD';
-  }
-  if ((s >= 130 && s < 140) || (d >= 80 && d < 90)) {
-    return 'MILD';
-  }
-  if ((s >= 140 && s <= 159) || (d >= 90 && d <= 99)) {
-    return 'MODERATE';
-  }
   if (s >= 160 || d >= 100) {
     return 'SEVERE';
+  }
+  if (s >= 140 || d >= 90) {
+    return 'MODERATE';
+  }
+  if (s >= 130 || d >= 80) {
+    return 'MILD';
+  }
+  if (s >= 120) {
+    return 'MILD';
   }
   return 'NORMAL';
 }
@@ -240,6 +237,7 @@ function defineRules(): HealthRule[] {
       let highCount = 0;
       recent.forEach(m => {
         const level = bpLevel(m.sbp, m.dbp);
+        console.log(level, " ", m.sbp, " ", m.dbp);
         if (level === 'MODERATE' || level === 'SEVERE') {
           highCount += 1;
         }
@@ -492,7 +490,8 @@ if (!rules.length) {
 
 export class RuleEngineService {
   static async evaluateRulesForElder(elderId: number, windowDays: number): Promise<HealthRuleResult[]> {
-    const elder = await ElderRepository.findById(elderId);
+    // DailyHealthMeasurement uses user_id as elder_id, so we must find elder info by user_id
+    const elder = await ElderRepository.findByUserId(elderId);
     if (!elder) {
       throw new NotFoundError('老人信息不存在');
     }

@@ -1,5 +1,6 @@
 import { HealthMeasurement, HealthDataType } from './DailyHealthDataView';
 import { VChart } from '@visactor/harmony-vchart';
+import { JSON } from '@kit.ArkTS';
 
 interface ChartDataPoint {
   date: string;
@@ -73,6 +74,8 @@ export struct ElderHealthChart {
     const dataStr = JSON.stringify(data);
     const colorStr = JSON.stringify(colors);
 
+    console.log('[Health Chart] dataStr:' + dataStr)
+
     const specString = `
       {
         "type": "line",
@@ -135,13 +138,37 @@ export struct ElderHealthChart {
   build() {
     Column() {
       if (this.healthRecords.length > 0) {
-        // VChart Component
-        VChart({
-          spec: this.chartSpec,
-          w: 360,
-          h: 220 
-        })
-          .margin({ top: 10, bottom: 10 })
+
+        if(this.selectedType === "weight"){
+          // VChart Component
+          VChart({
+            spec: this.chartSpec,
+            w: 360,
+            h: 220,
+          })
+            .margin({ top: 10, bottom: 10 })
+        }
+
+        if(this.selectedType === "bp"){
+          // VChart Component
+          VChart({
+            spec: this.chartSpec,
+            w: 360,
+            h: 220,
+          })
+            .margin({ top: 10, bottom: 10 })
+        }
+
+        if(this.selectedType === "fpg"){
+          // VChart Component
+          VChart({
+            spec: this.chartSpec,
+            w: 360,
+            h: 220,
+          })
+            .margin({ top: 10, bottom: 10 })
+        }
+
       } else {
         // Empty state for chart area (optional, parent handles main empty state)
         Column()

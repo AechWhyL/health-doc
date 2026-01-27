@@ -148,6 +148,9 @@ export struct InterventionPlanItemDetail {
                 }
               }
             }
+            .constraintSize({
+              minHeight:'100%'
+            })
             .padding(16)
           }
           .layoutWeight(1)
