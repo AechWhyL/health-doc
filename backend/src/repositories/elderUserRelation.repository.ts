@@ -137,4 +137,12 @@ export class ElderUserRelationRepository {
     const result = await Database.delete(sql, [id, userId]);
     return result > 0;
   }
+
+  static async findAllByElderUserId(elderUserId: number): Promise<number[]> {
+    const sql = `
+      SELECT user_id FROM elder_user_relations WHERE elder_id = ?
+    `;
+    const rows = await Database.query<{ user_id: number }>(sql, [elderUserId]);
+    return rows.map(row => row.user_id);
+  }
 }

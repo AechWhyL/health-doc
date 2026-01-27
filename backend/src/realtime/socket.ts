@@ -258,6 +258,8 @@ interface TaskReminderNotification {
     item_name: string;
     task_time: string;
   }>;
+  message?: string; // 展示的提醒文案
+  elder_name?: string; // 关联的老人姓名
 }
 
 // 任务签到通知数据结构
@@ -306,11 +308,15 @@ export const emitConsultationReplyNotification = (
  * @param userId 用户ID
  * @param taskDate 任务日期
  * @param pendingTasks 未完成任务列表
+ * @param message 自定义展示文案（可选）
+ * @param elderName 关联的老人姓名（可选）
  */
 export const emitTaskReminderNotification = (
   userId: number,
   taskDate: string,
-  pendingTasks: Array<{ task_id: number; item_name: string; task_time: string }>
+  pendingTasks: Array<{ task_id: number; item_name: string; task_time: string }>,
+  message?: string,
+  elderName?: string
 ): void => {
   if (!ioInstance) {
     console.warn('[Socket] Cannot emit task reminder notification: ioInstance is null');
@@ -320,7 +326,9 @@ export const emitTaskReminderNotification = (
   const notification: TaskReminderNotification = {
     type: 'TASK_REMINDER',
     task_date: taskDate,
-    pending_tasks: pendingTasks
+    pending_tasks: pendingTasks,
+    message,
+    elder_name: elderName
   };
 
   const room = getUserRoomName(userId);

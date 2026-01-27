@@ -50,12 +50,16 @@ interface ITaskReminderNotification {
   type: 'TASK_REMINDER';
   task_date: string;
   pending_tasks: PendingTaskItem[];
+  message?: string;
+  elder_name?: string;
 }
 
 export class TaskReminderNotification implements ITaskReminderNotification{
   type: 'TASK_REMINDER';
   task_date: string;
   pending_tasks: PendingTaskItem[];
+  message?: string;
+  elder_name?: string;
 
   constructor(param:string | TaskReminderNotification) {
     if(typeof param == "string"){
@@ -63,10 +67,14 @@ export class TaskReminderNotification implements ITaskReminderNotification{
       this.type = parsed.type
       this.task_date = parsed.task_date
       this.pending_tasks = parsed.pending_tasks
+      this.message = parsed.message
+      this.elder_name = parsed.elder_name
     }else{
       this.type = param.type
       this.task_date = param.task_date
       this.pending_tasks = param.pending_tasks
+      this.message = param.message
+      this.elder_name = param.elder_name
     }
   }
 
@@ -176,8 +184,15 @@ export class NotificationService {
 
     try {
       const notificationId = NotificationService.notificationId++;
-      const taskCount = data.pending_tasks.length;
-      const taskNames = data.pending_tasks.slice(0, 3).map((t: PendingTaskItem) => t.item_name).join('、');
+      let normalText = '';
+
+      if (data.message) {
+        normalText = data.message;
+      } else {
+        const taskCount = data.pending_tasks.length;
+        const taskNames = data.pending_tasks.slice(0, 3).map((t: PendingTaskItem) => t.item_name).join('、');
+        normalText = `您还有${taskCount}个任务未完成：${taskNames}${taskCount > 3 ? '等' : ''}`;
+      }
       
       const notificationRequest: notificationManager.NotificationRequest = {
         id: notificationId,
@@ -185,7 +200,7 @@ export class NotificationService {
           notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
           normal: {
             title: '今日任务提醒',
-            text: `您还有${taskCount}个任务未完成：${taskNames}${taskCount > 3 ? '等' : ''}`,
+            text: normalText,
           }
         },
         notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION

@@ -10,6 +10,7 @@ import ruleEngineRoutes from './ruleEngine.routes';
 import fileRoutes from './file.routes';
 import personalRuleRoutes from './personalRule.routes';
 import familyRoutes from './family.routes';
+import notificationRoutes from './notification.routes';
 
 export default [
   elderRoutes,
@@ -23,6 +24,7 @@ export default [
   ruleEngineRoutes,
   fileRoutes,
   personalRuleRoutes,
-  familyRoutes
+  familyRoutes,
+  notificationRoutes
 ];
 

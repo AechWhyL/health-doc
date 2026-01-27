@@ -4,6 +4,7 @@ import {
   QueryNotificationRequest
 } from '../dto/requests/notification.dto';
 import { NotificationService } from '../services/notification.service';
+import { TaskScheduler } from '../services/taskScheduler';
 
 export class NotificationController {
   static async getNotificationList(ctx: Context) {
@@ -42,6 +43,11 @@ export class NotificationController {
 
     const result = await NotificationService.markAsRead(notificationId, user.userId);
     ctx.success<NotificationResponse>(result, '通知已标记为已读');
+  }
+
+  static async sendTestNotification(ctx: Context) {
+    TaskScheduler.triggerTaskReminders();
+    ctx.success(null, '测试通知已发送');
   }
 }
 

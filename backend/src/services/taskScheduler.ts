@@ -38,15 +38,18 @@ export class TaskScheduler {
             const today = dayjs().format('YYYY-MM-DD');
 
             // 查询今天所有未完成的任务，按用户分组
+            // 联表查询老人姓名
             const sql = `
         SELECT 
           ip.elder_user_id as user_id,
+          ebi.name as elder_name,
           pti.id as task_id,
           pi.name as item_name,
           pti.task_time
         FROM plan_task_instance pti
         JOIN plan_item pi ON pti.item_id = pi.id
         JOIN intervention_plan ip ON pi.plan_id = ip.id
+        LEFT JOIN elder_basic_info ebi ON ip.elder_user_id = ebi.user_id
         WHERE pti.task_date = ?
           AND pti.status = 'PENDING'
           AND ip.status = 'ACTIVE'
@@ -55,6 +58,7 @@ export class TaskScheduler {
 
             const tasks = await Database.query<{
                 user_id: number;
+                elder_name: string | null;
                 task_id: number;
                 item_name: string;
                 task_time: string | null;
@@ -68,14 +72,20 @@ export class TaskScheduler {
             // 按用户分组
             const tasksByUser = new Map<
                 number,
-                Array<{ task_id: number; item_name: string; task_time: string }>
+                {
+                    elderName: string;
+                    tasks: Array<{ task_id: number; item_name: string; task_time: string }>
+                }
             >();
 
             for (const task of tasks) {
                 if (!tasksByUser.has(task.user_id)) {
-                    tasksByUser.set(task.user_id, []);
+                    tasksByUser.set(task.user_id, {
+                        elderName: task.elder_name || '未命名老人',
+                        tasks: []
+                    });
                 }
-                tasksByUser.get(task.user_id)!.push({
+                tasksByUser.get(task.user_id)!.tasks.push({
                     task_id: task.task_id,
                     item_name: task.item_name,
                     task_time: task.task_time || '未设置时间'
@@ -84,10 +94,35 @@ export class TaskScheduler {
 
             // 为每个用户推送通知
             let notificationCount = 0;
-            for (const [userId, pendingTasks] of tasksByUser.entries()) {
+            const { ElderUserRelationRepository } = require('../repositories/elderUserRelation.repository');
+
+            for (const [userId, { elderName, tasks: pendingTasks }] of tasksByUser.entries()) {
                 try {
-                    emitTaskReminderNotification(userId, today, pendingTasks);
+                    // 1. 给老人发送详情提醒
+                    const taskNames = pendingTasks.map(t => t.item_name).join('、');
+                    const elderMsg = `温馨提醒：您今天还有 ${pendingTasks.length} 项计划任务未完成：${taskNames}，请记得按时打卡哦。`;
+
+                    emitTaskReminderNotification(userId, today, pendingTasks, elderMsg, elderName);
                     notificationCount++;
+
+                    // 2. 给关联用户发送概览提醒
+                    try {
+                        const associateIds = await ElderUserRelationRepository.findAllByElderUserId(userId);
+                        if (associateIds && associateIds.length > 0) {
+                            const associateMsg = `提醒：您关联的老人 ${elderName} 今天还有 ${pendingTasks.length} 项任务未完成，请关注。`;
+
+                            for (const associateId of associateIds) {
+                                emitTaskReminderNotification(associateId, today, pendingTasks, associateMsg, elderName);
+                                notificationCount++;
+                            }
+                        }
+                    } catch (assocError) {
+                        console.error(
+                            `[TaskScheduler] Failed to send reminder to associates of elder ${userId}:`,
+                            assocError
+                        );
+                    }
+
                 } catch (error) {
                     console.error(
                         `[TaskScheduler] Failed to send reminder to user ${userId}:`,

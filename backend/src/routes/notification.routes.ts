@@ -25,5 +25,10 @@ router.patch(
   NotificationController.markAsRead
 );
 
+router.post(
+  '/send-test-notification',
+  NotificationController.sendTestNotification
+);
+
 export default router;
 
