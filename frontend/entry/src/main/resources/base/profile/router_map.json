@@ -72,12 +72,12 @@
     },
     {
       "name": "Elder_TaskDetail",
-      "pageSourceFile": "src/main/ets/pages/elder/ElderTaskDetailPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/ElderTaskDetailPage.ets",
       "buildFunction": "ElderTaskDetailPageBuilder"
     },
     {
       "name": "Elder_TaskCheckIn",
-      "pageSourceFile": "src/main/ets/pages/elder/ElderTaskCheckInPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/ElderTaskCheckInPage.ets",
       "buildFunction": "ElderTaskCheckInPageBuilder"
     },
     {

@@ -1,4 +1,4 @@
-import { TaskDetailNavParam, ElderTaskInstanceInfo, ElderPlanItemInfo, ElderPlanInfo } from './ElderHomeTab';
+import { TaskDetailNavParam, ElderTaskInstanceInfo, ElderPlanItemInfo, ElderPlanInfo } from '../elder/ElderHomeTab';
 import { CheckInNavParam } from './ElderTaskCheckInPage';
 import { httpRequest } from '../../common/api/HttpUtil';
 import { RequestEnum } from '../../common/api/httpEnum';
@@ -446,6 +446,13 @@ export struct ElderTaskDetailPage {
               .fontSize(13)
               .fontColor('#16a34a')
               .fontWeight(FontWeight.Medium)
+              .onClick(() => {
+                const navParam: CheckInNavParam = {
+                  taskInstanceId: this.task!.id,
+                  taskName: this.planItem!.name
+                };
+                this.navPathStack.pushPathByName('Elder_TaskCheckIn', navParam);
+              })
           } else if (this.task.status === 'PENDING') {
             Button('签到')
               .fontSize(13)

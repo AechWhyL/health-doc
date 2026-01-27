@@ -1164,7 +1164,7 @@ export class InterventionPlanItemController {
           readStream.pipe(writeStream);
         });
 
-        savedUrls.push(`/uploads/check-in/${filename}`);
+        savedUrls.push(`/check-in/${filename}`);
       }
 
       // 将图片URL数组序列化为JSON字符串

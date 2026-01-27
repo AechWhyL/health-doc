@@ -354,6 +354,9 @@ export struct ElderOverviewTab {
             }, (item: ElderWithHealth) => item.relation.relation_id.toString())
           }
           .padding({ left: 16, right: 16, bottom: 20 })
+          .constraintSize({
+            minHeight:'100%'
+          })
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)

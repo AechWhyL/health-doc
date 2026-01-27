@@ -6,6 +6,7 @@ import {
   RehabPlanItemResponse
 } from '../../../models/DTO/intervention';
 import { CardContainer } from '../../../components/common/CardContainer';
+import { CheckInNavParam } from '../../common/ElderTaskCheckInPage';
 
 @Builder
 export function InterventionPlanItemDetailBuilder() {
@@ -143,6 +144,17 @@ export struct InterventionPlanItemDetail {
                       .padding({ top: 12, bottom: 12 })
                       .border(index < this.tasks.length - 1 ? { width: { bottom: 1 }, color: '#f1f5f9' } : undefined)
                       .width('100%')
+                      .onClick(() => {
+                        if (task.status === 'COMPLETED' && this.interventionPathStack) {
+                          // Prepare params for check-in page
+                          const param:CheckInNavParam ={
+                            taskInstanceId: task.id,
+                            taskName: this.item?.name || '任务详情'
+                          }
+                          const params: object = param
+                          this.interventionPathStack.pushPathByName('Elder_TaskCheckIn', params);
+                        }
+                      })
                     })
                   }
                 }
@@ -162,6 +174,7 @@ export struct InterventionPlanItemDetail {
     }
     .title('计划项详情')
     .onReady((ctx: NavDestinationContext) => {
+      this.interventionPathStack = ctx.pathStack;
       this.item = ctx.pathInfo.param as PlanItemResponse
       this.loadTodayTasks()
     })

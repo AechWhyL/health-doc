@@ -7,6 +7,7 @@ import {
   RehabPlanItemResponse,
   PlanTaskInstanceResponse
 } from '../../../models/DTO/intervention';
+import { CheckInNavParam } from '../../common/ElderTaskCheckInPage';
 
 export interface PlanItemDetailRouteParams {
   item: PlanItemResponse;
@@ -188,28 +189,43 @@ export struct PlanItemDetailPage {
                       Text('—').fontSize(20).fontColor('#94a3b8')
                     }
                   }.width('100%').padding(12).backgroundColor('#f8fafc').borderRadius(8).margin({ bottom: 8 })
+                  .onClick(() => {
+                    if (task.status === 'COMPLETED' && this.navPathStack) {
+                      // Prepare params for check-in page
+                      const param:CheckInNavParam ={
+                        taskInstanceId: task.id,
+                        taskName: '任务详情'
+                      }
+                      const params: object = param
+                      this.navPathStack.pushPathByName('Elder_TaskCheckIn', params);
+                    }
+                  })
                 })
               }
+
+              // 底部操作按钮
+              if (this.detailItem && this.detailItem.status === 'ACTIVE') {
+                Row() {
+                  Button('停止计划项')
+                    .type(ButtonType.Capsule)
+                    .width('100%')
+                    .height(44)
+                    .backgroundColor('#dc2626')
+                    .fontSize(15)
+                    .onClick(() => {
+                      this.stopPlanItem()
+                    })
+                }
+                .width('100%')
+                .padding({ left: 16, right: 16, bottom: 24, top: 8 })
+                .backgroundColor(Color.White)
+              }
             }.padding(16)
+            .constraintSize({
+              minHeight:'100%'
+            })
           }.layoutWeight(1)
 
-          // 底部操作按钮
-          if (this.detailItem && this.detailItem.status === 'ACTIVE') {
-            Row() {
-              Button('停止计划项')
-                .type(ButtonType.Capsule)
-                .width('100%')
-                .height(44)
-                .backgroundColor('#dc2626')
-                .fontSize(15)
-                .onClick(() => {
-                  this.stopPlanItem()
-                })
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16, bottom: 24, top: 8 })
-            .backgroundColor(Color.White)
-          }
         }
       }.width('100%').height('100%').backgroundColor('#f8fafc')
     }
