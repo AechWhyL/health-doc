@@ -1,6 +1,7 @@
 import { promptAction } from '@kit.ArkUI';
 import { InterventionService } from '../../../common/api/InterventionService';
 import { CreateInterventionPlanRequest } from '../../../models/DTO/intervention';
+import { IUser } from '../../../models/DTO/UserModels';
 import { FormInputRow } from '../../../components/form/FormInputRow'
 import { FormDatePicker } from '../../../components/form/FormDatePicker'
 import { CardContainer } from '../../../components/common/CardContainer'
@@ -42,7 +43,7 @@ export struct InterventionPlanForm {
         description: this.description,
         startDate: this.startDate.toISOString().split('T')[0],
         endDate: this.endDate ? this.endDate.toISOString().split('T')[0] : null,
-        createdByUserId: 1 // Dummy ID, backend likely utilizes token user
+        createdByUserId: this.getCurrentUserId()
       };
 
       const response = await InterventionService.createPlan(request);
@@ -57,6 +58,17 @@ export struct InterventionPlanForm {
     } finally {
       this.isSubmitting = false;
     }
+  }
+
+  private getCurrentUserId(): number {
+    const user = AppStorage.get<IUser>('currentUser');
+    if (user && user.id) {
+      return user.id;
+    }
+    // Fallback or error handling if needed. 
+    // Ideally this shouldn't happen if user is logged in.
+    console.warn('[InterventionPlanForm] Failed to get current user ID, defaulting to 1');
+    return 1; 
   }
 
   build() {
