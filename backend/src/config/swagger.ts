@@ -171,6 +171,14 @@ const options = {
               type: 'object',
               description: '结构化记录内容(JSON)',
             },
+            creator_id: {
+              type: 'integer',
+              description: '创建者ID',
+            },
+            creator_name: {
+              type: 'string',
+              description: '创建者姓名',
+            },
             created_at: {
               type: 'string',
               format: 'date-time',

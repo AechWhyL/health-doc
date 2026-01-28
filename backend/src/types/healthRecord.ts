@@ -106,6 +106,8 @@ export interface HealthRecord {
   record_title: string;
   record_date: string;
   content_structured: HealthRecordContent;
+  creator_id: number;
+  creator_name?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -10,7 +10,8 @@ export class HealthRecordService {
       record_type: data.record_type,
       record_title: data.record_title,
       record_date: data.record_date,
-      content_structured: data.content_structured
+      content_structured: data.content_structured,
+      creator_id: data.creator_id
     };
 
     const insertId = await HealthRecordRepository.create(recordData);
@@ -120,6 +121,8 @@ export class HealthRecordService {
       record_title: record.record_title,
       record_date: record.record_date,
       content_structured: record.content_structured,
+      creator_id: record.creator_id,
+      creator_name: record.creator_name,
       created_at: record.created_at || '',
       updated_at: record.updated_at || ''
     };

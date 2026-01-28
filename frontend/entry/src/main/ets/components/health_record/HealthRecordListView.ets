@@ -267,6 +267,13 @@ export struct HealthRecordListView {
             .fontColor('#64748b')
         }
         .margin({ top: 6 })
+
+        if (item.creator_name) {
+          Text('创建人: ' + item.creator_name)
+            .fontSize(11)
+            .fontColor('#64748b')
+            .margin({ top: 4 })
+        }
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)

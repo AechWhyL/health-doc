@@ -71,7 +71,14 @@ export class HealthRecordController {
       ctx.badRequest(error.details[0].message);
       return;
     }
-    const data: CreateHealthRecordRequest = value;
+    if (!ctx.state.user) {
+      ctx.unauthorized('未授权的操作');
+      return;
+    }
+    const data: CreateHealthRecordRequest = {
+      ...value,
+      creator_id: ctx.state.user.userId
+    };
     const result = await HealthRecordService.createHealthRecord(data);
     ctx.success(result, '健康记录创建成功');
   }

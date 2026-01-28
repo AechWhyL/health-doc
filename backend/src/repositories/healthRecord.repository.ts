@@ -4,21 +4,27 @@ import { HealthRecord } from '../types/healthRecord';
 export class HealthRecordRepository {
   static async create(data: Omit<HealthRecord, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
     const sql = `
-      INSERT INTO health_record (elder_id, record_type, record_title, record_date, content_structured)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO health_record (elder_id, record_type, record_title, record_date, content_structured, creator_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const params = [
       data.elder_id,
       data.record_type,
       data.record_title,
       data.record_date,
-      JSON.stringify(data.content_structured)
+      JSON.stringify(data.content_structured),
+      data.creator_id
     ];
     return await Database.insert(sql, params);
   }
 
   static async findById(id: number): Promise<HealthRecord | null> {
-    const sql = 'SELECT * FROM health_record WHERE id = ?';
+    const sql = `
+      SELECT hr.*, u.real_name as creator_name 
+      FROM health_record hr 
+      LEFT JOIN users u ON hr.creator_id = u.id 
+      WHERE hr.id = ?
+    `;
     const result = await Database.queryOne<HealthRecord>(sql, [id]);
     if (result && result.content_structured && typeof (result as any).content_structured === 'string') {
       (result as any).content_structured = JSON.parse((result as any).content_structured);
@@ -28,20 +34,43 @@ export class HealthRecordRepository {
 
   static async findAll(page: number, pageSize: number, where: string = '1=1', params: any[] = [], sortBy: string = 'created_at', sortOrder: string = 'desc'): Promise<{ items: HealthRecord[]; total: number }> {
     const orderBy = `${sortBy} ${sortOrder.toUpperCase()}`;
-    const result = await Database.paginate<HealthRecord>('health_record', page, pageSize, where, params, orderBy);
+    const offset = (page - 1) * pageSize;
+
+    // Custom query to support JOIN
+    const countSql = `SELECT COUNT(*) as total FROM health_record WHERE ${where}`;
+    const totalResult = await Database.queryOne<{ total: number }>(countSql, params);
+    const total = totalResult ? totalResult.total : 0;
+
+    const sql = `
+      SELECT hr.*, u.real_name as creator_name 
+      FROM health_record hr 
+      LEFT JOIN users u ON hr.creator_id = u.id 
+      WHERE ${where} 
+      ORDER BY hr.${orderBy} 
+      LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}
+    `;
+
+    const items = await Database.query<HealthRecord>(sql, params);
+
     return {
-      items: result.items.map(item => {
+      items: items.map(item => {
         if (item.content_structured && typeof (item as any).content_structured === 'string') {
           (item as any).content_structured = JSON.parse((item as any).content_structured);
         }
         return item;
       }),
-      total: result.total
+      total
     };
   }
 
   static async findByElderId(elderId: number): Promise<HealthRecord[]> {
-    const sql = 'SELECT * FROM health_record WHERE elder_id = ? ORDER BY record_date DESC, created_at DESC';
+    const sql = `
+      SELECT hr.*, u.real_name as creator_name 
+      FROM health_record hr 
+      LEFT JOIN users u ON hr.creator_id = u.id 
+      WHERE hr.elder_id = ? 
+      ORDER BY hr.record_date DESC, hr.created_at DESC
+    `;
     const results = await Database.query<HealthRecord>(sql, [elderId]);
     return results.map(item => {
       if (item.content_structured && typeof (item as any).content_structured === 'string') {

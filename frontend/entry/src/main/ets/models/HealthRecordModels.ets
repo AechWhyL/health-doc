@@ -55,6 +55,7 @@ export interface HealthRecordItem {
   record_title: string;
   record_date: string;
   content_structured: HealthRecordContent;
+  creator_name?: string;
   created_at: string;
   updated_at: string;
 }

@@ -389,6 +389,13 @@ export struct HealthRecordDetailPage {
                     .fontColor('#64748b')
                 }
                 .margin({ top: 6 })
+
+                if (this.record.creator_name) {
+                  Text('创建人: ' + this.record.creator_name)
+                    .fontSize(12)
+                    .fontColor('#64748b')
+                    .margin({ top: 4 })
+                }
               }
               .layoutWeight(1)
               .alignItems(HorizontalAlign.Start)

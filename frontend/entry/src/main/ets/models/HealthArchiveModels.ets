@@ -91,6 +91,7 @@ export interface HealthRecordItem {
   content_structured: HealthRecordContent;
   created_at: string;
   updated_at: string;
+  creator_name?: string;
 }
 
 // ==================== API 请求/响应类型 ====================
