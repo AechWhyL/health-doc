@@ -8,7 +8,7 @@ import {
   PlanTaskInstanceResponse,
   QueryInterventionPlanRequest,
 } from '../../../models/DTO/intervention';
-import { PlanFormRouteParams } from './InterventionPlanForm'
+import { PlanFormRouteParams } from '../../common/InterventionPlanForm'
 import { PlanItemFormRouteParams } from './PlanItemFormPage'
 import { PlanItemDetailRouteParams } from './PlanItemDetailPage'
 import { CardContainer } from '../../../components/common/CardContainer'
@@ -61,8 +61,8 @@ export struct InterventionPlanListComp {
     this.navPathStack.pushPathByName('Medical_Intervention_PlanItemForm', params)
   }
 
-  private openItemDetail(item: PlanItemResponse) {
-    const params: PlanItemDetailRouteParams = { item }
+  private openItemDetail(item: PlanItemResponse,editable:boolean) {
+    const params: PlanItemDetailRouteParams = { item,editable }
     this.navPathStack.pushPathByName('Medical_Intervention_PlanItemDetail', params)
   }
 
@@ -366,7 +366,7 @@ export struct InterventionPlanListComp {
                       .borderRadius(8)
                       .margin({ bottom: 8 })
                       .onClick(() => {
-                        this.openItemDetail(item)
+                        this.openItemDetail(item,plan.editable)
                       })
                     })
                   }

@@ -104,6 +104,21 @@ export struct InterventionIndex {
     )
   }
 
+  private goToCreatePlan(): void {
+    if (this.elders.length === 0) {
+      promptAction.showToast({ message: '请先添加老人' })
+      return
+    }
+    // 默认为第一个老人创建
+    // FIX: Use elder_user_id (user account ID) instead of elder_id (elder_basic_info.id)
+    const elderUserId = this.elders[0].elder_user_id ?? this.elders[0].elder_id
+    const param: PlanFormRouteParams = { elderUserId: elderUserId }
+    this.navPathStack.pushPath({
+      name: 'Medical_Intervention_PlanForm',
+      param: param as Object
+    })
+  }
+
   @Builder
   private buildTodayTasksPanel() {
     CardContainer({ title: '今日待办' }) {

@@ -164,7 +164,8 @@ export class NotificationService {
             title: `${data.sender_name}回复了您的咨询`,
             text: data.message_preview,
           }
-        }
+        },
+        notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION
       };
 
       await notificationManager.publish(notificationRequest);

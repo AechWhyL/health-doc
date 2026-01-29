@@ -594,7 +594,7 @@ export class InterventionPlanItemService {
           if (plan) {
             // 获取老人用户信息
             const { Database } = await import('../config/database');
-            const elderUserSql = 'SELECT name FROM users WHERE id = ?';
+            const elderUserSql = 'SELECT name FROM elder_basic_info WHERE user_id = ?';
             const elderUser = await Database.queryOne<{ name: string }>(elderUserSql, [
               plan.elder_user_id
             ]);

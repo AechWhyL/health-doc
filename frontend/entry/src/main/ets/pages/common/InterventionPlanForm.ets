@@ -1,10 +1,10 @@
 import { promptAction } from '@kit.ArkUI';
-import { InterventionService } from '../../../common/api/InterventionService';
-import { CreateInterventionPlanRequest } from '../../../models/DTO/intervention';
-import { IUser } from '../../../models/DTO/UserModels';
-import { FormInputRow } from '../../../components/form/FormInputRow'
-import { FormDatePicker } from '../../../components/form/FormDatePicker'
-import { CardContainer } from '../../../components/common/CardContainer'
+import { InterventionService } from '../../common/api/InterventionService';
+import { CreateInterventionPlanRequest } from '../../models/DTO/intervention';
+import { IUser } from '../../models/DTO/UserModels';
+import { FormInputRow } from '../../components/form/FormInputRow'
+import { FormDatePicker } from '../../components/form/FormDatePicker'
+import { CardContainer } from '../../components/common/CardContainer'
 
 @Builder
 export function InterventionPlanFormBuilder() {

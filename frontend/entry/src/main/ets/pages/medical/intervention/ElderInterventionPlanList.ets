@@ -1,8 +1,9 @@
 import { promptAction, SymbolGlyphModifier } from '@kit.ArkUI';
+import {CurrentUser} from '../../../models/DTO/Auth'
 import {
   UserElderRelationItem
 } from '../../../models/DTO/intervention';
-import { PlanFormRouteParams } from './InterventionPlanForm'
+import { PlanFormRouteParams } from '../../common/InterventionPlanForm'
 import { MedicalHealthDataParams } from '../data/MedicalHealthDataPage';
 import { InterventionPlanListComp } from './InterventionPlanListComp';
 
@@ -15,6 +16,7 @@ export function ElderInterventionPlanListBuilder (){
 export struct ElderInterventionPlanList {
   @State private elderRelation: UserElderRelationItem | null = null
   @State private errorMsg: string = ''
+  @State editable: boolean = false
   // Use a refresh counter to trigger list update on return
   @State private listRefreshId: number = 0
   @Consume('navPathStack') navPathStack: NavPathStack;
@@ -72,9 +74,17 @@ export struct ElderInterventionPlanList {
         }
       }
     ])
+    .hideToolBar(this.editable)
     .onReady((ctx: NavDestinationContext) => {
       console.info('[ElderInterventionPlanList] onReady called, param:', JSON.stringify(ctx.pathInfo.param))
       const param = ctx.pathInfo.param as UserElderRelationItem
+      const user = AppStorage.get<CurrentUser>('currentUser');
+      const roleCodes = user?.roles.map(role => role.role_code.toLowerCase())
+      if(roleCodes && roleCodes.includes('medical_staff')){
+        this.editable = true
+      }else{
+        this.editable = false
+      }
       if (param && param.elder_id) {
         this.elderRelation = param
       } else {

@@ -42,6 +42,12 @@ struct MedicalIndex {
       NotificationService.showTaskCheckinNotification(new TaskCheckinNotification(data));
     });
 
+    // 4. 注册任务提醒通知监听 (医护端关注)
+    socketService.on<TaskReminderNotification>('notification:task_reminder', (data) => {
+      console.log('[FamilyIndex] Received task reminder:', data);
+      NotificationService.showTaskReminderNotification(new TaskReminderNotification(data));
+    });
+
     // 4. 绑定用户
     const user:UserWithRoleResponse|undefined = AppStorage.get<UserWithRoleResponse>('currentUser');
     if (user) {

@@ -11,6 +11,7 @@ import { CheckInNavParam } from '../../common/ElderTaskCheckInPage';
 
 export interface PlanItemDetailRouteParams {
   item: PlanItemResponse;
+  editable:boolean;
 }
 
 @Builder
@@ -23,6 +24,7 @@ export struct PlanItemDetailPage {
   @State private detailItem: PlanItemResponse | null = null
   @State private detailTasks: PlanTaskInstanceResponse[] = []
   @State private detailLoading: boolean = false
+  @State editable:boolean = false
   @Consume('navPathStack') navPathStack: NavPathStack;
 
   private formatDate(dateStr: string | null | undefined): string {
@@ -204,7 +206,7 @@ export struct PlanItemDetailPage {
               }
 
               // 底部操作按钮
-              if (this.detailItem && this.detailItem.status === 'ACTIVE') {
+              if (this.detailItem && this.detailItem.status === 'ACTIVE' && this.editable) {
                 Row() {
                   Button('停止计划项')
                     .type(ButtonType.Capsule)
@@ -218,7 +220,6 @@ export struct PlanItemDetailPage {
                 }
                 .width('100%')
                 .padding({ left: 16, right: 16, bottom: 24, top: 8 })
-                .backgroundColor(Color.White)
               }
             }.padding(16)
             .constraintSize({
@@ -234,6 +235,7 @@ export struct PlanItemDetailPage {
       const params = ctx.pathInfo.param as PlanItemDetailRouteParams
       if (params && params.item) {
         this.detailItem = params.item
+        this.editable = params.editable
         this.loadTodayTasks()
       }
     })

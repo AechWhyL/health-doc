@@ -1,4 +1,5 @@
 import { ElderOverviewTab } from './ElderOverviewTab';
+import {InterventionIndex} from './intervention/InterventionIndex'
 import { HealthDataTab } from './HealthDataTab';
 import { FamilyConsultationTab } from './FamilyConsultationTab';
 import { FamilyArchiveTab } from './FamilyArchiveTab';
@@ -70,12 +71,12 @@ struct FamilyIndex {
 
   @Builder
   private buildHomeTab() {
-    ElderOverviewTab()
+    InterventionIndex()
   }
 
   @Builder
   private buildArchiveTab() {
-    FamilyArchiveTab()
+    ElderOverviewTab()
   }
 
   @Builder
@@ -122,7 +123,7 @@ struct FamilyIndex {
 
           // 底部导航栏
           Row() {
-            this.TabIcon('home', '🏠', '首页')
+            this.TabIcon('home', '🏠', '计划')
             this.TabIcon('archive', '📋', '档案')
             this.TabIcon('health', '❤️', '健康')
             this.TabIcon('consult', '💬', '咨询')
