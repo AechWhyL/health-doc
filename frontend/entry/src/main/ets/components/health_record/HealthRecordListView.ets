@@ -424,6 +424,7 @@ export struct HealthRecordListView {
    */
   @Monitor('refresher')
   public refresh(): void {
+    console.log("[HealthRecordList] refresh")
     this.loadRecords();
   }
 }

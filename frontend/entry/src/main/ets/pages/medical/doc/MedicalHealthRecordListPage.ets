@@ -93,6 +93,7 @@ export struct MedicalHealthRecordListPage {
     })
     .onResult(()=>{
       this.refresher++
+      console.log("[MedicalHealthRecordListPage] refresher:" + this.refresher)
     })
     .width('100%')
     .height('100%')

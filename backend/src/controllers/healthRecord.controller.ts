@@ -386,7 +386,13 @@ export class HealthRecordController {
     }
 
     const data: UpdateHealthRecordRequest = value;
-    const result = await HealthRecordService.updateHealthRecord(recordId, data);
+    // Get operator ID from context
+    if (!ctx.state.user) {
+      ctx.unauthorized('未授权的操作');
+      return;
+    }
+    const operatorId = ctx.state.user.userId;
+    const result = await HealthRecordService.updateHealthRecord(recordId, data, operatorId);
     ctx.success(result, '健康记录更新成功');
   }
 
@@ -438,5 +444,76 @@ export class HealthRecordController {
 
     await HealthRecordService.deleteHealthRecord(recordId);
     ctx.success(null, '健康记录删除成功');
+  }
+
+  /**
+   * @swagger
+   * /api/v1/elder-health/health-record/{id}/history:
+   *   get:
+   *     summary: 获取健康记录操作历史
+   *     description: 获取指定健康记录的新增和修改操作历史
+   *     tags: [健康记录管理]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: 健康记录ID
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: array
+   *                   items:
+   *                     type: object
+   *                     properties:
+   *                       id:
+   *                         type: integer
+   *                       health_record_id:
+   *                         type: integer
+   *                       operator_id:
+   *                         type: integer
+   *                       operator_name:
+   *                         type: string
+   *                       operation_type:
+   *                         type: string
+   *                         enum: [ADD, MODIFY]
+   *                       snapshot_before:
+   *                         type: object
+   *                         description: 操作前快照
+   *                       snapshot_after:
+   *                         type: object
+   *                         description: 操作后快照
+   *                       created_at:
+   *                         type: string
+   *                         format: date-time
+   *       400:
+   *         description: 请求参数错误
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async getHealthRecordHistory(ctx: Context) {
+    const { id } = ctx.params;
+    const recordId = parseInt(id, 10);
+    if (isNaN(recordId)) {
+      ctx.badRequest('无效的健康记录ID');
+      return;
+    }
+
+    const result = await HealthRecordService.getHealthRecordHistory(recordId);
+    ctx.success(result);
   }
 }

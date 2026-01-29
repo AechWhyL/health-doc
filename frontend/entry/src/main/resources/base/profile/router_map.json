@@ -124,6 +124,16 @@
       "name": "Family_HealthRecordList",
       "pageSourceFile": "src/main/ets/pages/family/FamilyHealthRecordListPage.ets",
       "buildFunction": "FamilyHealthRecordListPageBuilder"
+    },
+    {
+      "name": "Common_HealthRecordHistory",
+      "pageSourceFile": "src/main/ets/pages/common/HealthRecordHistoryPage.ets",
+      "buildFunction": "HealthRecordHistoryPageBuilder"
+    },
+    {
+      "name": "Common_HealthRecordHistoryDetail",
+      "pageSourceFile": "src/main/ets/pages/common/HealthRecordHistoryDetailPage.ets",
+      "buildFunction": "HealthRecordHistoryDetailPageBuilder"
     }
   ]
 }

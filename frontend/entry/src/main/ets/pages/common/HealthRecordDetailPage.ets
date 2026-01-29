@@ -170,18 +170,38 @@ export struct HealthRecordDetailPage {
         method: RequestEnum.DELETE,
         token: 'auth'
       });
-
       if (response.code !== 200) {
         const msg = response.message || '删除健康记录失败';
         this.getUIContext().getPromptAction().showToast({ message: msg });
         return;
       }
-
       this.getUIContext().getPromptAction().showToast({ message: '删除健康记录成功' });
       this.navPathStack.pop(true);
     } catch (_error) {
       this.getUIContext().getPromptAction().showToast({ message: '网络异常,删除健康记录失败' });
     }
+  }
+
+  private viewHistory(): void {
+    if (!this.record) return;
+    this.navPathStack.pushPath({
+      name: 'Common_HealthRecordHistory',
+      param: this.record.id
+    });
+  }
+
+  @Builder
+  private buildMenus() {
+    Row() {
+      Text('历史')
+        .fontSize(16)
+        .fontColor('#2563eb')
+        .onClick(() => {
+          this.viewHistory();
+        })
+    }
+    .height('100%')
+    .padding({ right: 16 })
   }
 
   @Builder
@@ -468,6 +488,7 @@ export struct HealthRecordDetailPage {
       .height('100%')
     }
     .title('档案详情')
+    .menus(this.buildMenus())
     .onReady((ctx: NavDestinationContext) => {
       this.navPathStack = ctx.pathStack;
       this.params = ctx.pathInfo.param as HealthRecordDetailParams;

@@ -2,6 +2,8 @@ import { HealthRecordRepository } from '../repositories/healthRecord.repository'
 import { HealthRecord, HealthRecordType } from '../types/healthRecord';
 import { CreateHealthRecordRequest, UpdateHealthRecordRequest, HealthRecordResponse } from '../dto/requests/healthRecord.dto';
 import { NotFoundError } from '../utils/errors';
+import { HealthRecordHistoryRepository } from '../repositories/healthRecordHistory.repository';
+
 
 export class HealthRecordService {
   static async createHealthRecord(data: CreateHealthRecordRequest): Promise<HealthRecordResponse> {
@@ -20,6 +22,15 @@ export class HealthRecordService {
     if (!record) {
       throw new Error('创建健康记录失败');
     }
+
+    // Record history
+    await HealthRecordHistoryRepository.create({
+      health_record_id: insertId,
+      operator_id: data.creator_id,
+      operation_type: 'ADD',
+      snapshot_before: null,
+      snapshot_after: record
+    });
 
     return this.toResponse(record);
   }
@@ -74,7 +85,7 @@ export class HealthRecordService {
     return records.map(item => this.toResponse(item));
   }
 
-  static async updateHealthRecord(id: number, data: UpdateHealthRecordRequest): Promise<HealthRecordResponse> {
+  static async updateHealthRecord(id: number, data: UpdateHealthRecordRequest, operatorId: number): Promise<HealthRecordResponse> {
     const existingRecord = await HealthRecordRepository.findById(id);
     if (!existingRecord) {
       throw new NotFoundError('健康记录不存在');
@@ -95,6 +106,15 @@ export class HealthRecordService {
     if (!record) {
       throw new Error('获取更新后的健康记录失败');
     }
+
+    // Record history
+    await HealthRecordHistoryRepository.create({
+      health_record_id: id,
+      operator_id: operatorId,
+      operation_type: 'MODIFY',
+      snapshot_before: existingRecord,
+      snapshot_after: record
+    });
 
     return this.toResponse(record);
   }
@@ -126,5 +146,9 @@ export class HealthRecordService {
       created_at: record.created_at || '',
       updated_at: record.updated_at || ''
     };
+  }
+
+  static async getHealthRecordHistory(recordId: number) {
+    return await HealthRecordHistoryRepository.findByRecordId(recordId);
   }
 }

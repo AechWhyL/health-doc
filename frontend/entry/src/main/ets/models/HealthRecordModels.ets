@@ -81,3 +81,20 @@ export interface HealthRecordFormSubmitPayload {
   recordDate: string;
   contentStructured: Record<string, Object>;
 }
+
+export type OperationType = 'ADD' | 'MODIFY';
+
+export interface HealthRecordHistory {
+  id: number;
+  health_record_id: number;
+  operator_id: number;
+  operator_name?: string;
+  operation_type: OperationType;
+  snapshot_before?: HealthRecordItem | null;
+  snapshot_after: HealthRecordItem;
+  created_at: string;
+}
+
+export interface HealthRecordHistoryDetailParams {
+  history: HealthRecordHistory;
+}
