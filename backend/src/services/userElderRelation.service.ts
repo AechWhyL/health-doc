@@ -1,12 +1,14 @@
 import { ElderUserRelationRepository } from '../repositories/elderUserRelation.repository';
 import { ElderRepository } from '../repositories/elder.repository';
 import { DailyHealthMeasurementRepository } from '../repositories/dailyHealthMeasurement.repository';
+import { HealthRecordRepository } from '../repositories/healthRecord.repository';
 import { ElderBasicInfo } from '../types/healthRecord';
 import {
   CreateUserElderRelationRequest,
   QueryUserEldersRequest,
   UserElderRelationItemResponse,
   UserElderWithHealthResponse,
+  UserElderWithArchiveStatsResponse,
   HealthSummary
 } from '../dto/requests/user.dto';
 import { ElderResponse } from '../dto/requests/elder.dto';
@@ -124,6 +126,39 @@ export class UserElderRelationService {
       items: itemsWithHealth,
       total,
       abnormal_count: abnormalCount
+    };
+  }
+
+  static async getUserEldersWithArchiveStats(
+    userId: number,
+    query: QueryUserEldersRequest
+  ): Promise<{ items: UserElderWithArchiveStatsResponse[]; total: number }> {
+    // First get the elder list
+    const { items: elderRelations, total } = await this.getUserElders(userId, query);
+
+    const itemsWithStats: UserElderWithArchiveStatsResponse[] = [];
+
+    // For each elder, fetch their archive stats
+    for (const relation of elderRelations) {
+      let stats = { total: 0, breakdown: {} };
+      try {
+        // Use elder_id (Elder Profile ID) as health_record table references elder_id
+        if (relation.elder_id) {
+          stats = await HealthRecordRepository.countByElderId(relation.elder_id);
+        }
+      } catch (error) {
+        console.error(`Failed to load archive stats for elder ${relation.elder_id}:`, error);
+      }
+
+      itemsWithStats.push({
+        ...relation,
+        archive_stats: stats
+      });
+    }
+
+    return {
+      items: itemsWithStats,
+      total
     };
   }
 

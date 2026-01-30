@@ -109,7 +109,7 @@ export struct MineTab {
 
       if (response.code === 200 && response.data) {
         this.user = response.data;
-        console.log("[Medical MineTab] " + this.user.medical_staff_info?.enable_online_service)
+        console.log("[Medical MineTab] " + JSON.stringify(this.user))
         this.initForm(response.data);
       } else {
         promptAction.showToast({ message: response.message || '获取用户信息失败' });

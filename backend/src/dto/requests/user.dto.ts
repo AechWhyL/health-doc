@@ -316,6 +316,15 @@ export interface HealthSummary {
   fpg_level?: string;      // NORMAL | MILD | MODERATE | SEVERE
 }
 
+export interface ArchiveStats {
+  total: number;
+  breakdown: Record<string, number>;
+}
+
+export interface UserElderWithArchiveStatsResponse extends UserElderRelationItemResponse {
+  archive_stats: ArchiveStats;
+}
+
 export interface UserElderWithHealthResponse extends UserElderRelationItemResponse {
   health_summary?: HealthSummary;
 }

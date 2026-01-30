@@ -36,6 +36,12 @@ router.get(
   validateQuery(queryUserEldersSchema),
   UserController.getMyEldersWithHealth
 );
+router.get(
+  '/me/elders-with-stats',
+  authMiddleware,
+  validateQuery(queryUserEldersSchema),
+  UserController.getMyEldersWithArchiveStats
+);
 router.post(
   '/me/elders',
   authMiddleware,

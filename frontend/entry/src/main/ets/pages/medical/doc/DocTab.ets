@@ -4,7 +4,13 @@ import { RequestEnum } from '../../../common/api/httpEnum';
 import { SectionHeader } from '../../../components/common/SectionHeader';
 import { StatCard } from '../../../components/common/StatCard';
 import { EmptyState } from '../../../components/common/EmptyState';
-import { CardContainer } from '../../../components/common/CardContainer';
+import { 
+  ArchiveStats, 
+  ElderResponse,
+  ElderWithArchiveStats,
+  EldersWithArchiveStatsListData,
+  UserElderWithArchiveStatsResponse
+} from '../../../models/HealthArchiveModels';
 
 interface ApiResponse<T = Object> {
   code: number;
@@ -13,119 +19,11 @@ interface ApiResponse<T = Object> {
   timestamp: number;
 }
 
-interface ElderResponse {
-  id: number;
-  user_id: number;
-  name: string;
-  gender: number;
-  birth_date: string;
-  phone: string;
-  address: string | null;
-  emergency_contact: string;
-  height: number | null;
-  weight: number | null;
-  blood_type: string | null;
-  age: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserElderRelationItem {
-  relation_id: number;
-  elder_id: number;
-  relation_name: string | null;
-  remark: string | null;
-  elder: ElderResponse;
-}
 
 interface MyEldersQueryParams {
   page: number;
   pageSize: number;
   elder_name?: string;
-}
-
-interface MyEldersListData {
-  items: UserElderRelationItem[];
-  total: number;
-}
-
-interface AddMyElderRequest {
-  elder_id: number;
-  relation_name?: string;
-  remark?: string;
-}
-
-interface ElderListQueryParams {
-  phone?: string;
-  page: number;
-  pageSize: number;
-  name?: string;
-}
-
-interface ElderListPageData {
-  items: ElderResponse[];
-  total: number;
-  pages: number;
-  current: number;
-  size: number;
-}
-
-interface HealthJudgment {
-  bp_level?: string;
-  fpg_level?: string;
-}
-
-interface HealthMeasurement {
-  id: number;
-  sbp?: number;
-  dbp?: number;
-  fpg?: number;
-  judgment?: HealthJudgment;
-}
-
-interface HealthMeasurementListData {
-  records: HealthMeasurement[];
-  total: number;
-}
-
-interface HealthDataQueryParams {
-  elder_id: number;
-  page: number;
-  pageSize: number;
-  include_judgment: boolean;
-}
-
-// 新API返回的健康摘要
-interface HealthSummary {
-  latest_bp?: string;
-  latest_fpg?: string;
-  bp_level?: string;
-  fpg_level?: string;
-}
-
-// 新API返回的老人关系项（包含健康摘要）
-interface UserElderWithHealthItem extends UserElderRelationItem {
-  health_summary?: HealthSummary;
-}
-
-// 新API返回数据结构
-interface EldersWithHealthListData {
-  records: UserElderWithHealthItem[];
-  total: number;
-  abnormal_count: number;
-}
-
-// 扩展的老人关系，包含健康摘要
-interface ElderWithHealth {
-  relation: UserElderRelationItem;
-  latestBp?: string;
-  latestFpg?: string;
-  bpStatus?: string;
-  fpgStatus?: string;
-}
-
-interface buildElderCardParams {
-  item:ElderWithHealth
 }
 
 @Builder
@@ -135,11 +33,10 @@ export function DocTabBuilder(){
 
 @Component
 export struct DocTab {
-  @State private eldersWithHealth: ElderWithHealth[] = []
+  @State private elders: ElderWithArchiveStats[] = []
   @State private isLoadingElders: boolean = false
   @State private elderError: string = ''
 
-  @State private abnormalCount: number = 0
   @Consume('navPathStack') navPathStack: NavPathStack;
 
   aboutToAppear(): void {
@@ -153,7 +50,7 @@ export struct DocTab {
 
     this.isLoadingElders = true
     if (reset) {
-      this.eldersWithHealth = []
+      this.elders = []
     }
 
     try {
@@ -162,9 +59,9 @@ export struct DocTab {
         pageSize: 50
       }
 
-      // 使用新的合并接口，一次性获取老人列表和健康数据
-      const response = await httpRequest<ApiResponse<EldersWithHealthListData>, MyEldersQueryParams>({
-        url: '/api/v1/users/me/elders-with-health',
+      // 使用新的统计接口
+      const response = await httpRequest<ApiResponse<EldersWithArchiveStatsListData>, MyEldersQueryParams>({
+        url: '/api/v1/users/me/elders-with-stats',
         method: RequestEnum.GET,
         token: 'auth',
         params
@@ -177,20 +74,14 @@ export struct DocTab {
       }
 
       const listData = response.data
-      const elders = listData && listData.records ? listData.records : []
+      const records = listData && listData.items ? listData.items : []
 
-      // 直接从响应中解析健康数据，无需额外请求
-      this.eldersWithHealth = elders.map((e: UserElderWithHealthItem) => {
-        const item: ElderWithHealth = {
+      this.elders = records.map((e: UserElderWithArchiveStatsResponse) => {
+        return {
           relation: e,
-          latestBp: e.health_summary?.latest_bp,
-          latestFpg: e.health_summary?.latest_fpg,
-          bpStatus: e.health_summary?.bp_level,
-          fpgStatus: e.health_summary?.fpg_level
-        }
-        return item
+          archiveStats: e.archive_stats
+        } as ElderWithArchiveStats
       })
-      this.abnormalCount = listData.abnormal_count || 0
       this.elderError = ''
     } catch (error) {
       this.elderError = '网络异常'
@@ -202,7 +93,7 @@ export struct DocTab {
 
 
   private isElderLinked(elderId: number): boolean {
-    return this.eldersWithHealth.some((item: ElderWithHealth) => item.relation.elder_id === elderId)
+    return this.elders.some((item: ElderWithArchiveStats) => item.relation.elder_id === elderId)
   }
 
 
@@ -218,131 +109,46 @@ export struct DocTab {
     return gender === 1 ? '👴' : '👵'
   }
 
-  private getStatusColor(status?: string): string {
-    switch (status) {
-      case 'NORMAL': return '#16a34a'
-      case 'MILD': return '#ca8a04'
-      case 'MODERATE': return '#ea580c'
-      case 'SEVERE': return '#dc2626'
-      default: return '#64748b'
-    }
+  private getGenderText(gender: number): string {
+    return gender === 1 ? '男' : '女';
   }
-
-  private getStatusBgColor(status?: string): string {
-    switch (status) {
-      case 'NORMAL': return '#f0fdf4'
-      case 'MILD': return '#fefce8'
-      case 'MODERATE': return '#fff7ed'
-      case 'SEVERE': return '#fef2f2'
-      default: return '#f1f5f9'
-    }
-  }
-
-
-
 
   @Builder
   private buildStatsBar() {
     Row({ space: 12 }) {
       StatCard({
-        value: this.eldersWithHealth.length.toString(),
+        value: this.elders.length.toString(),
         label: '关联老人',
         icon: '👥',
         color: '#2563eb',
         bgColor: '#eff6ff'
       })
-
-      StatCard({
-        value: this.abnormalCount.toString(),
-        label: '异常指标',
-        icon: '⚠️',
-        color: this.abnormalCount > 0 ? '#dc2626' : '#16a34a',
-        bgColor: this.abnormalCount > 0 ? '#fef2f2' : '#f0fdf4'
-      })
+      
+      // 可以添加其他统计信息，或者仅仅保留关联老人数量
+      // StatCard({
+      //   value: this.elders.reduce((acc, curr) => acc + curr.archiveStats.total, 0).toString(),
+      //   label: '档案总数',
+      //   icon: '📋',
+      //   color: '#16a34a',
+      //   bgColor: '#f0fdf4'
+      // })
     }
     .width('100%')
     .margin({ bottom: 16 })
   }
 
-  @Builder
-  private buildElderCard(params: buildElderCardParams) {
-    Column() {
-      Row() {
-        Text(this.getGenderEmoji(params.item.relation.elder.gender))
-          .fontSize(36)
-          .margin({ right: 14 })
-
-        Column() {
-          Row() {
-            Text(params.item.relation.elder.name)
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#1e293b')
-            Text(`${params.item.relation.elder.age}岁`)
-              .fontSize(13)
-              .fontColor('#64748b')
-              .margin({ left: 8 })
-          }
-
-          Text(params.item.relation.relation_name || '关联老人')
-            .fontSize(12)
-            .fontColor('#94a3b8')
-            .margin({ top: 4 })
-
-          // 健康摘要
-          Row({ space: 8 }) {
-            Row() {
-              Text(`血压: ${params.item.latestBp || '--'}`)
-                .fontSize(11)
-                .fontColor(this.getStatusColor(params.item.bpStatus))
-            }
-            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-            .backgroundColor(this.getStatusBgColor(params.item.bpStatus))
-            .borderRadius(4)
-
-            Row() {
-              Text(`血糖: ${params.item.latestFpg || '--'}`)
-                .fontSize(11)
-                .fontColor(this.getStatusColor(params.item.fpgStatus))
-            }
-            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-            .backgroundColor(this.getStatusBgColor(params.item.fpgStatus))
-            .borderRadius(4)
-          }
-          .margin({ top: 8 })
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Text('›')
-          .fontSize(24)
-          .fontColor('#cbd5e1')
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding(16)
-    .backgroundColor(Color.White)
-    .borderRadius(14)
-    .shadow({ radius: 4, color: '#0f172a0a', offsetY: 1 })
-    .margin({ bottom: 12 })
-    .onClick(() => {
-      this.openElderArchiveDetail(params.item.relation.elder)
-    })
-  }
-
   build() {
     Column() {
-      // 统计栏
-      this.buildStatsBar()
+      // // 统计栏
+      // this.buildStatsBar()
 
       // 老人列表
       SectionHeader({
         title: '我正在关注的老人列表',
-        subtitle: `共 ${this.eldersWithHealth.length} 位`
+        subtitle: `共 ${this.elders.length} 位`
       })
 
-      if (this.isLoadingElders && this.eldersWithHealth.length === 0) {
+      if (this.isLoadingElders && this.elders.length === 0) {
         Column() {
           LoadingProgress().width(32).height(32).color('#2563eb')
           Text('加载中...')
@@ -363,7 +169,7 @@ export struct DocTab {
             this.loadElders(true)
           }
         })
-      } else if (this.eldersWithHealth.length === 0) {
+      } else if (this.elders.length === 0) {
         EmptyState({
           icon: '👥',
           title: '暂无关联老人',
@@ -373,61 +179,116 @@ export struct DocTab {
       } else {
         Scroll() {
           Column() {
-            ForEach(this.eldersWithHealth, (item: ElderWithHealth) => {
-              // this.buildElderCard({item})
+            ForEach(this.elders, (item: ElderWithArchiveStats) => {
               Column() {
+                // 顶部信息区
                 Row() {
-                  Text(this.getGenderEmoji(item.relation.elder.gender))
-                    .fontSize(36)
-                    .margin({ right: 14 })
-
-                  Column() {
-                    Row() {
-                      Text(item.relation.elder.name)
-                        .fontSize(16)
-                        .fontWeight(FontWeight.Bold)
-                        .fontColor('#1e293b')
-                      Text(`${item.relation.elder.age}岁`)
-                        .fontSize(13)
-                        .fontColor('#64748b')
-                        .margin({ left: 8 })
+                    // 头像区域
+                    Column() {
+                    Text(this.getGenderEmoji(item.relation.elder.gender))
+                        .fontSize(32)
                     }
+                    .width(56)
+                    .height(56)
+                    .borderRadius(28)
+                    .backgroundColor('#f1f5f9')
+                    .justifyContent(FlexAlign.Center)
+                    .alignItems(HorizontalAlign.Center)
 
-                    // Text(item.relation.relation_name || '关联老人')
-                    //   .fontSize(12)
-                    //   .fontColor('#94a3b8')
-                    //   .margin({ top: 4 })
+                    // 基本信息
+                    Column() {
+                        Row() {
+                            Text(item.relation.elder.name)
+                            .fontSize(16)
+                            .fontWeight(FontWeight.Bold)
+                            .fontColor('#1e293b')
+                            Text(' · ' + this.getGenderText(item.relation.elder.gender) + ' · ' + item.relation.elder.age + '岁')
+                            .fontSize(13)
+                            .fontColor('#64748b')
+                            .margin({ left: 8 })
+                        }
 
-                    // 健康摘要
-                    Row({ space: 8 }) {
-                      Row() {
-                        Text(`血压: ${item.latestBp || '--'}`)
-                          .fontSize(11)
-                          .fontColor(this.getStatusColor(item.bpStatus))
-                      }
-                      .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                      .backgroundColor(this.getStatusBgColor(item.bpStatus))
-                      .borderRadius(4)
-
-                      Row() {
-                        Text(`血糖: ${item.latestFpg || '--'}`)
-                          .fontSize(11)
-                          .fontColor(this.getStatusColor(item.fpgStatus))
-                      }
-                      .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                      .backgroundColor(this.getStatusBgColor(item.fpgStatus))
-                      .borderRadius(4)
+                        Text('联系电话：' + item.relation.elder.phone)
+                        .fontSize(12)
+                        .fontColor('#94a3b8')
+                        .margin({ top: 4 })
                     }
-                    .margin({ top: 8 })
-                  }
-                  .alignItems(HorizontalAlign.Start)
-                  .layoutWeight(1)
+                    .alignItems(HorizontalAlign.Start)
+                    .layoutWeight(1)
+                    .margin({ left: 14 })
 
                   Text('›')
                     .fontSize(24)
                     .fontColor('#cbd5e1')
                 }
                 .width('100%')
+
+                Divider()
+                .strokeWidth(1)
+                .color('#f1f5f9')
+                .margin({ top: 12, bottom: 12 })
+
+                // 档案统计区
+                Row() {
+                    Column() {
+                        Text(item.archiveStats.total.toString())
+                            .fontSize(20)
+                            .fontWeight(FontWeight.Bold)
+                            .fontColor('#1e293b')
+                        Text('档案总数')
+                            .fontSize(12)
+                            .fontColor('#64748b')
+                            .margin({ top: 4 })
+                    }
+                    .alignItems(HorizontalAlign.Center)
+                    .width(80)
+
+                    // 垂直分割线
+                    Divider()
+                        .vertical(true)
+                        .height(30)
+                        .color('#e2e8f0')
+                        .margin({ left: 10, right: 10 })
+
+                    // 摘要详情
+                    Row({ space: 8 }) {
+                        if (item.archiveStats.breakdown['MEDICAL_HISTORY']) {
+                            Text(`病史 ${item.archiveStats.breakdown['MEDICAL_HISTORY']}`)
+                            .fontSize(11)
+                            .fontColor('#64748b')
+                            .backgroundColor('#f8fafc')
+                            .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+                            .borderRadius(4)
+                        }
+                        if (item.archiveStats.breakdown['CHECK_REPORT']) {
+                            Text(`检查 ${item.archiveStats.breakdown['CHECK_REPORT']}`)
+                            .fontSize(11)
+                            .fontColor('#64748b')
+                            .backgroundColor('#f8fafc')
+                            .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+                            .borderRadius(4)
+                        }
+                        if (item.archiveStats.breakdown['MEDICATION']) {
+                            Text(`用药 ${item.archiveStats.breakdown['MEDICATION']}`)
+                            .fontSize(11)
+                            .fontColor('#64748b')
+                            .backgroundColor('#f8fafc')
+                            .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+                            .borderRadius(4)
+                        }
+                        if (item.archiveStats.breakdown['ALLERGY']) {
+                            Text(`过敏 ${item.archiveStats.breakdown['ALLERGY']}`)
+                            .fontSize(11)
+                            .fontColor('#64748b')
+                            .backgroundColor('#f8fafc')
+                            .padding({ left: 6, right: 6, top: 4, bottom: 4 })
+                            .borderRadius(4)
+                        }
+                    }
+                    .layoutWeight(1)
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Center)
               }
               .width('100%')
               .padding(16)
@@ -438,7 +299,7 @@ export struct DocTab {
               .onClick(() => {
                 this.openElderArchiveDetail(item.relation.elder)
               })
-            }, (item: ElderWithHealth) => item.relation.relation_id.toString())
+            }, (item: ElderWithArchiveStats) => item.relation.relation_id.toString())
           }
           .constraintSize({
             minHeight:"100%"

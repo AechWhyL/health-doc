@@ -3,6 +3,8 @@
  * 用于医护端和家属端的健康档案功能
  */
 
+import { PaginationResponse } from "./DTO/types";
+
 // ==================== 基础类型 ====================
 
 /**
@@ -170,6 +172,35 @@ export interface ElderBasicInfo {
   age: number;
   created_at?: string;
   updated_at?: string;
+}
+
+// 兼容别名
+export type ElderResponse = ElderBasicInfo;
+
+export interface UserElderRelationItem {
+  relation_id: number;
+  elder_id: number;
+  relation_name: string | null;
+  remark: string | null;
+  elder: ElderResponse;
+}
+
+export interface ArchiveStats {
+  total: number;
+  breakdown: Record<string, number>;
+}
+
+export interface UserElderWithArchiveStatsResponse extends UserElderRelationItem {
+  archive_stats: ArchiveStats;
+}
+
+export interface EldersWithArchiveStatsListData extends PaginationResponse<UserElderWithArchiveStatsResponse> {
+
+}
+
+export interface ElderWithArchiveStats {
+  relation: UserElderRelationItem;
+  archiveStats: ArchiveStats;
 }
 
 // ==================== 导航参数类型 ====================

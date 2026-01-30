@@ -122,4 +122,24 @@ export class HealthRecordRepository {
     const result = await Database.delete(sql, [elderId]);
     return result > 0;
   }
+  static async countByElderId(elderId: number): Promise<{ total: number; breakdown: Record<string, number> }> {
+    const sql = `
+      SELECT record_type, COUNT(*) as count
+      FROM health_record
+      WHERE elder_id = ?
+      GROUP BY record_type
+    `;
+    const results = await Database.query<{ record_type: string; count: number }>(sql, [elderId]);
+
+    let total = 0;
+    const breakdown: Record<string, number> = {};
+
+    results.forEach(row => {
+      const count = Number(row.count) || 0;
+      breakdown[row.record_type] = count;
+      total += count;
+    });
+
+    return { total, breakdown };
+  }
 }

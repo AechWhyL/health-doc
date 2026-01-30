@@ -21,6 +21,22 @@ export struct ElderInterventionPlanList {
   @State private listRefreshId: number = 0
   @Consume('navPathStack') navPathStack: NavPathStack;
 
+  @State menuItems:NavigationMenuItem[] = [
+    {
+      value:"健康",
+      symbolIcon: new SymbolGlyphModifier($r('sys.symbol.heart')), action: () => {
+      this.goToHealthData()
+    }
+    },
+    {
+      value: $r('sys.symbol.plus'),
+      symbolIcon: new SymbolGlyphModifier($r('sys.symbol.plus')),
+      action: () => {
+        this.goToAddPlan()
+      }
+    }
+  ]
+
   private goToAddPlan() {
     if (!this.elderRelation) {
       return;
@@ -48,7 +64,7 @@ export struct ElderInterventionPlanList {
         if (this.elderRelation) {
             InterventionPlanListComp({
                 elderUserId: this.elderRelation.elder_user_id ?? this.elderRelation.elder_id,
-                showTabs: true,
+                showTabs: this.editable,
                 refreshId: this.listRefreshId
             })
         } else if (this.errorMsg) {
@@ -59,22 +75,7 @@ export struct ElderInterventionPlanList {
       }.width('100%').height('100%').backgroundColor('#f8fafc')
     }
     .title(this.elderRelation ? `${this.elderRelation.elder.name}的干预计划` : '干预计划')
-    .menus([
-      {
-        value:"健康",
-        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.heart')), action: () => {
-          this.goToHealthData()
-        }
-      },
-      {
-        value: $r('sys.symbol.plus'),
-        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.plus')),
-        action: () => {
-          this.goToAddPlan()
-        }
-      }
-    ])
-    .hideToolBar(this.editable)
+    .menus(this.editable?this.menuItems:this.menuItems.slice(0,1))
     .onReady((ctx: NavDestinationContext) => {
       console.info('[ElderInterventionPlanList] onReady called, param:', JSON.stringify(ctx.pathInfo.param))
       const param = ctx.pathInfo.param as UserElderRelationItem

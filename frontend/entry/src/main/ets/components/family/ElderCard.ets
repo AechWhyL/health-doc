@@ -1,19 +1,5 @@
-// 老人健康数据摘要
-interface HealthSummary {
-  latestSbp?: number;
-  latestDbp?: number;
-  latestFpg?: number;
-  hasWarning: boolean;
-  warningText?: string;
-  bpLevel?: string;
-  fpgLevel?: string;
-}
-
-interface StatusResult {
-  text: string;
-  color: string;
-  icon: string;
-}
+import { ArchiveStats } from '../../models/HealthArchiveModels';
+import { LengthMetrics } from '@kit.ArkUI';
 
 @Component
 export struct ElderCard {
@@ -22,7 +8,7 @@ export struct ElderCard {
   @Prop elderGender: number = 0; // 0=女, 1=男
   @Prop elderPhone: string = '';
   @Prop relationName: string = '';
-  @Prop healthSummary: HealthSummary = { hasWarning: false };
+  @Prop archiveStats: ArchiveStats = { total: 0, breakdown: {} };
   onCardClick: () => void = () => {};
   onViewArchive: () => void = () => {};
 
@@ -35,79 +21,7 @@ export struct ElderCard {
   }
 
   private formatPhone(): string {
-    // if (this.elderPhone.length >= 11) {
-    //   return this.elderPhone.substring(0, 3) + '****' + this.elderPhone.substring(7);
-    // }
     return this.elderPhone;
-  }
-
-  private getBpStatus(): StatusResult {
-    const sbp = this.healthSummary.latestSbp;
-    const dbp = this.healthSummary.latestDbp;
-    
-    // 优先使用后端判断结果
-    if (this.healthSummary.bpLevel) {
-      switch (this.healthSummary.bpLevel) {
-        case 'NORMAL':
-          return { text: '正常', color: '#16a34a', icon: '✓' };
-        case 'MILD':
-        case 'MODERATE':
-        case 'SEVERE':
-          return { text: '偏高', color: '#dc2626', icon: '⚠️' };
-        default:
-          return { text: '未知', color: '#9ca3af', icon: '—' };
-      }
-    }
-
-    // 降级兜底逻辑
-    if (sbp === undefined || dbp === undefined) {
-      const result: StatusResult = { text: '暂无数据', color: '#9ca3af', icon: '—' };
-      return result;
-    }
-    if (sbp >= 140 || dbp >= 90) {
-      const result: StatusResult = { text: '偏高', color: '#dc2626', icon: '⚠️' };
-      return result;
-    }
-    if (sbp < 90 || dbp < 60) {
-      const result: StatusResult = { text: '偏低', color: '#f59e0b', icon: '⚡' };
-      return result;
-    }
-    const result: StatusResult = { text: '正常', color: '#16a34a', icon: '✓' };
-    return result;
-  }
-
-  private getFpgStatus(): StatusResult {
-    const fpg = this.healthSummary.latestFpg;
-    
-    // 优先使用后端判断结果
-    if (this.healthSummary.fpgLevel) {
-      switch (this.healthSummary.fpgLevel) {
-        case 'NORMAL':
-          return { text: '正常', color: '#16a34a', icon: '✓' };
-        case 'MILD':
-        case 'MODERATE':
-        case 'SEVERE':
-          return { text: '偏高', color: '#dc2626', icon: '⚠️' };
-        default:
-          return { text: '未知', color: '#9ca3af', icon: '—' };
-      }
-    }
-
-    // 降级兜底逻辑
-    if (fpg === undefined) {
-      const result: StatusResult = { text: '暂无数据', color: '#9ca3af', icon: '—' };
-      return result;
-    }
-    if (fpg >= 7.0) {
-      const result: StatusResult = { text: '偏高', color: '#dc2626', icon: '⚠️' };
-      return result;
-    }
-    if (fpg < 3.9) {
-      const result: StatusResult = { text: '偏低', color: '#f59e0b', icon: '⚡' };
-      return result;
-    }
-    const result: StatusResult = { text: '正常', color: '#16a34a', icon: '✓' };
-    return result;
   }
 
   build() {
@@ -165,88 +79,76 @@ export struct ElderCard {
         .color('#e2e8f0')
         .margin({ top: 14, bottom: 14 })
 
-      // 健康摘要区
+      // 档案统计区
       Row() {
-        // 血压
         Column() {
-          Row() {
-            Text('💓')
-              .fontSize(14)
-            Text(' 血压')
-              .fontSize(13)
-              .fontColor('#64748b')
-          }
-          Row() {
-            if (this.healthSummary.latestSbp !== undefined && this.healthSummary.latestDbp !== undefined) {
-              Text(this.healthSummary.latestSbp + '/' + this.healthSummary.latestDbp)
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium)
-                .fontColor('#1e293b')
-            } else {
-              Text('—')
-                .fontSize(16)
-                .fontColor('#9ca3af')
-            }
-          }
-          .margin({ top: 4 })
-          .width("100%")
+          Text(this.archiveStats.total.toString())
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1e293b')
+          Text('档案总数')
+            .fontSize(12)
+            .fontColor('#64748b')
+            .margin({ top: 4 })
+        }
+        .alignItems(HorizontalAlign.Center)
+        .width(80)
 
-          Row(){
-            Text(' ' + this.getBpStatus().icon + ' ' + this.getBpStatus().text)
-              .fontSize(12)
-              .fontColor(this.getBpStatus().color)
-              .margin({ left: 4 })
+        // 垂直分割线
+        Divider()
+          .vertical(true)
+          .height(30)
+          .color('#e2e8f0')
+          .margin({ left: 5, right: 5 })
+
+        Column(){
+
+        }
+        // 摘要详情
+        Flex({
+          wrap:FlexWrap.Wrap,
+          space:{
+            main:LengthMetrics.vp(12),
+            cross:LengthMetrics.vp(12)
           }
-          .margin({ top: 4 })
+        }) {
+          if (this.archiveStats.breakdown['MEDICAL_HISTORY']) {
+            Text(`病史 ${this.archiveStats.breakdown['MEDICAL_HISTORY']}`)
+              .fontSize(12)
+              .fontColor('#64748b')
+              .backgroundColor('#f1f5f9')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(4)
+          }
+           if (this.archiveStats.breakdown['CHECK_REPORT']) {
+            Text(`检查 ${this.archiveStats.breakdown['CHECK_REPORT']}`)
+              .fontSize(12)
+              .fontColor('#64748b')
+              .backgroundColor('#f1f5f9')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(4)
+          }
+          if (this.archiveStats.breakdown['MEDICATION']) {
+            Text(`用药 ${this.archiveStats.breakdown['MEDICATION']}`)
+              .fontSize(12)
+              .fontColor('#64748b')
+              .backgroundColor('#f1f5f9')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(4)
+          }
+          if (this.archiveStats.breakdown['ALLERGY']) {
+            Text(`过敏 ${this.archiveStats.breakdown['ALLERGY']}`)
+              .fontSize(12)
+              .fontColor('#64748b')
+              .backgroundColor('#f1f5f9')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(4)
+          }
         }
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        // 血糖
-        Column() {
-          Row() {
-            Text('🩸')
-              .fontSize(14)
-            Text(' 血糖')
-              .fontSize(13)
-              .fontColor('#64748b')
-          }
-          Row() {
-            if (this.healthSummary.latestFpg !== undefined) {
-              Text(Number(this.healthSummary.latestFpg).toFixed(1))
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium)
-                .fontColor('#1e293b')
-            } else {
-              Text('—')
-                .fontSize(16)
-                .fontColor('#9ca3af')
-            }
-            Text(' ' + this.getFpgStatus().icon + ' ' + this.getFpgStatus().text)
-              .fontSize(12)
-              .fontColor(this.getFpgStatus().color)
-              .margin({ left: 4 })
-          }
-          .margin({ top: 4 })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
       }
       .width('100%')
-
-      // 预警提示
-      if (this.healthSummary.hasWarning && this.healthSummary.warningText) {
-        Row() {
-          Text('⚠️ ' + this.healthSummary.warningText)
-            .fontSize(12)
-            .fontColor('#b45309')
-        }
-        .width('100%')
-        .padding(10)
-        .backgroundColor('#fef3c7')
-        .borderRadius(8)
-        .margin({ top: 12 })
-      }
+      .alignItems(VerticalAlign.Center)
 
       // 操作按钮
       Row() {

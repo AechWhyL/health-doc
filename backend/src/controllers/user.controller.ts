@@ -757,6 +757,104 @@ export class UserController {
 
   /**
    * @swagger
+   * /api/v1/users/me/elders-with-stats:
+   *   get:
+   *     summary: 获取当前用户关联的老人列表（含档案统计）
+   *     description: 一次性获取老人列表及其档案统计
+   *     tags: [用户管理]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *         description: 页码
+   *       - in: query
+   *         name: pageSize
+   *         required: false
+   *         schema:
+   *           type: integer
+   *           default: 50
+   *         description: 每页大小
+   *       - in: query
+   *         name: elder_name
+   *         required: false
+   *         schema:
+   *           type: string
+   *           maxLength: 50
+   *         description: 老人姓名（模糊匹配）
+   *     responses:
+   *       200:
+   *         description: 查询成功
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 code:
+   *                   type: integer
+   *                   example: 200
+   *                 message:
+   *                   type: string
+   *                   example: success
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     total:
+   *                       type: integer
+   *                       description: 总记录数
+   *                     pages:
+   *                       type: integer
+   *                       description: 总页数
+   *                     current:
+   *                       type: integer
+   *                       description: 当前页码
+   *                     size:
+   *                       type: integer
+   *                       description: 每页大小
+   *                     records:
+   *                       type: array
+   *                       items:
+   *                         $ref: '#/components/schemas/UserElderWithArchiveStatsResponse'
+   *       401:
+   *         description: 未授权
+   *       403:
+   *         description: 当前用户角色不允许关联老人
+   *       500:
+   *         description: 服务器内部错误
+   */
+  static async getMyEldersWithArchiveStats(ctx: Context) {
+    const userState = ctx.state.user;
+    if (!userState) {
+      ctx.unauthorized('未授权');
+      return;
+    }
+
+    const roles = (userState.roles || []).map(r => r.toLowerCase());
+    const hasAllowedRole =
+      roles.includes(RoleCode.FAMILY) || roles.includes(RoleCode.MEDICAL_STAFF);
+    if (!hasAllowedRole) {
+      ctx.forbidden('当前用户角色不允许关联老人');
+      return;
+    }
+
+    const data = (ctx.state.validatedQuery || ctx.state.validatedData || ctx.query) as QueryUserEldersRequest;
+    const { page, pageSize, elder_name } = data;
+
+    const { items, total } = await UserElderRelationService.getUserEldersWithArchiveStats(userState.userId, {
+      page,
+      pageSize,
+      elder_name
+    });
+
+    ctx.paginate(items, page, pageSize, total);
+  }
+
+  /**
+   * @swagger
    * /api/v1/users/me/elders-with-health:
    *   get:
    *     summary: 获取当前用户关联的老人列表（含健康数据摘要）

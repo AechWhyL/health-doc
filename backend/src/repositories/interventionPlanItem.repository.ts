@@ -580,6 +580,8 @@ export class InterventionPlanItemRepository {
       JOIN intervention_plan ip ON pi.plan_id = ip.id
       WHERE ip.elder_user_id IN (${placeholders})
         AND pti.task_date = ?
+        AND pti.status != 'SKIPPED'
+        AND pti.status != 'STOPPED'
       GROUP BY ip.elder_user_id
     `;
 
