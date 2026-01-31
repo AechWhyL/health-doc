@@ -1,13 +1,13 @@
 import { promptAction } from '@kit.ArkUI';
-import { InterventionService } from '../../../common/api/InterventionService';
+import { InterventionService } from '../../common/api/InterventionService';
 import dayjs from 'dayjs';
 import {
   PlanItemResponse,
   MedicationPlanItemResponse,
   RehabPlanItemResponse,
   PlanTaskInstanceResponse
-} from '../../../models/DTO/intervention';
-import { CheckInNavParam } from '../../common/ElderTaskCheckInPage';
+} from '../../models/DTO/intervention';
+import { CheckInNavParam } from './ElderTaskCheckInPage';
 
 export interface PlanItemDetailRouteParams {
   item: PlanItemResponse;
@@ -151,58 +151,65 @@ export struct PlanItemDetailPage {
                 Text(this.formatDate(this.detailItem.start_date)).fontSize(14).fontColor('#1e293b')
               }.width('100%').margin({ bottom: 12 })
               Row() {
-                Text('结束日期').fontSize(14).fontColor('#374151').width(90)
+                Text('预计结束').fontSize(14).fontColor('#374151').width(90)
                 Text(this.detailItem.end_date ? this.formatDate(this.detailItem.end_date) : '长期').fontSize(14).fontColor('#1e293b')
               }.width('100%')
 
               // 今日任务列表
               Divider().margin({ top: 16, bottom: 16 })
-              Row() {
-                Text('今日任务').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#1e293b')
-                Blank()
-                Text(`${this.detailTasks.filter(t => t.status === 'COMPLETED').length}/${this.detailTasks.length}`)
-                  .fontSize(13).fontColor('#2563eb')
-              }.width('100%').margin({ bottom: 12 })
-
-              if (this.detailLoading) {
-                Row() {
-                  LoadingProgress().width(20).height(20).color('#2563eb')
-                  Text('加载中...').fontSize(13).fontColor('#64748b').margin({ left: 8 })
-                }.width('100%').justifyContent(FlexAlign.Center).padding(16)
-              } else if (this.detailTasks.length === 0) {
-                Text('今日暂无任务').fontSize(13).fontColor('#9ca3af').padding(16).textAlign(TextAlign.Center).width('100%')
+              if (this.detailItem.status === 'STOPPED') {
+                Column() {
+                  Text('🚫 计划项已停止').fontSize(16).fontWeight(FontWeight.Medium).fontColor('#94a3b8').margin({ bottom: 8 })
+                  // Text('该计划已停止，不再生成今日任务').fontSize(14).fontColor('#cbd5e1')
+                }.width('100%').padding({ top: 20, bottom: 20 }).alignItems(HorizontalAlign.Center)
               } else {
-                ForEach(this.detailTasks, (task: PlanTaskInstanceResponse) => {
-                  Row() {
-                    Column() {
-                      Text(task.task_time || '--').fontSize(16).fontWeight(FontWeight.Medium)
-                        .fontColor(task.status === 'COMPLETED' ? '#059669' : '#1e293b')
-                      Text(this.getTaskStatusText(task.status)).fontSize(12)
-                        .fontColor(this.getTaskStatusColor(task.status)).margin({ top: 2 })
-                    }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+                Row() {
+                  Text('今日任务').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#1e293b')
+                  Blank()
+                  Text(`${this.detailTasks.filter(t => t.status === 'COMPLETED').length}/${this.detailTasks.length}`)
+                    .fontSize(13).fontColor('#2563eb')
+                }.width('100%').margin({ bottom: 12 })
 
-                    if (task.status === 'COMPLETED') {
-                      Text('✓').fontSize(20).fontColor('#059669')
-                    } else if (task.status === 'PENDING') {
-                      Text('○').fontSize(20).fontColor('#d1d5db')
-                    } else if (task.status === 'MISSED') {
-                      Text('✗').fontSize(20).fontColor('#dc2626')
-                    } else {
-                      Text('—').fontSize(20).fontColor('#94a3b8')
-                    }
-                  }.width('100%').padding(12).backgroundColor('#f8fafc').borderRadius(8).margin({ bottom: 8 })
-                  .onClick(() => {
-                    if (task.status === 'COMPLETED' && this.navPathStack) {
-                      // Prepare params for check-in page
-                      const param:CheckInNavParam ={
-                        taskInstanceId: task.id,
-                        taskName: '任务详情'
+                if (this.detailLoading) {
+                  Row() {
+                    LoadingProgress().width(20).height(20).color('#2563eb')
+                    Text('加载中...').fontSize(13).fontColor('#64748b').margin({ left: 8 })
+                  }.width('100%').justifyContent(FlexAlign.Center).padding(16)
+                } else if (this.detailTasks.length === 0) {
+                  Text('今日暂无任务').fontSize(13).fontColor('#9ca3af').padding(16).textAlign(TextAlign.Center).width('100%')
+                } else {
+                  ForEach(this.detailTasks, (task: PlanTaskInstanceResponse) => {
+                    Row() {
+                      Column() {
+                        Text(task.task_time || '--').fontSize(16).fontWeight(FontWeight.Medium)
+                          .fontColor(task.status === 'COMPLETED' ? '#059669' : '#1e293b')
+                        Text(this.getTaskStatusText(task.status)).fontSize(12)
+                          .fontColor(this.getTaskStatusColor(task.status)).margin({ top: 2 })
+                      }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+
+                      if (task.status === 'COMPLETED') {
+                        Text('✓').fontSize(20).fontColor('#059669')
+                      } else if (task.status === 'PENDING') {
+                        Text('○').fontSize(20).fontColor('#d1d5db')
+                      } else if (task.status === 'MISSED') {
+                        Text('✗').fontSize(20).fontColor('#dc2626')
+                      } else {
+                        Text('—').fontSize(20).fontColor('#94a3b8')
                       }
-                      const params: object = param
-                      this.navPathStack.pushPathByName('Elder_TaskCheckIn', params);
-                    }
+                    }.width('100%').padding(12).backgroundColor('#f8fafc').borderRadius(8).margin({ bottom: 8 })
+                    .onClick(() => {
+                      if (task.status === 'COMPLETED' && this.navPathStack) {
+                        // Prepare params for check-in page
+                        const param:CheckInNavParam ={
+                          taskInstanceId: task.id,
+                          taskName: '任务详情'
+                        }
+                        const params: object = param
+                        this.navPathStack.pushPathByName('Elder_TaskCheckIn', params);
+                      }
+                    })
                   })
-                })
+                }
               }
 
               // 底部操作按钮

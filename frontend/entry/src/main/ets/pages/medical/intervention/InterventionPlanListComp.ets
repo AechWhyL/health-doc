@@ -10,7 +10,7 @@ import {
 } from '../../../models/DTO/intervention';
 import { PlanFormRouteParams } from '../../common/InterventionPlanForm'
 import { PlanItemFormRouteParams } from './PlanItemFormPage'
-import { PlanItemDetailRouteParams } from './PlanItemDetailPage'
+import { PlanItemDetailRouteParams } from '../../common/PlanItemDetailPage'
 import { CardContainer } from '../../../components/common/CardContainer'
 import { MedicalHealthDataParams } from '../data/MedicalHealthDataPage';
 import { IUser } from '../../../models/DTO/UserModels';

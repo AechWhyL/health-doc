@@ -27,7 +27,7 @@
     },
     {
       "name": "Medical_Intervention_PlanItemDetail",
-      "pageSourceFile": "src/main/ets/pages/medical/intervention/PlanItemDetailPage.ets",
+      "pageSourceFile": "src/main/ets/pages/common/PlanItemDetailPage.ets",
       "buildFunction": "PlanItemDetailPageBuilder"
     },
     {
