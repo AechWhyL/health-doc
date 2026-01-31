@@ -16,8 +16,29 @@ export interface ConsultationQuestion {
   created_at: string;
   updated_at: string;
   last_message_at?: string;
+  description?:string;
   unread_count?: number;
   creator_summary?: CreatorSummary;
+  creator_info?: UserInfo;
+  target_staff?: MedicalStaffInfo;
+}
+
+export interface UserInfo {
+  id: number;
+  username: string;
+  email: string | null;
+  phone: string | null;
+  real_name: string | null;
+  avatar: string | null;
+  gender?: number;
+  birth_date?: string | null;
+}
+
+export interface MedicalStaffInfo extends UserInfo {
+  role_type: string;
+  job_title: string | null;
+  good_at_tags: string | null;
+  enable_online_service: boolean;
 }
 
 type ConsultationStatus = 'SENDING' | 'SENT' | 'FAILED'

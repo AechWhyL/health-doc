@@ -193,8 +193,28 @@ export interface CreatorSummary {
   phone?: string;
 }
 
+export interface UserInfo {
+  id: number;
+  username: string;
+  email: string | null;
+  phone: string | null;
+  real_name: string | null;
+  avatar: string | null;
+  gender?: number; // From relation tables
+  birth_date?: string | null; // From relation tables
+}
+
+export interface MedicalStaffInfo extends UserInfo {
+  role_type: string;
+  job_title: string | null;
+  good_at_tags: string | null;
+  enable_online_service: boolean;
+}
+
 export interface ConsultationQuestionResponse extends ConsultationQuestionRecord {
-  creator_summary?: CreatorSummary;
+  creator_summary?: CreatorSummary; // Kept for backward compatibility if needed, but redundant with creator_info
+  creator_info?: UserInfo;
+  target_staff?: MedicalStaffInfo;
 }
 
 export interface QueryConsultationQuestionRequest extends PaginationQuery {

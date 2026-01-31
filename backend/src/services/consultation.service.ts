@@ -20,6 +20,8 @@ import { ConsultationMessageRepository } from '../repositories/consultationMessa
 import { ConsultationAttachmentRepository } from '../repositories/consultationAttachment.repository';
 import { ElderRepository } from '../repositories/elder.repository';
 import { FamilyRepository } from '../repositories/family.repository';
+import { UserRepository } from '../repositories/user.repository';
+import { MedicalStaffRepository } from '../repositories/medicalStaff.repository';
 import { Database } from '../config/database';
 
 export class ConsultationService {
@@ -64,7 +66,71 @@ export class ConsultationService {
     if (!question) {
       throw new Error('咨询问题不存在');
     }
-    return question;
+
+    let creator_info: any = undefined;
+    let target_staff: any = undefined;
+
+    // Fetch Target Staff Info
+    try {
+      if (question.target_staff_id) {
+        const staffUser = await UserRepository.findById(question.target_staff_id);
+        const staffInfo = await MedicalStaffRepository.findByUserId(question.target_staff_id);
+
+        if (staffUser && staffInfo) {
+          /* eslint-disable @typescript-eslint/no-unused-vars */
+          const { password: _p, ...safeUser } = staffUser;
+          target_staff = {
+            ...safeUser,
+            ...staffInfo
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch target staff info:', e);
+    }
+
+    // Fetch Creator Info
+    try {
+      if (question.creator_id) {
+        const creatorUser = await UserRepository.findById(question.creator_id);
+        if (creatorUser) {
+          /* eslint-disable @typescript-eslint/no-unused-vars */
+          const { password: _p, ...safeCreator } = creatorUser;
+          let extraInfo = {};
+
+          if (question.creator_type === 'ELDER') {
+            const elder = await ElderRepository.findByUserId(question.creator_id);
+            if (elder) {
+              extraInfo = { gender: elder.gender, birth_date: elder.birth_date };
+            }
+          } else if (question.creator_type === 'FAMILY') {
+            const family = await FamilyRepository.findByUserId(question.creator_id);
+            if (family) {
+              // Family might not have gender/birth_date in basic info, but just in case
+              extraInfo = {};
+            }
+          } else if (question.creator_type === 'STAFF') {
+            const staff = await MedicalStaffRepository.findByUserId(question.creator_id);
+            if (staff) {
+              extraInfo = { gender: staff.gender, birth_date: staff.birth_date, job_title: staff.job_title };
+            }
+          }
+
+          creator_info = {
+            ...safeCreator,
+            ...extraInfo
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch creator info:', e);
+    }
+
+    return {
+      ...question,
+      creator_info,
+      target_staff
+    };
   }
 
   static async getQuestionList(

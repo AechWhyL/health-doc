@@ -2,8 +2,10 @@ import { SocketService } from '../../common/api/SocketService';
 import { ConsultationService } from '../../common/api/ConsultationService';
 import { ConsultationQuestion, ConsultationMessage } from '../../models/ConsultationModels';
 import { ChatView } from '../../components/medical/ChatView';
+import dayjs from 'dayjs';
 import { BASEURL } from '../../common/api/httpEnum';
 import { UserWithRoleResponse } from '../Login';
+import { ConsultationDetailParams } from './ConsultationDetailPage';
 
 @Builder
 export function ChatPageBuilder() {
@@ -15,6 +17,7 @@ export struct ChatPage {
   @Consume('navPathStack') navPathStack: NavPathStack;
   @State questionId: number = 0;
   @State title: string = '';
+  @State createdAt: string = '';
   @State messages: ConsultationMessage[] = [];
   @State isLoadingMessages: boolean = false;
   @State currentUserId: number = 0;
@@ -199,15 +202,30 @@ export struct ChatPage {
 
             Column() {
               Text(this.title)
-                .fontSize(18)
+                .fontSize(16)
                 .fontWeight(FontWeight.Bold)
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
-              Text(`咨询编号: CQ${this.questionId}`)
-                .fontSize(12)
-                .fontColor('#6B7280')
+              
+               Row() {
+                 Text(this.createdAt ? dayjs(this.createdAt).format('YYYY-MM-DD HH:mm') : '')
+                   .fontSize(12)
+                   .fontColor('#6B7280')
+                   .margin({ right: 8 })
+
+                 Text('查看详情 >') // Add visual cue for clickability
+                  .fontSize(12)
+                  .fontColor('#2563eb')
+               }
             }
             .alignItems(HorizontalAlign.Start)
+            .onClick(() => {
+                 const param:ConsultationDetailParams = { id: this.questionId }
+                 this.navPathStack.pushPath({
+                   name: 'Common_ConsultationDetail',
+                   param:param
+                 });
+            })
           }
           .width('100%')
           .padding(16)
@@ -251,6 +269,10 @@ export struct ChatPage {
       if (params) {
         this.questionId = params.id;
         this.title = params.title;
+        // params might be incomplete (just id and title), but if it has createdAt use it.
+        // Ideally we should refetch question details here or pass full object.
+        // Assuming params is the full ConsultationQuestion object from list
+        this.createdAt = params.created_at || ''; 
         this.initData();
       }
     })
