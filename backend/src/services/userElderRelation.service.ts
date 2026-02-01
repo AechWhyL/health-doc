@@ -22,12 +22,16 @@ export class UserElderRelationService {
     const page = query.page || 1;
     const pageSize = query.pageSize || 10;
     const elderName = query.elder_name;
+    const phone = query.phone;
+    const linkedOnly = query.linked_only !== undefined ? query.linked_only : true;
 
     const { items, total } = await ElderUserRelationRepository.findByUserIdWithElder(
       userId,
       page,
       pageSize,
-      elderName
+      elderName,
+      phone,
+      linkedOnly
     );
 
     const resultItems = items.map((item) => {
@@ -50,11 +54,11 @@ export class UserElderRelationService {
       const elder = this.toElderResponse(elderBasic);
 
       return {
-        relation_id: item.relation_id,
+        relation_id: item.relation_id || 0,
         elder_id: elder.id,
         elder_user_id: item.elder_user_id,
-        relation_name: item.relation_name,
-        remark: item.remark,
+        relation_name: item.relation_name || null,
+        remark: item.remark || null,
         elder,
         elder_info: elder
       };

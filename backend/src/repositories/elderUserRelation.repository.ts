@@ -65,26 +65,44 @@ export class ElderUserRelationRepository {
     userId: number,
     page: number,
     pageSize: number,
-    elderName?: string
+    elderName?: string,
+    phone?: string,
+    linkedOnly: boolean = true
   ): Promise<{ items: ElderUserRelationWithElderRaw[]; total: number }> {
     const offset = (page - 1) * pageSize;
-    const whereParts: string[] = ['r.user_id = ?'];
-    const params: any[] = [userId];
+    const whereParts: string[] = [];
+    const params: any[] = [];
+
+    // 如果 linkedOnly 为 true，只查询当前用户关联的老人
+    if (linkedOnly) {
+      whereParts.push('r.user_id = ?');
+      params.push(userId);
+    }
 
     if (elderName) {
       whereParts.push('e.name LIKE ?');
       params.push(`%${elderName}%`);
     }
 
-    const whereClause = whereParts.join(' AND ');
+    if (phone) {
+      whereParts.push('e.phone LIKE ?');
+      params.push(`%${phone}%`);
+    }
+
+    const whereClause = whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
+
+    // 根据 linkedOnly 决定使用 INNER JOIN 还是 LEFT JOIN
+    const joinType = linkedOnly ? 'INNER JOIN' : 'LEFT JOIN';
 
     const countSql = `
       SELECT COUNT(*) AS total
-      FROM elder_user_relations r
-      INNER JOIN elder_basic_info e ON r.elder_id = e.user_id
+      FROM elder_basic_info e
+      ${joinType} elder_user_relations r ON r.elder_id = e.user_id ${linkedOnly ? '' : 'AND r.user_id = ?'}
       WHERE ${whereClause}
     `;
-    const countResult = await Database.queryOne<{ total: number }>(countSql, params);
+
+    const countParams = linkedOnly ? params : [userId, ...params];
+    const countResult = await Database.queryOne<{ total: number }>(countSql, countParams);
     const total = countResult?.total || 0;
 
     const dataSql = `
@@ -108,14 +126,15 @@ export class ElderUserRelationRepository {
         e.blood_type AS elder_blood_type,
         e.created_at AS elder_created_at,
         e.updated_at AS elder_updated_at
-      FROM elder_user_relations r
-      INNER JOIN elder_basic_info e ON r.elder_id = e.user_id
+      FROM elder_basic_info e
+      ${joinType} elder_user_relations r ON r.elder_id = e.user_id ${linkedOnly ? '' : 'AND r.user_id = ?'}
       WHERE ${whereClause}
-      ORDER BY r.created_at DESC, r.id DESC
+      ORDER BY ${linkedOnly ? 'r.created_at DESC, r.id DESC' : 'e.created_at DESC, e.id DESC'}
       LIMIT ${parseInt(String(pageSize), 10)} OFFSET ${parseInt(String(offset), 10)}
     `;
 
-    const items = await Database.query<ElderUserRelationWithElderRaw>(dataSql, params);
+    const dataParams = linkedOnly ? params : [userId, ...params];
+    const items = await Database.query<ElderUserRelationWithElderRaw>(dataSql, dataParams);
 
     return { items, total };
   }

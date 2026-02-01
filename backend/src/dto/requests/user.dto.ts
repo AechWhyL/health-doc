@@ -172,6 +172,13 @@ export const queryUserEldersSchema = Joi.object({
   elder_name: Joi.string().max(50).optional().allow('').messages({
     'string.base': '老人姓名必须是字符串',
     'string.max': '老人姓名长度不能超过50个字符'
+  }),
+  phone: Joi.string().max(20).optional().allow('').messages({
+    'string.base': '电话号码必须是字符串',
+    'string.max': '电话号码长度不能超过20个字符'
+  }),
+  linked_only: Joi.boolean().optional().default(true).messages({
+    'boolean.base': '关联状态筛选必须是布尔值'
   })
 });
 
@@ -291,6 +298,8 @@ export interface LoginResponse {
 
 export interface QueryUserEldersRequest extends PaginationQuery {
   elder_name?: string;
+  phone?: string;
+  linked_only?: boolean;
 }
 
 export interface CreateUserElderRelationRequest {

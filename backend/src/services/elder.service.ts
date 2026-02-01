@@ -34,18 +34,36 @@ export class ElderService {
     return this.toResponse(elder);
   }
 
-  static async getElderList(page: number, pageSize: number, name?: string, phone?: string): Promise<{ items: ElderResponse[]; total: number }> {
+  static async getElderList(
+    page: number,
+    pageSize: number,
+    name?: string,
+    phone?: string,
+    elder_name?: string,
+    linked_only?: boolean,
+    current_user_id?: number
+  ): Promise<{ items: ElderResponse[]; total: number }> {
     let where = '1=1';
     const params: any[] = [];
 
-    if (name) {
+    // 优先使用 elder_name，其次使用 name
+    const nameFilter = elder_name || name;
+    if (nameFilter) {
       where += ' AND name LIKE ?';
-      params.push(`%${name}%`);
+      params.push(`%${nameFilter}%`);
     }
 
     if (phone) {
       where += ' AND phone LIKE ?';
       params.push(`%${phone}%`);
+    }
+
+    // 如果 linked_only=true，仅返回当前用户关联的老人
+    if (linked_only && current_user_id) {
+      where += ` AND user_id IN (
+        SELECT elder_id FROM elder_user_relations WHERE user_id = ?
+      )`;
+      params.push(current_user_id);
     }
 
     const { items, total } = await ElderRepository.findAll(page, pageSize, where, params);

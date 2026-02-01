@@ -217,9 +217,14 @@ export class ElderController {
    */
   static async getElderList(ctx: Context) {
     const data: QueryElderRequest = ctx.state.validatedData || ctx.query;
-    const { page, pageSize, name, phone } = data;
+    const { page, pageSize, name, phone, elder_name, linked_only } = data;
 
-    const { items, total } = await ElderService.getElderList(page, pageSize, name, phone);
+    // 从认证中间件获取当前用户ID（如果已登录）
+    const current_user_id = ctx.state.user?.userId;
+
+    const { items, total } = await ElderService.getElderList(
+      page, pageSize, name, phone, elder_name, linked_only, current_user_id
+    );
 
     ctx.paginate(items, page, pageSize, total);
   }

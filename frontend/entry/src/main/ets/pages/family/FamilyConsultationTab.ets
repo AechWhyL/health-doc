@@ -139,12 +139,12 @@ export struct FamilyConsultationTab {
             .layoutWeight(1)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Text(this.getStatusText(item.status))
-            .fontSize(11)
-            .fontColor(this.getStatusColor(item.status))
-            .backgroundColor(this.getStatusColor(item.status) + '1a')
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .borderRadius(10)
+          // Text(this.getStatusText(item.status))
+          //   .fontSize(11)
+          //   .fontColor(this.getStatusColor(item.status))
+          //   .backgroundColor(this.getStatusColor(item.status) + '1a')
+          //   .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          //   .borderRadius(10)
         }
         .width('100%')
 

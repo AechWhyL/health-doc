@@ -139,6 +139,11 @@
       "name": "Common_ConsultationDetail",
       "pageSourceFile": "src/main/ets/pages/common/ConsultationDetailPage.ets",
       "buildFunction": "ConsultationDetailPageBuilder"
+    },
+    {
+      "name": "Common_ElderInfoEdit",
+      "pageSourceFile": "src/main/ets/pages/common/ElderInfoEditPage.ets",
+      "buildFunction": "ElderInfoEditPageBuilder"
     }
   ]
 }

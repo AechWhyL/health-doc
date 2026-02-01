@@ -2,34 +2,13 @@ import { promptAction } from '@kit.ArkUI';
 import dayjs from 'dayjs';
 import { httpRequest } from '../../common/api/HttpUtil';
 import { RequestEnum } from '../../common/api/httpEnum';
-import { preferenceUtils } from '../../common/preferenceUtils';
 import { CardContainer } from '../../components/common/CardContainer';
-import router from '@ohos.router';
 
 interface ApiResponse<T = Object> {
   code: number;
   message: string;
   data?: T;
   timestamp: number;
-}
-
-interface RoleResponse {
-  id: number;
-  role_code: string;
-  role_name: string;
-}
-
-interface UserResponse {
-  id: number;
-  username: string;
-  email: string | null;
-  phone: string | null;
-  real_name: string | null;
-  avatar: string | null;
-  status: string;
-  created_at: string;
-  roles: RoleResponse[];
-  elder_info?: ElderResponse;
 }
 
 interface ElderResponse {
@@ -57,15 +36,26 @@ interface UpdateElderPayload {
   emergency_contact?: string;
 }
 
+export interface ElderInfoEditRouteParams {
+  elderId: number;
+}
+
 // Editable field types
 type EditableField = 'name' | 'address' | 'height' | 'weight' | 'emergencyContact' | null;
 
+@Builder
+export function ElderInfoEditPageBuilder() {
+  ElderInfoEditPage()
+}
+
 @Component
-export struct ElderProfileTab {
-  @State user: UserResponse | null = null;
+export struct ElderInfoEditPage {
   @State elder: ElderResponse | null = null;
   @State isLoading: boolean = true;
   @State isSaving: boolean = false;
+
+  // Route params
+  private elderId: number = 0;
 
   // Editable fields - stored values
   @State elderName: string = '';
@@ -81,55 +71,31 @@ export struct ElderProfileTab {
   @State editingField: EditableField = null;
   @State editingValue: string = '';
 
-  aboutToAppear(): void {
-    this.loadUserInfo();
-  }
+  @Consume('navPathStack') navPathStack: NavPathStack;
 
-  private async loadUserInfo(): Promise<void> {
+  private async loadElderInfo(): Promise<void> {
+    if (!this.elderId) {
+      promptAction.showToast({ message: '缺少老人ID参数' });
+      return;
+    }
+
     this.isLoading = true;
 
     try {
-      // 优先从服务器获取最新用户信息
-      const response = await httpRequest<ApiResponse<UserResponse>, void>({
-        url: '/api/v1/users/current',
+      const response = await httpRequest<ApiResponse<ElderResponse>, void>({
+        url: `/api/v1/elder-health/elder/${this.elderId}`,
         method: RequestEnum.GET
       });
 
       if (response.code === 200 && response.data) {
-        this.user = response.data;
-        // 如果是老人用户，直接从 elder_info 获取档案
-        if (this.user.elder_info) {
-          this.elder = this.user.elder_info;
-          this.initForm(this.elder);
-        }
-        
-        // 更新本地存储
-        const context = getContext(this);
-        await preferenceUtils().set(context, 'user_store', 'current_user', JSON.stringify(this.user));
+        this.elder = response.data;
+        this.initForm(this.elder);
       } else {
-        // 失败时尝试读取本地缓存
-        const context = getContext(this);
-        const userStr = await preferenceUtils().get(context, 'user_store', 'current_user') as string;
-        if (userStr) {
-          this.user = JSON.parse(userStr) as UserResponse;
-          if (this.user.elder_info) {
-            this.elder = this.user.elder_info;
-            this.initForm(this.elder);
-          }
-        }
+        promptAction.showToast({ message: response.message || '加载失败' });
       }
     } catch (error) {
-      console.error('加载用户信息失败:', error);
-      // 网络异常时也尝试读取本地缓存
-      const context = getContext(this);
-        const userStr = await preferenceUtils().get(context, 'user_store', 'current_user') as string;
-        if (userStr) {
-          this.user = JSON.parse(userStr) as UserResponse;
-          if (this.user.elder_info) {
-            this.elder = this.user.elder_info;
-            this.initForm(this.elder);
-          }
-        }
+      console.error('加载老人信息失败:', error);
+      promptAction.showToast({ message: '网络异常' });
     } finally {
       this.isLoading = false;
     }
@@ -223,7 +189,7 @@ export struct ElderProfileTab {
       if (response.code === 200) {
         promptAction.showToast({ message: '保存成功' });
         onSuccess();
-        await this.loadUserInfo();
+        await this.loadElderInfo();
       } else {
         promptAction.showToast({ message: response.message || '保存失败' });
       }
@@ -231,21 +197,6 @@ export struct ElderProfileTab {
       promptAction.showToast({ message: '网络异常' });
     } finally {
       this.isSaving = false;
-    }
-  }
-
-  private async handleLogout(): Promise<void> {
-    try {
-      const context = getContext(this);
-      await preferenceUtils().deleteFn(context, 'token_store', 'token');
-      await preferenceUtils().deleteFn(context, 'user_store', 'current_user');
-
-      router.replaceUrl({
-        url: 'pages/Login'
-      });
-    } catch (error) {
-      console.error('退出登录失败:', error);
-      promptAction.showToast({ message: '退出失败，请重试' });
     }
   }
 
@@ -281,7 +232,7 @@ export struct ElderProfileTab {
         .justifyContent(FlexAlign.Center)
 
         Column() {
-          Text(this.elderName || this.user?.real_name || this.user?.username || '用户')
+          Text(this.elderName || '老人')
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
             .fontColor('#166534')
@@ -293,8 +244,8 @@ export struct ElderProfileTab {
               .margin({ top: 4 })
           }
 
-          if (this.user?.phone) {
-            Text('📱 ' + this.user.phone)
+          if (this.elder?.phone) {
+            Text('📱 ' + this.elder.phone)
               .fontSize(13)
               .fontColor('#94a3b8')
               .margin({ top: 6 })
@@ -490,73 +441,63 @@ export struct ElderProfileTab {
   }
 
   build() {
-    Column() {
-      // 页面标题
-      Row() {
-        Text('个人中心')
-          .fontSize(22)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#166534')
+    NavDestination() {
+      Column() {
+        if (this.isLoading) {
+          Column() {
+            LoadingProgress().width(40).height(40).color('#16a34a')
+            Text('加载中...').fontSize(14).fontColor('#64748b').margin({ top: 12 })
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+        } else {
+          Scroll() {
+            Column() {
+              this.ProfileCard()
+
+              CardContainer({ title: '基本信息' }) {
+                Column() {
+                  this.EditableTextRow('姓名', 'name', '请输入姓名')
+                  this.GenderPickerRow()
+                  this.BirthDatePickerRow()
+                }
+              }
+
+              CardContainer({ title: '联系信息' }) {
+                Column() {
+                  this.EditableTextRow('家庭住址', 'address', '请输入家庭住址')
+                  this.EditableTextRow('紧急联系人', 'emergencyContact', '请输入紧急联系人')
+                }
+              }
+
+              CardContainer({ title: '健康档案' }) {
+                Column() {
+                  this.EditableTextRow('身高(cm)', 'height', '请输入身高', InputType.NUMBER_DECIMAL)
+                  this.EditableTextRow('体重(kg)', 'weight', '请输入体重', InputType.NUMBER_DECIMAL)
+                  this.BloodTypePickerRow()
+                }
+              }
+            }
+            .padding({ left: 16, right: 16, bottom: 30 })
+          }
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+        }
       }
       .width('100%')
-      .padding({ left: 20, right: 20, top: 16, bottom: 12 })
-
-      if (this.isLoading) {
-        Column() {
-          LoadingProgress().width(40).height(40).color('#16a34a')
-          Text('加载中...').fontSize(14).fontColor('#64748b').margin({ top: 12 })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-      } else {
-        Scroll() {
-          Column() {
-            this.ProfileCard()
-
-            CardContainer({ title: '基本信息' }) {
-              Column() {
-                this.EditableTextRow('姓名', 'name', '请输入姓名')
-                this.GenderPickerRow()
-                this.BirthDatePickerRow()
-              }
-            }
-
-            CardContainer({ title: '联系信息' }) {
-              Column() {
-                this.EditableTextRow('家庭住址', 'address', '请输入家庭住址')
-                this.EditableTextRow('紧急联系人', 'emergencyContact', '请输入紧急联系人')
-              }
-            }
-
-            CardContainer({ title: '健康档案' }) {
-              Column() {
-                this.EditableTextRow('身高(cm)', 'height', '请输入身高', InputType.NUMBER_DECIMAL)
-                this.EditableTextRow('体重(kg)', 'weight', '请输入体重', InputType.NUMBER_DECIMAL)
-                this.BloodTypePickerRow()
-              }
-            }
-
-            // 退出登录按钮
-            Button('退出登录')
-              .type(ButtonType.Capsule)
-              .width('100%')
-              .height(48)
-              .backgroundColor('#fef2f2')
-              .fontColor('#dc2626')
-              .fontSize(15)
-              .margin({ top: 8, bottom: 32 })
-              .onClick(() => {
-                this.handleLogout();
-              })
-          }
-          .padding({ left: 16, right: 16, bottom: 30 })
-        }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-      }
+      .height('100%')
+      .backgroundColor('#f8fafc')
     }
-    .width('100%')
-    .height('100%')
+    .title('老人信息')
+    .onReady((ctx: NavDestinationContext) => {
+      const params = ctx.pathInfo.param as ElderInfoEditRouteParams
+      if (params && params.elderId) {
+        this.elderId = params.elderId
+        this.loadElderInfo()
+      } else {
+        promptAction.showToast({ message: '缺少老人ID参数' })
+      }
+    })
   }
 }
